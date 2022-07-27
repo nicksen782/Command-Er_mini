@@ -1,0 +1,28 @@
+body {
+	background-color: darkblue;
+}
+
+.button {
+	min-width: 26px;
+}
+
+#CANVAS1 {
+	border: 1px solid antiquewhite;
+}
+
+#div_container {
+	border: 5px solid navajowhite;
+	display: inline-block;
+	vertical-align: top;
+	padding: 5px;
+	background-color: black;
+	border-radius: 10px;
+}
+#div_container.disconnected{
+	border-color:red;
+}
+
+.inline-block {
+	display: inline-block;
+	vertical-align: top;
+}
