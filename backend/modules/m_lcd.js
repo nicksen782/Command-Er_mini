@@ -12,7 +12,7 @@ let _MOD = {
 			_APP = parent;
 	
 			// INITIALIZE WEBSOCKETS.
-			_MOD.webSockets.initWss(_APP.app, _APP.express);
+			_MOD.WebSocket.initWss(_APP.app, _APP.express);
 			
 			// INITIALIZE CANVAS.
 			await _MOD.canvas.init();
@@ -29,18 +29,6 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
-		//
-		// _APP.addToRouteList({ path: "/get_config", method: "post", args: [], file: __filename, desc: "get_config" });
-		// app.post('/get_config'    ,express.json(), async (req, res) => {
-		// 	try{ 
-		// 		let result = await _MOD.get_config(); 
-		// 		res.json(result);
-		// 	}
-		// 	catch(e){
-		// 		res.json(e);
-		// 	}
-		// });
-
 	},
 	timeUpdate: {
 		intervalId: null,
@@ -48,39 +36,40 @@ let _MOD = {
 		delay: 500,
 		startInterval: function(){
 			_MOD.timeUpdate.intervalId = setInterval(function(){
-				let x=0*12; let y=23*12;
 				var d = new Date(); // for now
 				let h = d.getHours();
-				if (h > 12) { h -= 12; } 
+				let ampm="AM";
+				if (h > 12) { h -= 12; ampm="PM";} 
 				else if (h === 0) { h = 12; }
-				h.toString().padStart(2, "0"); //
+				h=h.toString().padStart(2, "0");
 
 				let m = d.getMinutes().toString().padStart(2, "0");
 				let s = d.getSeconds().toString().padStart(2, "0");
-				let str2 = `${h}:${m}:${s}`;
+				let str2 = `${h}:${m}:${s} ${ampm}`;
 
 				// Only update the canvas if the timestring has changed.
 				if(str2 != _MOD.timeUpdate.prevTimeString){
+					let x=0; let y=23;
 					_MOD.timeUpdate.prevTimeString = str2;
-					_MOD.canvas.fillRect(x, y, 12*23, 12*1, "#101010");
-					_MOD.canvas.print(str2, x, y, 12);
+					_MOD.canvas.fillRect(x*12, y*12, 23*12, 1*12, "#101010");
+					_MOD.canvas.print(str2, x, y);
 				}
 			}, _MOD.timeUpdate.delay);
 		},
 	},
 	canvas: {
 		// CANVAS
-		canvas:null,
-		ctx   :null,
+		canvas: null,
+		ctx   : null,
 
 		// TEXT PRINTING
 		tileset: null, // Graphics assets. 
 		fb     : null, // The framebuffer used by the lcd.
 		buff   : null, // Raw canvas data for the framebuffer.
-		buff2  : null, // ArrayBuffer
+		buff2  : null, // ArrayBuffer of the canvas.
 
 		// LCD UPDATE FLAGS.
-		updatingLCD: false,
+		updatingLCD:     false,
 		lcdUpdateNeeded: false,
 
 		// CORDS FOR CHARS.
@@ -145,7 +134,7 @@ let _MOD = {
 			"Y" : { x:(12)*9  , y:(12)*3, w:12, h:12 },
 			"Z" : { x:(12)*10 , y:(12)*3, w:12, h:12 },
 			"[" : { x:(12)*11 , y:(12)*3, w:12, h:12 },
-			"©" : { x:(12)*12 , y:(12)*3, w:12, h:12 },
+			"\\" : { x:(12)*12 , y:(12)*3, w:12, h:12 },
 			"]" : { x:(12)*13 , y:(12)*3, w:12, h:12 },
 			"^" : { x:(12)*14 , y:(12)*3, w:12, h:12 },
 			"_" : { x:(12)*15 , y:(12)*3, w:12, h:12 },
@@ -156,6 +145,8 @@ let _MOD = {
 			"tile1"  : { x:(12)*0 , y:(12)*5, w:12, h:12 },
 			"cursor1": { x:(12)*1 , y:(12)*5, w:12, h:12 },
 			"cursor2": { x:(12)*2 , y:(12)*5, w:12, h:12 },
+			"cursor3": { x:(12)*3 , y:(12)*5, w:12, h:12 },
+			"cursor4": { x:(12)*4 , y:(12)*5, w:12, h:12 },
 		},
 
 		// DRAW ONE TILE TO THE CANVAS.
@@ -163,15 +154,15 @@ let _MOD = {
 			let rec = _MOD.canvas.tileCoords[tileName];
 			if(rec){
 				_MOD.canvas.ctx.drawImage(
-					_MOD.canvas.tileset,   // image
-					rec.x , // sx
-					rec.y , // sy
-					rec.w , // sWidth
-					rec.h , // sHeight
-					x     , // dx
-					y     , // dy
-					rec.w , // dWidth
-					rec.h // dHeight
+					_MOD.canvas.tileset, // image
+					rec.x    ,           // sx
+					rec.y    ,           // sy
+					rec.w    ,           // sWidth
+					rec.h    ,           // sHeight
+					(x*rec.w),           // dx
+					(y*rec.h),           // dy
+					rec.w    ,           // dWidth
+					rec.h                // dHeight
 				);
 				_MOD.canvas.lcdUpdateNeeded = true;
 			}
@@ -187,15 +178,15 @@ let _MOD = {
 				for(let dy=0; dy<h; dy+=1){
 					for(let dx=0; dx<w; dx+=1){
 						_MOD.canvas.ctx.drawImage(
-							_MOD.canvas.tileset,   // image
-							rec.x    , // sx
-							rec.y    , // sy
-							rec.w    , // sWidth
-							rec.h    , // sHeight
-							x + dx*rec.w , // dx
-							y + dy*rec.h , // dy
-							rec.w    , // dWidth
-							rec.h      // dHeight
+							_MOD.canvas.tileset    , // image
+							rec.x                  , // sx
+							rec.y                  , // sy
+							rec.w                  , // sWidth
+							rec.h                  , // sHeight
+							(x*rec.w) + (dx*rec.w) , // dx
+							(y*rec.h) + (dy*rec.h) , // dy
+							rec.w                  , // dWidth
+							rec.h                    // dHeight
 						);
 					}
 				}
@@ -207,31 +198,35 @@ let _MOD = {
 		},
 
 		// DRAW TEXT TO THE CANVAS. 
-		print: function(str, x, y, rep=12){
+		print: function(str, x, y){
 			let startX = x; 
 			let startY = y;
 			let chars = str.split("");
 			for(let i=0; i<chars.length; i+=1){
-				if(rep+x > 296){ x=startX; y+=rep; }
-				if(rep+y > 296){ x=startX; y=startY; }
 				let rec = _MOD.canvas.charCoords[chars[i].toUpperCase()];
 				if(rec){
+					if(rec.w+(x*rec.w) > 296){ console.log("x wrap", str, str.length, rec.w+(x*rec.w)); x=startX; y+=1; }
+					if(rec.y+(y*rec.h) > 300){ console.log("y wrap", str, str.length, rec.y+(y*rec.h)); x=startX; y=startY; }
 					_MOD.canvas.ctx.drawImage(
 						_MOD.canvas.tileset,   // image
-						rec.x, // sx
-						rec.y, // sy
-						rec.w,   // sWidth
-						rec.h,   // sHeight
-						x, // rec.x*8, // dx
-						y, // rec.y*8, // dy
-						rep,   // dWidth
-						rep    // dHeight
+						rec.x    , // sx
+						rec.y    , // sy
+						rec.w    , // sWidth
+						rec.h    , // sHeight
+						(x*rec.w), // dx
+						(y*rec.h), // dy
+						rec.w    , // dWidth
+						rec.h      // dHeight
 					);
 				}
-				x+=rep;
+				x+=1;
 			}
 			_MOD.canvas.lcdUpdateNeeded = true;
 		},
+
+		// DRAW TEXT LINE TO THE CANVAS BY LINE NUMBER. 
+		// printLine: function(str, lineNum){
+		// },
 
 		// CLEAR A REGION OF THE CANVAS. 
 		clearRect: function(x,y,w,h){
@@ -249,7 +244,7 @@ let _MOD = {
 		// ACTUALLY UPDATE THE LCD SCREEN.
 		updateFrameBuffer : function (){
 			// Skip if there was not an update.
-			// if(!_MOD.canvas.lcdUpdateNeeded){ return; }
+			if(!_MOD.canvas.lcdUpdateNeeded){ console.log("skipped"); return; }
 
 			// Skip if an update is already in progress.
 			if(_MOD.canvas.updatingLCD){ console.log("LCD is already in an update."); return; }
@@ -275,29 +270,30 @@ let _MOD = {
 			}
 		},
 
-		// INTERVAL TIMER
+		// INTERVAL TIMER FOR LCD UPDATES.
 		interval : null,
 		delay: (1/30)*1000,
 		startInterval : async function(){
+			// Clear the current interval timer if it is already set. 
 			if(_MOD.canvas.interval){ clearInterval(_MOD.canvas.interval); }
+
+			// Start the interval timer and store the interval id.
 			_MOD.canvas.interval = setInterval(async function(){
 				// Update only if the lcdUpdateNeeded flag is set. 
 				if(_MOD.canvas.lcdUpdateNeeded){ 
-					// console.log("update needed", _MOD.canvas.lcdUpdateNeeded);
-
 					// UPDATE THE LCD DISPLAY.
 					_MOD.canvas.updateFrameBuffer();
 					
 					// SEND AN UPDATE TO ALL CONNECTED CLIENTS. 
 					_MOD.canvas.buff2 = _MOD.canvas.canvas.toBuffer();
-					_APP.m_lcd.webSockets.sendToAll(_MOD.canvas.buff2);
+					_APP.m_lcd.WebSocket.sendToAll(_MOD.canvas.buff2);
 				}
 			}, _MOD.canvas.delay);
 		},
 
 		// INITIALIZE THE CANVAS. 
 		init: async function(){
-			// Canvas setup.
+			// CANVAS SETUP.
 			_MOD.canvas.canvas = createCanvas(_APP.m_config.config.lcd.width, _APP.m_config.config.lcd.height ); // (not the whole screen.) VNC
 			_MOD.canvas.ctx    = _MOD.canvas.canvas.getContext("2d");	
 			_MOD.canvas.ctx.mozImageSmoothingEnabled    = false; // Firefox
@@ -310,30 +306,51 @@ let _MOD = {
 			_MOD.canvas.fb = fs.openSync("/dev/fb0", "w");
 
 			// Load the tileset graphic.
-			_MOD.canvas.tileset = await loadImage("test2.png");
+			// _MOD.canvas.tileset = await loadImage("test2.png");
+			_MOD.canvas.tileset = await loadImage("test3.png");
+			// _MOD.canvas.tileset = await loadImage("ExportedFont.bmp");
 
-			// Clear the screen (leave gray the part of the screen that cannot be seen on the LCD.)
+			// CLEAR THE SCREEN (LEAVE GRAY THE PART OF THE SCREEN THAT CANNOT BE SEEN ON THE LCD.)
 			_MOD.canvas.clearRect(0,0, _MOD.canvas.canvas.width, _MOD.canvas.canvas.height);
 			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width, _MOD.canvas.canvas.height, "darkgray");
-			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "#101010");
-			// _MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "red");
+			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "#191919");
+			// _MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "blue");
 
-			let x,y=0;
-			x=0;  _MOD.canvas.print("FILLTILE:", x*12, y*12);
-			x=10; _MOD.canvas.fillTile("tile1"  , x*12, y*12, 4, 1); 
-			x=15; _MOD.canvas.fillTile("cursor1", x*12, y*12, 4, 2); 
-			x=20; _MOD.canvas.fillTile("cursor2", x*12, y*12, 4, 3); 
-			// setTimeout(function(){
-				// x=0;y=10;  _MOD.canvas.print("TEST", x*12, y*12);
-				// console.log(_MOD.canvas.fb);
-				// console.log(_MOD.canvas.buff);
-			// }, 5000);
+			// DEBUG TEXT.
+			_MOD.canvas.print("FILLTILE:" , 0 , 3);
+			_MOD.canvas.fillTile("tile1"  , 10, 3, 4, 1); 
+			_MOD.canvas.fillTile("cursor1", 15, 3, 4, 2); 
+			_MOD.canvas.fillTile("cursor2", 20, 3, 4, 3); 
+
+			_MOD.canvas.print("SETTILE:"  , 0 , 6);
+			_MOD.canvas.setTile("tile1"  , 10, 6); 
+			_MOD.canvas.setTile("cursor1", 15, 6); 
+			_MOD.canvas.setTile("cursor2", 20, 6); 
+
+			_MOD.canvas.print("ABCDEFGHIJKLMNOPQRSTUVWXX", 0, 8);
+			_MOD.canvas.print("XY !@#$%^&*()-_=+,.<>;'", 0, 11);
+			_MOD.canvas.print(":\"1234567890", 0, 14);
+			_MOD.canvas.print("/?\\|[]{}", 0, 17);
+
+			// CURSOR TEST.
+			let cursor = 0;
+			setInterval(function(){
+				if(cursor==0){
+					_MOD.canvas.setTile("cursor2", 22, 23); 
+					_MOD.canvas.setTile("cursor3", 23, 23); 
+				}
+				else{
+					_MOD.canvas.setTile("cursor1", 22, 23); 
+					_MOD.canvas.setTile("cursor4", 23, 23); 
+				}
+				cursor = !cursor;
+			}, 250);
 
 			// START THE FRAMEBUFFER UPDATE TIMER.
 			_MOD.canvas.startInterval();
 		},
 	},
-	webSockets: {
+	WebSocket: {
 		// Generate and return a uuid v4.
 		uuidv4: function() {
 			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -344,7 +361,7 @@ let _MOD = {
 
 		// Returns a list of connected clients. 
 		getClientCount: function(){
-			// _APP.m_lcd.webSockets.getClientCount();
+			// _APP.m_lcd.WebSocket.getClientCount();
 			let i=0;
 			_APP.wss.clients.forEach(function each(ws) { i+=1 });
 			return i;
@@ -352,7 +369,7 @@ let _MOD = {
 
 		// Returns a list of connected client ids. 
 		getClientIds: function(){
-			// _APP.m_lcd.webSockets.getClientIds();
+			// _APP.m_lcd.WebSocket.getClientIds();
 			let arr=[];
 			_APP.wss.clients.forEach(function each(ws) { arr.push(ws.id); });
 			return arr;
@@ -360,90 +377,94 @@ let _MOD = {
 
 		// Sends the specified data to ALL connected clients. 
 		sendToAll: function(data){
-			// _APP.m_lcd.webSockets.sendToAll("HEY EVERYONE!");
+			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
 			_APP.wss.clients.forEach(function each(ws) { ws.send(data); });
 		},
 
-		// Init the WebSocket connection.
-		initWss: async function(app, express){
-			// return new Promise(async function(resolve,reject){
-				// This will be called whenever a new WebSocket client connects to the server:
-				_APP.wss.on('connection', function connection(ws, res) {
-					// WELCOME MESSAGE AND CLIENT NUMBER.
-					ws.id = _MOD.webSockets.uuidv4();
-					ws.send(JSON.stringify({"mode":"NEWCONNECTION", msg:ws.id}));
-					ws.send(JSON.stringify({"mode":"WELCOMEMESSAGE", msg:`WELCOME TO COMMAND-ER MINI.`}));
+		// THESE CAN BE REQUESTED BY THE CLIENT VIA THE WEBSOCKET CONNECTION.
+		request_handlers: {
+			JSON: {
+				// SEND THE CURRENT CANVAS BUFFER TO THE CLIENT. 
+				REQUEST_LCD_FRAMEBUFFER:     function(ws){ 
+					ws.send(_MOD.canvas.buff2); 
+				},
 
-					ws.addEventListener('message', async function(event){
-						// console.log("message:", event.data);
-						let data;
-						let tests = { isJson: false, isText: false };
-	
-						// First, assume the data is JSON (verify this.)
-						try{ data = JSON.parse(event.data); tests.isJson = true; }
-						
-						// Isn't JSON. Assume that it is text. 
-						catch(e){ data = event.data; tests.isText = true; }
-	
-						if(tests.isJson){
-							console.log("JSON:", data);
-	
-							// Check the mode.
-							switch(data.mode){
-								case "REQUEST_LCD_FRAMEBUFFER": { 
-									ws.send(_MOD.canvas.buff2);
-									// _MOD.canvas.lcdUpdateNeeded = true;
-									break; 
-								}
-								case "REQUEST_LCD_FRAMEBUFFER_ALL": { 
-									// ws.send(_MOD.canvas.buff2);
-									_MOD.canvas.lcdUpdateNeeded = true;
-									break; 
-								}
-								case "REQUEST_UUID": { 
-									ws.send(JSON.stringify({ "mode":"REQUEST_UUID", msg:ws.id }));
-									break; 
-								}
-								case "REQUEST_LCD_CONFIG": { 
-									ws.send(JSON.stringify({ "mode":"REQUEST_LCD_CONFIG", msg:_APP.m_config.config.lcd }));
-									break; 
-								}
-								case "GET_CLIENT_IDS": { 
-									let arr = _MOD.webSockets.getClientIds();
-									ws.send(JSON.stringify({ "mode":"GET_CLIENT_IDS", msg:arr }));
-									break; 
-								 }
-								default: { 
-									ws.send(JSON.stringify({"mode":"ERROR", msg:"UNKNOWN MODE: " + data.mode}));
-									return; break; 
-								}
-							};
-						}
-						else if(tests.isText){
-							console.log("TEXT:", data);
-							
-							// Check the mode. Assume that the text is the mode.
-							switch(data){
-								default: { 
-									ws.send(JSON.stringify({"mode":"ERROR", msg:"UNKNOWN MODE: " + data}));
-									return; break; 
-								}
-							}
-						}
-	
-					});
-					ws.addEventListener('close', async function(event){
-						// console.log("close:", event);
-						// console.log("close:");
-						ws.close();
-					});
-					ws.addEventListener('error', async function(event){
-						// console.log("error:", event);
-						console.log("error:", event);
-					});
-				});
-				// resolve();
-			// });
+				// FLAG THE LCD TO BE UPDATED. THIS ALSO PUSHES THE UPDATE TO ALL CONNECTED CLIENTS. 
+				REQUEST_LCD_FRAMEBUFFER_ALL: function(ws){ 
+					_MOD.canvas.lcdUpdateNeeded = true; 
+				},
+
+				// RETURNS THE USER'S UUID.
+				REQUEST_UUID:                function(ws){ 
+					ws.send(JSON.stringify({ "mode":"REQUEST_UUID", msg:ws.id })); 
+				},
+
+				// RETURNS THE LCD CONFIG.
+				REQUEST_LCD_CONFIG:          function(ws){ 
+					ws.send(JSON.stringify({ "mode":"REQUEST_LCD_CONFIG", msg:_APP.m_config.config.lcd })); 
+				},
+
+				// RETURNS A LIST OF UNIQUE CLIENT IDS THAT ARE CONNECTED VIA WEBSOCKET TO THE SERVER.
+				GET_CLIENT_IDS:              function(ws){
+					let arr = _MOD.WebSocket.getClientIds();
+					ws.send(JSON.stringify({ "mode":"GET_CLIENT_IDS", msg:arr }));
+				},
+			},
+			TEXT: {
+			},
+		},
+
+		el_message: async function(ws, event){
+			// console.log("message:", event.data);
+			let data;
+			let tests = { isJson: false, isText: false };
+
+			// First, assume the data is JSON (verify this.)
+			try{ data = JSON.parse(event.data); tests.isJson = true; }
+			
+			// Isn't JSON. Assume that it is text. 
+			catch(e){ data = event.data; tests.isText = true; }
+
+			if(tests.isJson){
+				if(_MOD.WebSocket.request_handlers.JSON[data.mode]){
+					_MOD.WebSocket.request_handlers.JSON[data.mode](ws);
+				}
+				else{
+					ws.send(JSON.stringify({"mode":"ERROR", msg:"UNKNOWN MODE: " + data.mode}));
+					return; 
+				}
+			}
+			else if(tests.isText){
+				if(_MOD.WebSocket.request_handlers.TEXT[data.mode]){
+					_MOD.WebSocket.request_handlers.TEXT[data.mode](ws);
+				}
+				else{
+					ws.send(JSON.stringify({"mode":"ERROR", msg:"UNKNOWN MODE: " + data}));
+					return;
+				}
+			}
+		},
+		el_close  : async function(ws, event){ console.log("close"); ws.close(); },
+		el_error  : async function(ws, event){ console.log("error:", event); ws.close(); },
+
+		// INIT THE WEBSOCKET CONNECTION.
+		initWss: async function(app, express){
+			// THIS IS APPLIED FOR ALL NEW WEBSOCKET CONNECTIONS.
+			_APP.wss.on('connection', function connection(ws, res) {
+				// GENERATE A UNIQUE ID FOR THIS CONNECTION. 
+				ws.id = _MOD.WebSocket.uuidv4();
+
+				// SEND THE UUID.
+				ws.send(JSON.stringify( {"mode":"NEWCONNECTION", msg:ws.id } ));
+				
+				// SEND THE NEW CONNECTION MESSAGE.
+				ws.send(JSON.stringify( {"mode":"WELCOMEMESSAGE", msg:`WELCOME TO COMMAND-ER MINI.`} ));
+
+				// ADD LISTENERS.
+				ws.addEventListener('message', (event)=>_MOD.WebSocket.el_message(ws, event) );
+				ws.addEventListener('close'  , (event)=>_MOD.WebSocket.el_close  (ws, event) );
+				ws.addEventListener('error'  , (event)=>_MOD.WebSocket.el_error  (ws, event) );
+			});
 		},
 	}
 

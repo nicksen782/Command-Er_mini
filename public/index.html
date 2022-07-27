@@ -36,11 +36,11 @@
 		<tr> <td><button class="button" id="KEY3_PIN">KEY3</button></td> </tr>
 		<tr> <td>&nbsp;</td> </tr>
 		<tr> <td><button class="button" title="Toggle the lcd backlight"    id="BL_PIN">BL</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_LCD_FRAMEBUFFER"     onclick='lcd.ws.send({mode:"REQUEST_LCD_FRAMEBUFFER"})'    >FB</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_LCD_FRAMEBUFFER_ALL" onclick='lcd.ws.send({mode:"REQUEST_LCD_FRAMEBUFFER_ALL"})'>FBA</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_LCD_CONFIG"          onclick='lcd.ws.send({mode:"REQUEST_LCD_CONFIG"})'         >CFG</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_UUID"                onclick='lcd.ws.send({mode:"REQUEST_UUID"})'               >CID</button></td> </tr>
-		<tr> <td><button class="button" title="GET_CLIENT_IDS"              onclick='lcd.ws.send({mode:"GET_CLIENT_IDS"})'             >CIDS</button></td> </tr>
+		<tr> <td><button class="button" title="REQUEST_LCD_FRAMEBUFFER"     onclick='lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER"})'    >FB</button></td> </tr>
+		<tr> <td><button class="button" title="REQUEST_LCD_FRAMEBUFFER_ALL" onclick='lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER_ALL"})'>FBA</button></td> </tr>
+		<tr> <td><button class="button" title="REQUEST_LCD_CONFIG"          onclick='lcd.WebSocket.send({mode:"REQUEST_LCD_CONFIG"})'         >CFG</button></td> </tr>
+		<tr> <td><button class="button" title="REQUEST_UUID"                onclick='lcd.WebSocket.send({mode:"REQUEST_UUID"})'               >CID</button></td> </tr>
+		<tr> <td><button class="button" title="GET_CLIENT_IDS"              onclick='lcd.WebSocket.send({mode:"GET_CLIENT_IDS"})'             >CIDS</button></td> </tr>
 		<tr> <td>&nbsp;</td> </tr>
 	</table>
 </div>

@@ -51,12 +51,12 @@ let _MOD = {
 		// json['%'] = 99.0;
 		
 		let str = (json['%'].toFixed(1)+"%");
-		let x=18*12; y=0*12;
-		if(str.length <= 5){ x=19*12; }
+		let x=18; y=0;
+		if(str.length <= 5){ x=19; }
 		
 		// Clear the line then the battery percentage.
 		_APP.m_lcd.canvas.fillRect(18*12, 0*12, 12*6, 12*1, "#101010");
-		_APP.m_lcd.canvas.print(str, x, y, 12);
+		_APP.m_lcd.canvas.print(str, x, y);
 	},
 };
 

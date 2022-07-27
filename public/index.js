@@ -3,9 +3,10 @@
 let lcd = {
 	canvas: null,
 	ctx   : null,
+	ws:null,
 
 	// WEBSOCKET OBJECT.
-	ws: {
+	WebSocket: {
 		uuid: null,
 
 		// STATUS CODES
@@ -35,34 +36,32 @@ let lcd = {
 			"3":"CLOSED",
 		},
 
-		// HOLDS THE WEBSOCKET OBJECT.
-		ws:null,
-
 		// RUNS ON WEBSOCKET OPEN.
 		onopen   : async function(e){
-			console.log(`onopen: readyState: (${e.currentTarget.readyState}) ${lcd.ws.readyStates[e.currentTarget.readyState]}, binaryType: ${e.currentTarget.binaryType}`); 
+			console.log(`onopen: readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}, binaryType: ${e.currentTarget.binaryType}`); 
 			document.getElementById("div_container").classList.remove("disconnected");
 		},
 
 		// RUNS ON WEBSOCKET CLOSE.
 		onclose   : async function(e){ 
-			console.log(`onclose: statusCode: ${e.code}: ${lcd.ws.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.ws.readyStates[e.currentTarget.readyState]}`); 
+			console.log(`onclose: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
 			document.getElementById("div_container").classList.add("disconnected");
 		},
 
 		// RUNS ON WEBSOCKET ERROR.
 		onerror  : async function(e){ 
-			console.log(`onerror: statusCode: ${e.code}: ${lcd.ws.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.ws.readyStates[e.currentTarget.readyState]}`); 
+			console.log(`onerror: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
 			document.getElementById("div_container").classList.add("disconnected");
 		},
 
 		// UTILITY FUNCTION TO SEND DATA TO THE WEBSOCKET. 
 		send: async function(obj){
 			// Add the client UUID.
-			obj.uuid = lcd.ws.uuid;
+			obj.uuid = lcd.WebSocket.uuid;
 
 			// Send the request.
-			lcd.ws.ws.send( JSON.stringify(obj) );
+			// console.log(obj);
+			lcd.ws.send( JSON.stringify(obj) );
 		},
 
 		// HANDLES WEBSOCKET MESSAGES SENT BY THE SERVER.
@@ -101,7 +100,7 @@ let lcd = {
 				switch(data.mode){
 					case "NEWCONNECTION"      : { 
 						console.log(`CLIENT: ${data.mode}:`, data.msg); 
-						lcd.ws.uuid = data.msg;
+						lcd.WebSocket.uuid = data.msg;
 						break; 
 					}
 					case "WELCOMEMESSAGE"     : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
@@ -109,7 +108,7 @@ let lcd = {
 					// case "REQUEST_LCD_FRAMEBUFFER_ALL" : { break; }
 					case "REQUEST_UUID"       : { 
 						console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
-						lcd.ws.uuid = data.msg;
+						lcd.WebSocket.uuid = data.msg;
 						break; 
 					}
 					case "REQUEST_LCD_CONFIG" : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
@@ -140,10 +139,10 @@ let lcd = {
 	// INITS THE WEBSOCKET.
 	init: async function(){
 		// CLOSE PREVIOUS CONNECTION IF ONE IS ALREADY OPENED.
-		if(lcd.ws.ws){ 
-			lcd.ws.ws.close(); 
+		if(lcd.ws){ 
+			lcd.ws.close(); 
 			await new Promise(function(res,rej){
-				setTimeout(function(){ lcd.ws.ws = null; res(); }, 1000);
+				setTimeout(function(){ lcd.ws = null; res(); }, 1000);
 			});
 		}
 		
@@ -158,13 +157,13 @@ let lcd = {
 			
 		// MAKE THE WEBSOCKET CONNECTION AND STORE IT FOR LATER USE.
 		console.log("Creating WebSocket connection to:", locUrl);
-		lcd.ws.ws = new WebSocket(locUrl);
-		lcd.ws.ws.onopen   = lcd.ws.onopen;
-		lcd.ws.ws.onmessage= lcd.ws.onmessage;
-		lcd.ws.ws.onclose  = lcd.ws.onclose;
-		lcd.ws.ws.onerror  = lcd.ws.onerror;
-		// lcd.ws.ws.binaryType = 'arraybuffer';
-		lcd.ws.ws.binaryType = 'blob';
+		lcd.ws = new WebSocket(locUrl);
+		lcd.ws.onopen   = lcd.WebSocket.onopen;
+		lcd.ws.onmessage= lcd.WebSocket.onmessage;
+		lcd.ws.onclose  = lcd.WebSocket.onclose;
+		lcd.ws.onerror  = lcd.WebSocket.onerror;
+		// lcd.WebSocket.binaryType = 'arraybuffer';
+		lcd.ws.binaryType = 'blob';
 	},
 };
 
