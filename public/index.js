@@ -38,20 +38,25 @@ let lcd = {
 
 		// RUNS ON WEBSOCKET OPEN.
 		onopen   : async function(e){
-			console.log(`onopen: readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}, binaryType: ${e.currentTarget.binaryType}`); 
+			// console.log(`onopen: readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}, binaryType: ${e.currentTarget.binaryType}`); 
 			document.getElementById("div_container").classList.remove("disconnected");
+			console.log("Connection: OPEN");
 		},
 
 		// RUNS ON WEBSOCKET CLOSE.
 		onclose   : async function(e){ 
-			console.log(`onclose: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
+			// console.log(`onclose: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
 			document.getElementById("div_container").classList.add("disconnected");
+			console.log("Connection: CLOSED. Will try to reconnect.");
+			setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 250);
 		},
 
 		// RUNS ON WEBSOCKET ERROR.
 		onerror  : async function(e){ 
-			console.log(`onerror: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
+			// console.log(`onerror: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
 			document.getElementById("div_container").classList.add("disconnected");
+			console.log("Connection: ERROR. Will try to reconnect.");
+			setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 250);
 		},
 
 		// UTILITY FUNCTION TO SEND DATA TO THE WEBSOCKET. 
@@ -62,6 +67,36 @@ let lcd = {
 			// Send the request.
 			// console.log(obj);
 			lcd.ws.send( JSON.stringify(obj) );
+		},
+
+		// connecting : false,
+		tryToConnect: async function(origin){
+			// console.log("tryToConnect:", origin);
+			let up = await isServerUp();
+			if( up ){
+				// Run the websocket init.
+				lcd.init(); 
+				
+				// Check if the connection is made, otherwise try again.
+				setTimeout(function(){
+					// Is the readyState not CONNECTING or OPEN?
+					let validReadyState = [0,1].indexOf(lcd.ws.readyState) != -1 ? true : false;
+					
+					// console.log("Checking readyState.", `readyState: (${lcd.ws.readyState}) ${lcd.WebSocket.readyStates[lcd.ws.readyState]}`, `TEST: ${lcd.WebSocket.readyStates[lcd.ws.readyState]}`);
+					
+					if(!validReadyState){
+						setTimeout(function(){ lcd.WebSocket.tryToConnect("retry_ws") }, 1000); 
+						return;
+					}
+					else{
+						// console.log("connected:", lcd.ws.readyState);
+					}
+				}, 1000);
+			}
+			else{
+				setTimeout(function(){ lcd.WebSocket.tryToConnect("retry_server_down") }, 1000); 
+				return;
+			}
 		},
 
 		// HANDLES WEBSOCKET MESSAGES SENT BY THE SERVER.
@@ -177,6 +212,14 @@ async function post(url, body){
 	return resp;
 }
 
+async function isServerUp(){
+	return new Promise(async function(resolve,reject){
+		fetch("pingfff")
+		.then(r=>{ resolve(true); })
+		.catch(err=>{ resolve(false); })
+	});
+};
+
 // INIT.
 window.onload = function(){
 	window.onload = null;
@@ -199,5 +242,6 @@ window.onload = function(){
 	lcd.ctx    = lcd.canvas.getContext("2d");
 
 	// "LCD" / WEBSOCKET
-	lcd.init();
+	lcd.WebSocket.tryToConnect("init");
+	// lcd.init();
 };

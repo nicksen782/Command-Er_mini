@@ -51,7 +51,8 @@ let _MOD = {
 				if(str2 != _MOD.timeUpdate.prevTimeString){
 					let x=0; let y=23;
 					_MOD.timeUpdate.prevTimeString = str2;
-					_MOD.canvas.fillRect(x*12, y*12, 23*12, 1*12, "#101010");
+					// _MOD.canvas.fillRect(x*12, y*12, 23*12, 1*12, "#101010");
+					_APP.m_lcd.canvas.fillTile("tile2"  , x, y, 11, 1); 
 					_MOD.canvas.print(str2, x, y);
 				}
 			}, _MOD.timeUpdate.delay);
@@ -90,6 +91,7 @@ let _MOD = {
 			"-" : { x:(12)*13 , y:(12)*0, w:12, h:12 },
 			"." : { x:(12)*14 , y:(12)*0, w:12, h:12 },
 			"/" : { x:(12)*15 , y:(12)*0, w:12, h:12 },
+
 			"0" : { x:(12)*0  , y:(12)*1, w:12, h:12 },
 			"1" : { x:(12)*1  , y:(12)*1, w:12, h:12 },
 			"2" : { x:(12)*2  , y:(12)*1, w:12, h:12 },
@@ -106,6 +108,7 @@ let _MOD = {
 			"=" : { x:(12)*13 , y:(12)*1, w:12, h:12 },
 			">" : { x:(12)*14 , y:(12)*1, w:12, h:12 },
 			"?" : { x:(12)*15 , y:(12)*1, w:12, h:12 },
+
 			"@" : { x:(12)*0  , y:(12)*2, w:12, h:12 },
 			"A" : { x:(12)*1  , y:(12)*2, w:12, h:12 },
 			"B" : { x:(12)*2  , y:(12)*2, w:12, h:12 },
@@ -122,6 +125,7 @@ let _MOD = {
 			"M" : { x:(12)*13 , y:(12)*2, w:12, h:12 },
 			"N" : { x:(12)*14 , y:(12)*2, w:12, h:12 },
 			"O" : { x:(12)*15 , y:(12)*2, w:12, h:12 },
+
 			"P" : { x:(12)*0  , y:(12)*3, w:12, h:12 },
 			"Q" : { x:(12)*1  , y:(12)*3, w:12, h:12 },
 			"R" : { x:(12)*2  , y:(12)*3, w:12, h:12 },
@@ -134,7 +138,7 @@ let _MOD = {
 			"Y" : { x:(12)*9  , y:(12)*3, w:12, h:12 },
 			"Z" : { x:(12)*10 , y:(12)*3, w:12, h:12 },
 			"[" : { x:(12)*11 , y:(12)*3, w:12, h:12 },
-			"\\" : { x:(12)*12 , y:(12)*3, w:12, h:12 },
+			"\\": { x:(12)*12 , y:(12)*3, w:12, h:12 },
 			"]" : { x:(12)*13 , y:(12)*3, w:12, h:12 },
 			"^" : { x:(12)*14 , y:(12)*3, w:12, h:12 },
 			"_" : { x:(12)*15 , y:(12)*3, w:12, h:12 },
@@ -143,10 +147,13 @@ let _MOD = {
 		// CORDS FOR TILES.
 		tileCoords: {
 			"tile1"  : { x:(12)*0 , y:(12)*5, w:12, h:12 },
-			"cursor1": { x:(12)*1 , y:(12)*5, w:12, h:12 },
-			"cursor2": { x:(12)*2 , y:(12)*5, w:12, h:12 },
-			"cursor3": { x:(12)*3 , y:(12)*5, w:12, h:12 },
-			"cursor4": { x:(12)*4 , y:(12)*5, w:12, h:12 },
+			"tile2"  : { x:(12)*1 , y:(12)*5, w:12, h:12 },
+			"tile3"  : { x:(12)*2 , y:(12)*5, w:12, h:12 },
+			"cursor1": { x:(12)*17 , y:(12)*0, w:12, h:12 },
+			"cursor2": { x:(12)*17 , y:(12)*1, w:12, h:12 },
+			"cursor3": { x:(12)*17 , y:(12)*2, w:12, h:12 },
+			"cursor4": { x:(12)*17 , y:(12)*3, w:12, h:12 },
+			"nochar" : { x:(12)*16 , y:(12)*0, w:12, h:12 },
 		},
 
 		// DRAW ONE TILE TO THE CANVAS.
@@ -177,6 +184,8 @@ let _MOD = {
 			if(rec){
 				for(let dy=0; dy<h; dy+=1){
 					for(let dx=0; dx<w; dx+=1){
+						if( (x*rec.w) + (dx*rec.w) > 296 ){ continue; }
+						if( (y*rec.h) + (dy*rec.h) > 300 ){ continue; }
 						_MOD.canvas.ctx.drawImage(
 							_MOD.canvas.tileset    , // image
 							rec.x                  , // sx
@@ -204,9 +213,11 @@ let _MOD = {
 			let chars = str.split("");
 			for(let i=0; i<chars.length; i+=1){
 				let rec = _MOD.canvas.charCoords[chars[i].toUpperCase()];
+				// if(i==5){ rec = false; }
+				if(!rec){ rec = _MOD.canvas.tileCoords['nochar']; }
 				if(rec){
-					if(rec.w+(x*rec.w) > 296){ console.log("x wrap", str, str.length, rec.w+(x*rec.w)); x=startX; y+=1; }
-					if(rec.y+(y*rec.h) > 300){ console.log("y wrap", str, str.length, rec.y+(y*rec.h)); x=startX; y=startY; }
+					if((x*rec.w) > 296){ console.log("x wrap", str, str.length, rec.w+(x*rec.w)); x=startX; y+=1; }
+					if((y*rec.h) > 300){ console.log("y wrap", str, str.length, rec.y+(y*rec.h)); x=startX; y=startY; }
 					_MOD.canvas.ctx.drawImage(
 						_MOD.canvas.tileset,   // image
 						rec.x    , // sx
@@ -242,6 +253,8 @@ let _MOD = {
 		},
 
 		// ACTUALLY UPDATE THE LCD SCREEN.
+		tooLongs: 0,
+		lastStamp:0,
 		updateFrameBuffer : function (){
 			// Skip if there was not an update.
 			if(!_MOD.canvas.lcdUpdateNeeded){ console.log("skipped"); return; }
@@ -266,7 +279,15 @@ let _MOD = {
 			// DEBUG
 			let t = _APP.timeIt("updateFrameBuffer", "t");
 			if(t>15){
-				console.log(`${t.toFixed(2)} vs ${_MOD.canvas.delay.toFixed(2)}`, (t > _MOD.canvas.delay ? "TOO LONG" : "STILL GOOD"));
+				_MOD.canvas.tooLongs +=1;
+				console.log(
+					`tooLongs: ${_MOD.canvas.tooLongs}, ` +
+					`timeSince: ${((performance.now() - _MOD.canvas.timeSince)/1000).toFixed(2) } seconds, ` +
+					`${t.toFixed(2)} vs ${_MOD.canvas.delay.toFixed(2)}`,
+					(t > _MOD.canvas.delay ? "TOO LONG" : "STILL GOOD"),
+					new Date().toLocaleString('us-en'))
+				;
+				_MOD.canvas.timeSince = performance.now();
 			}
 		},
 
@@ -281,12 +302,16 @@ let _MOD = {
 			_MOD.canvas.interval = setInterval(async function(){
 				// Update only if the lcdUpdateNeeded flag is set. 
 				if(_MOD.canvas.lcdUpdateNeeded){ 
-					// UPDATE THE LCD DISPLAY.
-					_MOD.canvas.updateFrameBuffer();
-					
-					// SEND AN UPDATE TO ALL CONNECTED CLIENTS. 
-					_MOD.canvas.buff2 = _MOD.canvas.canvas.toBuffer();
-					_APP.m_lcd.WebSocket.sendToAll(_MOD.canvas.buff2);
+					setImmediate( ()=>{
+						// UPDATE THE LCD DISPLAY.
+						_MOD.canvas.updateFrameBuffer();
+						
+						// SEND AN UPDATE TO ALL CONNECTED CLIENTS. 
+						setImmediate( ()=>{
+							_MOD.canvas.buff2 = _MOD.canvas.canvas.toBuffer();
+							_APP.m_lcd.WebSocket.sendToAll(_MOD.canvas.buff2);
+						});
+					});
 				}
 			}, _MOD.canvas.delay);
 		},
@@ -301,6 +326,7 @@ let _MOD = {
 			_MOD.canvas.ctx.oImageSmoothingEnabled      = false; //
 			_MOD.canvas.ctx.webkitImageSmoothingEnabled = false; //
 			_MOD.canvas.ctx.msImageSmoothingEnabled     = false; //
+			_MOD.canvas.ctx.translate(2, 0);
 
 			// OPEN/STORE A HANDLE TO THE FRAMEBUFFER.
 			_MOD.canvas.fb = fs.openSync("/dev/fb0", "w");
@@ -313,24 +339,38 @@ let _MOD = {
 			// CLEAR THE SCREEN (LEAVE GRAY THE PART OF THE SCREEN THAT CANNOT BE SEEN ON THE LCD.)
 			_MOD.canvas.clearRect(0,0, _MOD.canvas.canvas.width, _MOD.canvas.canvas.height);
 			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width, _MOD.canvas.canvas.height, "darkgray");
-			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "#191919");
+			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-16, _MOD.canvas.canvas.height, "#191919");
 			// _MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "blue");
-
+			console.log("_MOD.canvas.canvas.width, _MOD.canvas.canvas.height:", _MOD.canvas.canvas.width, _MOD.canvas.canvas.height);
 			// DEBUG TEXT.
-			_MOD.canvas.print("FILLTILE:" , 0 , 3);
-			_MOD.canvas.fillTile("tile1"  , 10, 3, 4, 1); 
-			_MOD.canvas.fillTile("cursor1", 15, 3, 4, 2); 
-			_MOD.canvas.fillTile("cursor2", 20, 3, 4, 3); 
+
+			_MOD.canvas.fillTile("tile1"  , 0, 0, 16, 1); 
+			_MOD.canvas.print("COMMAND-ER MINI:"  , 0 , 0);
+
+			_MOD.canvas.print("FILLTILE:"  , 0 , 3);
+			_MOD.canvas.fillTile("tile1"   , 10, 3, 2, 1); 
+			_MOD.canvas.fillTile("tile2"   , 10, 4, 2, 1); 
+			_MOD.canvas.fillTile("tile3"   , 12, 3, 1, 2); 
+			_MOD.canvas.fillTile("cursor2" , 14, 3, 2, 2); 
+			_MOD.canvas.fillTile("cursor3" , 17, 3, 1, 2); 
+			_MOD.canvas.fillTile("cursor4" , 19, 3, 1, 2); 
+			_MOD.canvas.fillTile("nochar"  , 21, 3, 3, 3); 
 
 			_MOD.canvas.print("SETTILE:"  , 0 , 6);
-			_MOD.canvas.setTile("tile1"  , 10, 6); 
-			_MOD.canvas.setTile("cursor1", 15, 6); 
-			_MOD.canvas.setTile("cursor2", 20, 6); 
-
-			_MOD.canvas.print("ABCDEFGHIJKLMNOPQRSTUVWXX", 0, 8);
-			_MOD.canvas.print("XY !@#$%^&*()-_=+,.<>;'", 0, 11);
-			_MOD.canvas.print(":\"1234567890", 0, 14);
-			_MOD.canvas.print("/?\\|[]{}", 0, 17);
+			_MOD.canvas.setTile("tile1"   , 10, 6); 
+			_MOD.canvas.setTile("tile2"   , 11, 6); 
+			_MOD.canvas.setTile("tile3"   , 12, 6); 
+			_MOD.canvas.setTile("cursor1" , 13, 6); 
+			_MOD.canvas.setTile("cursor2" , 14, 6); 
+			_MOD.canvas.setTile("cursor3" , 15, 6); 
+			_MOD.canvas.setTile("cursor4" , 16, 6); 
+			_MOD.canvas.setTile("nochar"  , 17, 6); 
+			
+			_MOD.canvas.print("FONTTEST:", 0, 8);
+			_MOD.canvas.print(" !\"#$%&'()*+,-./", 0, 9);
+			_MOD.canvas.print("0123456789:;<=>?", 0,  10);
+			_MOD.canvas.print("@ABCDEFGHIJKLMNO", 0,  11);
+			_MOD.canvas.print("PQRSTUVWXYZ[\\]^_", 0, 12);
 
 			// CURSOR TEST.
 			let cursor = 0;
