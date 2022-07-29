@@ -14,12 +14,6 @@ let _MOD = {
 			// INITIALIZE WEBSOCKETS.
 			_MOD.WebSocket.initWss(_APP.app, _APP.express);
 			
-			// INITIALIZE CANVAS.
-			await _MOD.canvas.init();
-
-			// INITIALIZE TIME UPDATER.
-			await _MOD.timeUpdate.startInterval();
-
 			// Add routes.
 			_MOD.addRoutes(_APP.app, _APP.express);
 
@@ -29,33 +23,43 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
+		//
+		_APP.addToRouteList({ path: "/LCD", method: "ws", args: ["REQUEST_LCD_FRAMEBUFFER"]    , file: __filename, desc: "Return current framebuffer as PNG blob." });
+		_APP.addToRouteList({ path: "/LCD", method: "ws", args: ["REQUEST_LCD_FRAMEBUFFER_ALL"], file: __filename, desc: "Send LCD update to all connected WebSocket clients. " });
+		_APP.addToRouteList({ path: "/LCD", method: "ws", args: ["REQUEST_UUID"]               , file: __filename, desc: "Request your own UUID." });
+		_APP.addToRouteList({ path: "/LCD", method: "ws", args: ["REQUEST_LCD_CONFIG"]         , file: __filename, desc: "Request LCD config." });
+		_APP.addToRouteList({ path: "/LCD", method: "ws", args: ["GET_CLIENT_IDS"]             , file: __filename, desc: "Request all UUIDs." });
 	},
 	timeUpdate: {
 		intervalId: null,
 		prevTimeString: "",
 		delay: 500,
-		startInterval: function(){
-			_MOD.timeUpdate.intervalId = setInterval(function(){
+		func: function(){
+			return new Promise(async function(resolve,reject){
 				var d = new Date(); // for now
 				let h = d.getHours();
 				let ampm="AM";
 				if (h > 12) { h -= 12; ampm="PM";} 
 				else if (h === 0) { h = 12; }
-				h=h.toString().padStart(2, "0");
-
+				h=h.toString().padStart(2, " ");
+		
 				let m = d.getMinutes().toString().padStart(2, "0");
 				let s = d.getSeconds().toString().padStart(2, "0");
-				let str2 = `${h}:${m}:${s} ${ampm}`;
-
+				let str2 = `${h}:${m}:${s}${ampm}`;
+		
 				// Only update the canvas if the timestring has changed.
 				if(str2 != _MOD.timeUpdate.prevTimeString){
-					let x=0; let y=23;
+					let x=0; let y=24;
 					_MOD.timeUpdate.prevTimeString = str2;
-					// _MOD.canvas.fillRect(x*12, y*12, 23*12, 1*12, "#101010");
-					_APP.m_lcd.canvas.fillTile("tile2"  , x, y, 11, 1); 
-					_MOD.canvas.print(str2, x, y);
+					_MOD.canvas.fillTile("tile1", x, y, 11, 1); 
+					_MOD.canvas.setTile("clock1", x, y);
+					_MOD.canvas.print(str2, x+1, y);
 				}
-			}, _MOD.timeUpdate.delay);
+				resolve();
+			});
+		},
+		startInterval: function(){
+			_MOD.timeUpdate.intervalId = setInterval(_MOD.timeUpdate.func, _MOD.timeUpdate.delay);
 		},
 	},
 	canvas: {
@@ -75,101 +79,118 @@ let _MOD = {
 
 		// CORDS FOR CHARS.
 		charCoords: {
-			" " : { x:(12)*0  , y:(12)*0, w:12, h:12 },
-			"!" : { x:(12)*1  , y:(12)*0, w:12, h:12 },
-			'"' : { x:(12)*2  , y:(12)*0, w:12, h:12 },
-			"#" : { x:(12)*3  , y:(12)*0, w:12, h:12 },
-			"$" : { x:(12)*4  , y:(12)*0, w:12, h:12 },
-			"%" : { x:(12)*5  , y:(12)*0, w:12, h:12 },
-			"&" : { x:(12)*6  , y:(12)*0, w:12, h:12 },
-			"'" : { x:(12)*7  , y:(12)*0, w:12, h:12 },
-			"(" : { x:(12)*8  , y:(12)*0, w:12, h:12 },
-			")" : { x:(12)*9  , y:(12)*0, w:12, h:12 },
-			"*" : { x:(12)*10 , y:(12)*0, w:12, h:12 },
-			"+" : { x:(12)*11 , y:(12)*0, w:12, h:12 },
-			"," : { x:(12)*12 , y:(12)*0, w:12, h:12 },
-			"-" : { x:(12)*13 , y:(12)*0, w:12, h:12 },
-			"." : { x:(12)*14 , y:(12)*0, w:12, h:12 },
-			"/" : { x:(12)*15 , y:(12)*0, w:12, h:12 },
+			" " : { L:0  , T:0 },
+			"!" : { L:1  , T:0 },
+			'"' : { L:2  , T:0 },
+			"#" : { L:3  , T:0 },
+			"$" : { L:4  , T:0 },
+			"%" : { L:5  , T:0 },
+			"&" : { L:6  , T:0 },
+			"'" : { L:7  , T:0 },
+			"(" : { L:8  , T:0 },
+			")" : { L:9  , T:0 },
+			"*" : { L:10 , T:0 },
+			"+" : { L:11 , T:0 },
+			"," : { L:12 , T:0 },
+			"-" : { L:13 , T:0 },
+			"." : { L:14 , T:0 },
+			"/" : { L:15 , T:0 },
 
-			"0" : { x:(12)*0  , y:(12)*1, w:12, h:12 },
-			"1" : { x:(12)*1  , y:(12)*1, w:12, h:12 },
-			"2" : { x:(12)*2  , y:(12)*1, w:12, h:12 },
-			"3" : { x:(12)*3  , y:(12)*1, w:12, h:12 },
-			"4" : { x:(12)*4  , y:(12)*1, w:12, h:12 },
-			"5" : { x:(12)*5  , y:(12)*1, w:12, h:12 },
-			"6" : { x:(12)*6  , y:(12)*1, w:12, h:12 },
-			"7" : { x:(12)*7  , y:(12)*1, w:12, h:12 },
-			"8" : { x:(12)*8  , y:(12)*1, w:12, h:12 },
-			"9" : { x:(12)*9  , y:(12)*1, w:12, h:12 },
-			":" : { x:(12)*10 , y:(12)*1, w:12, h:12 },
-			";" : { x:(12)*11 , y:(12)*1, w:12, h:12 },
-			"<" : { x:(12)*12 , y:(12)*1, w:12, h:12 },
-			"=" : { x:(12)*13 , y:(12)*1, w:12, h:12 },
-			">" : { x:(12)*14 , y:(12)*1, w:12, h:12 },
-			"?" : { x:(12)*15 , y:(12)*1, w:12, h:12 },
+			"0" : { L:0  , T:1 },
+			"1" : { L:1  , T:1 },
+			"2" : { L:2  , T:1 },
+			"3" : { L:3  , T:1 },
+			"4" : { L:4  , T:1 },
+			"5" : { L:5  , T:1 },
+			"6" : { L:6  , T:1 },
+			"7" : { L:7  , T:1 },
+			"8" : { L:8  , T:1 },
+			"9" : { L:9  , T:1 },
+			":" : { L:10 , T:1 },
+			";" : { L:11 , T:1 },
+			"<" : { L:12 , T:1 },
+			"=" : { L:13 , T:1 },
+			">" : { L:14 , T:1 },
+			"?" : { L:15 , T:1 },
 
-			"@" : { x:(12)*0  , y:(12)*2, w:12, h:12 },
-			"A" : { x:(12)*1  , y:(12)*2, w:12, h:12 },
-			"B" : { x:(12)*2  , y:(12)*2, w:12, h:12 },
-			"C" : { x:(12)*3  , y:(12)*2, w:12, h:12 },
-			"D" : { x:(12)*4  , y:(12)*2, w:12, h:12 },
-			"E" : { x:(12)*5  , y:(12)*2, w:12, h:12 },
-			"F" : { x:(12)*6  , y:(12)*2, w:12, h:12 },
-			"G" : { x:(12)*7  , y:(12)*2, w:12, h:12 },
-			"H" : { x:(12)*8  , y:(12)*2, w:12, h:12 },
-			"I" : { x:(12)*9  , y:(12)*2, w:12, h:12 },
-			"J" : { x:(12)*10 , y:(12)*2, w:12, h:12 },
-			"K" : { x:(12)*11 , y:(12)*2, w:12, h:12 },
-			"L" : { x:(12)*12 , y:(12)*2, w:12, h:12 },
-			"M" : { x:(12)*13 , y:(12)*2, w:12, h:12 },
-			"N" : { x:(12)*14 , y:(12)*2, w:12, h:12 },
-			"O" : { x:(12)*15 , y:(12)*2, w:12, h:12 },
+			"@" : { L:0  , T:2 },
+			"A" : { L:1  , T:2 },
+			"B" : { L:2  , T:2 },
+			"C" : { L:3  , T:2 },
+			"D" : { L:4  , T:2 },
+			"E" : { L:5  , T:2 },
+			"F" : { L:6  , T:2 },
+			"G" : { L:7  , T:2 },
+			"H" : { L:8  , T:2 },
+			"I" : { L:9  , T:2 },
+			"J" : { L:10 , T:2 },
+			"K" : { L:11 , T:2 },
+			"L" : { L:12 , T:2 },
+			"M" : { L:13 , T:2 },
+			"N" : { L:14 , T:2 },
+			"O" : { L:15 , T:2 },
 
-			"P" : { x:(12)*0  , y:(12)*3, w:12, h:12 },
-			"Q" : { x:(12)*1  , y:(12)*3, w:12, h:12 },
-			"R" : { x:(12)*2  , y:(12)*3, w:12, h:12 },
-			"S" : { x:(12)*3  , y:(12)*3, w:12, h:12 },
-			"T" : { x:(12)*4  , y:(12)*3, w:12, h:12 },
-			"U" : { x:(12)*5  , y:(12)*3, w:12, h:12 },
-			"V" : { x:(12)*6  , y:(12)*3, w:12, h:12 },
-			"W" : { x:(12)*7  , y:(12)*3, w:12, h:12 },
-			"X" : { x:(12)*8  , y:(12)*3, w:12, h:12 },
-			"Y" : { x:(12)*9  , y:(12)*3, w:12, h:12 },
-			"Z" : { x:(12)*10 , y:(12)*3, w:12, h:12 },
-			"[" : { x:(12)*11 , y:(12)*3, w:12, h:12 },
-			"\\": { x:(12)*12 , y:(12)*3, w:12, h:12 },
-			"]" : { x:(12)*13 , y:(12)*3, w:12, h:12 },
-			"^" : { x:(12)*14 , y:(12)*3, w:12, h:12 },
-			"_" : { x:(12)*15 , y:(12)*3, w:12, h:12 },
+			"P" : { L:0  , T:3 },
+			"Q" : { L:1  , T:3 },
+			"R" : { L:2  , T:3 },
+			"S" : { L:3  , T:3 },
+			"T" : { L:4  , T:3 },
+			"U" : { L:5  , T:3 },
+			"V" : { L:6  , T:3 },
+			"W" : { L:7  , T:3 },
+			"X" : { L:8  , T:3 },
+			"Y" : { L:9  , T:3 },
+			"Z" : { L:10 , T:3 },
+			"[" : { L:11 , T:3 },
+			"\\": { L:12 , T:3 },
+			"]" : { L:13 , T:3 },
+			"^" : { L:14 , T:3 },
+			"_" : { L:15 , T:3 },
 		},
 
 		// CORDS FOR TILES.
 		tileCoords: {
-			"tile1"  : { x:(12)*0 , y:(12)*5, w:12, h:12 },
-			"tile2"  : { x:(12)*1 , y:(12)*5, w:12, h:12 },
-			"tile3"  : { x:(12)*2 , y:(12)*5, w:12, h:12 },
-			"cursor1": { x:(12)*17 , y:(12)*0, w:12, h:12 },
-			"cursor2": { x:(12)*17 , y:(12)*1, w:12, h:12 },
-			"cursor3": { x:(12)*17 , y:(12)*2, w:12, h:12 },
-			"cursor4": { x:(12)*17 , y:(12)*3, w:12, h:12 },
-			"nochar" : { x:(12)*16 , y:(12)*0, w:12, h:12 },
+			"tile1"      : { L:0  , T:5 },
+			"tile2"      : { L:1  , T:5 },
+			"tile3"      : { L:2  , T:5 },
+			"tile4"      : { L:3  , T:5 },
+			"cursor1"    : { L:17 , T:0 },
+			"cursor2"    : { L:17 , T:1 },
+			"cursor3"    : { L:17 , T:2 },
+			"cursor4"    : { L:17 , T:3 },
+			"nochar"     : { L:16 , T:0 },
+			"clock1"     : { L:12 , T:5 },
+			"battcharge" : { L:13 , T:5 },
+			"batt1"      : { L:14 , T:5 },
+			"batt2"      : { L:15 , T:5 },
+			"batt3"      : { L:16 , T:5 },
+			"batt4"      : { L:17 , T:5 },
 		},
 
 		// DRAW ONE TILE TO THE CANVAS.
 		setTile: function(tileName, x, y){
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+
 			let rec = _MOD.canvas.tileCoords[tileName];
+
+			// Bounds-checking. (Ignore further chars on x if oob. Ignore oob on y too.)
+			let oob_x = x >= c.cols ? true : false;
+			let oob_y = y >= c.rows ? true : false;
+			if(oob_x){ return; }
+			if(oob_y){ return; }
+
 			if(rec){
 				_MOD.canvas.ctx.drawImage(
-					_MOD.canvas.tileset, // image
-					rec.x    ,           // sx
-					rec.y    ,           // sy
-					rec.w    ,           // sWidth
-					rec.h    ,           // sHeight
-					(x*rec.w),           // dx
-					(y*rec.h),           // dy
-					rec.w    ,           // dWidth
-					rec.h                // dHeight
+					_MOD.canvas.tileset , // image
+					(rec.L*c.tileWidth) ,  // sx
+					(rec.T*c.tileHeight),  // sy
+					c.tileWidth         ,  // sWidth
+					c.tileHeight        ,  // sHeight
+					(x*c.tileWidth)     ,  // dx
+					(y*c.tileHeight)    ,  // dy
+					c.tileWidth         ,  // dWidth
+					c.tileHeight           // dHeight
 				);
 				_MOD.canvas.lcdUpdateNeeded = true;
 			}
@@ -180,22 +201,32 @@ let _MOD = {
 
 		// DRAW TILES TO CANVAS IN A RECTANGLE REGION.
 		fillTile: function(tileName, x, y, w, h){
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+			
 			let rec = _MOD.canvas.tileCoords[tileName];
+		
 			if(rec){
 				for(let dy=0; dy<h; dy+=1){
+					// Bounds-checking. (Ignore oob on y.)
+					let oob_y = y >= c.rows ? true : false;
+					if(oob_y){ continue; }
+
 					for(let dx=0; dx<w; dx+=1){
-						if( (x*rec.w) + (dx*rec.w) > 296 ){ continue; }
-						if( (y*rec.h) + (dy*rec.h) > 300 ){ continue; }
+						// Bounds-checking. (Ignore oob on X.)
+						let oob_x = x >= c.cols ? true : false;
+						if(oob_x){ continue; }
+
 						_MOD.canvas.ctx.drawImage(
-							_MOD.canvas.tileset    , // image
-							rec.x                  , // sx
-							rec.y                  , // sy
-							rec.w                  , // sWidth
-							rec.h                  , // sHeight
-							(x*rec.w) + (dx*rec.w) , // dx
-							(y*rec.h) + (dy*rec.h) , // dy
-							rec.w                  , // dWidth
-							rec.h                    // dHeight
+							_MOD.canvas.tileset                  , // image
+							(rec.L*c.tileWidth)                  , // sx
+							(rec.T*c.tileHeight)                 , // sy
+							c.tileWidth                          , // sWidth
+							c.tileHeight                         , // sHeight
+							(x*c.tileWidth)  + (dx*c.tileWidth)  , // dx
+							(y*c.tileHeight) + (dy*c.tileHeight) , // dy
+							c.tileWidth                          , // dWidth
+							c.tileHeight                           // dHeight
 						);
 					}
 				}
@@ -208,47 +239,82 @@ let _MOD = {
 
 		// DRAW TEXT TO THE CANVAS. 
 		print: function(str, x, y){
-			let startX = x; 
-			let startY = y;
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+
 			let chars = str.split("");
 			for(let i=0; i<chars.length; i+=1){
+				// Get the source data for the char.
 				let rec = _MOD.canvas.charCoords[chars[i].toUpperCase()];
-				// if(i==5){ rec = false; }
+
+				// If the char was not found then use the 'nochar' data.
 				if(!rec){ rec = _MOD.canvas.tileCoords['nochar']; }
-				if(rec){
-					if((x*rec.w) > 296){ console.log("x wrap", str, str.length, rec.w+(x*rec.w)); x=startX; y+=1; }
-					if((y*rec.h) > 300){ console.log("y wrap", str, str.length, rec.y+(y*rec.h)); x=startX; y=startY; }
-					_MOD.canvas.ctx.drawImage(
-						_MOD.canvas.tileset,   // image
-						rec.x    , // sx
-						rec.y    , // sy
-						rec.w    , // sWidth
-						rec.h    , // sHeight
-						(x*rec.w), // dx
-						(y*rec.h), // dy
-						rec.w    , // dWidth
-						rec.h      // dHeight
-					);
-				}
+
+				// Bounds-checking. (Ignore further chars on x if oob. Ignore oob on y too.)
+				let oob_x = x >= c.cols ? true : false;
+				let oob_y = y > c.rows ? true : false;
+				if(oob_x){ continue; }
+				if(oob_y){ continue; }
+				
+				// Draw it.
+				_MOD.canvas.ctx.drawImage(
+					_MOD.canvas.tileset  , // image
+					(rec.L*c.tileWidth)  , // sx
+					(rec.T*c.tileHeight) , // sy
+					c.tileWidth          , // sWidth
+					c.tileHeight         , // sHeight
+					(x*c.tileWidth)      , // dx
+					(y*c.tileHeight)     , // dy
+					c.tileWidth          , // dWidth
+					c.tileHeight           // dHeight
+				);
 				x+=1;
 			}
 			_MOD.canvas.lcdUpdateNeeded = true;
 		},
 
-		// DRAW TEXT LINE TO THE CANVAS BY LINE NUMBER. 
-		// printLine: function(str, lineNum){
-		// },
+		// CLEAR THE CANVAS AND REDRAW THE DEFAULT BACKGROUND COLORS.
+		fullClearScreen: function(){
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
 
-		// CLEAR A REGION OF THE CANVAS. 
-		clearRect: function(x,y,w,h){
-			_MOD.canvas.ctx.clearRect(x,y,w,h);
+			// Clear the screen (entire.)
+			_MOD.canvas.ctx.clearRect(0,0, c.width, c.height);
+
+			// Repaint the screen with a color. 
+			_MOD.canvas.ctx.fillStyle = "#333333"; 
+			_MOD.canvas.ctx.fillRect(0, 0, c.width, c.height);
+
+			// Set the lcdUpdateNeeded flag.
+			_MOD.canvas.lcdUpdateNeeded = true;
+		},
+
+		// CLEAR THE VISIBLE REGION OF THE LCD DISPLAY.
+		clearScreen: function(tile="tile4"){
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+
+			// Clear the active region of the LCD.
+			_MOD.canvas.fillTile(tile, 0, 0, c.cols, c.rows); 
+			
+			// Set the lcdUpdateNeeded flag.
 			_MOD.canvas.lcdUpdateNeeded = true;
 		},
 
 		// FILL A REGION OF THE CANVAS WITH A COLOR.
 		fillRect : function(x,y,w,h,fillStyle){
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+
+			// Boundry checking.
+			x = Math.min(x, c.cols);
+			y = Math.min(y, c.rows);
+
+			// Repaint the screen with a color. 
 			_MOD.canvas.ctx.fillStyle = fillStyle; 
 			_MOD.canvas.ctx.fillRect(x,y,w,h);
+
+			// Set the lcdUpdateNeeded flag.
 			_MOD.canvas.lcdUpdateNeeded = true;
 		},
 
@@ -256,77 +322,117 @@ let _MOD = {
 		tooLongs: 0,
 		lastStamp:0,
 		updateFrameBuffer : function (){
-			// Skip if there was not an update.
-			if(!_MOD.canvas.lcdUpdateNeeded){ console.log("skipped"); return; }
+			return new Promise(function(resolve,reject){
+				// Skip if there was not an update.
+				if(!_MOD.canvas.lcdUpdateNeeded){ console.log("skipped"); resolve(); return; }
 
-			// Skip if an update is already in progress.
-			if(_MOD.canvas.updatingLCD){ console.log("LCD is already in an update."); return; }
+				// Skip if an update is already in progress.
+				if(_MOD.canvas.updatingLCD){ console.log("LCD is already in an update."); resolve(); return; }
 
-			// Set the updating flag. 
-			_MOD.canvas.updatingLCD=true;
+				// Set the updating flag. 
+				_MOD.canvas.updatingLCD=true;
 
-			_APP.timeIt("updateFrameBuffer", "s");
-			_MOD.canvas.buff = _MOD.canvas.canvas.toBuffer("raw");
-			fs.writeSync(_MOD.canvas.fb, _MOD.canvas.buff, 0, _MOD.canvas.buff.byteLength, 0);
-			_APP.timeIt("updateFrameBuffer", "e");
-			
-			// Clear the updating flag. 
-			_MOD.canvas.updatingLCD=false;
+				_APP.timeIt("rawBuffer_gen", "s");
+				_MOD.canvas.buff = _MOD.canvas.canvas.toBuffer("raw");
+				_APP.timeIt("rawBuffer_gen", "e");
 
-			// Clear the update needed flag. 
-			_MOD.canvas.lcdUpdateNeeded = false;
+				_APP.timeIt("rawBuffer_write", "s");
+				fs.writeSync(_MOD.canvas.fb, _MOD.canvas.buff, 0, _MOD.canvas.buff.byteLength, 0);
+				_APP.timeIt("rawBuffer_write", "e");
+				
+				// 
+				
+				if(_APP.m_lcd.WebSocket.getClientCount()){
+					// Works but is slower.
+					// _APP.timeIt("ws_buff", "s");
+					// _APP.m_lcd.canvas.buff2 = _APP.m_lcd.canvas.canvas.toBuffer('image/png', { compressionLevel: 0, filters: _APP.m_lcd.canvas.canvas.PNG_FILTER_NONE })
+					// _APP.timeIt("ws_buff", "e");
+					// _APP.timeIt("ws_send", "s");
+					// _APP.m_lcd.WebSocket.sendToAll(_APP.m_lcd.canvas.buff2);
+					// _APP.timeIt("ws_send", "e");
+					// _MOD.canvas.updatingLCD=false;
+					// _MOD.canvas.lcdUpdateNeeded = false;
+					// resolve();
 
-			// DEBUG
-			let t = _APP.timeIt("updateFrameBuffer", "t");
-			if(t>15){
-				_MOD.canvas.tooLongs +=1;
-				console.log(
-					`tooLongs: ${_MOD.canvas.tooLongs}, ` +
-					`timeSince: ${((performance.now() - _MOD.canvas.timeSince)/1000).toFixed(2) } seconds, ` +
-					`${t.toFixed(2)} vs ${_MOD.canvas.delay.toFixed(2)}`,
-					(t > _MOD.canvas.delay ? "TOO LONG" : "STILL GOOD"),
-					new Date().toLocaleString('us-en'))
-				;
-				_MOD.canvas.timeSince = performance.now();
-			}
+					// Does not work.
+					// _APP.timeIt("ws_buff", "s");
+					// _APP.timeIt("ws_buff", "e");
+					// _APP.timeIt("ws_send", "s");
+					// _APP.m_lcd.WebSocket.sendToAll(_MOD.canvas.buff);
+					// _APP.timeIt("ws_send", "e");
+					// _MOD.canvas.updatingLCD=false;
+					// _MOD.canvas.lcdUpdateNeeded = false;
+					// resolve();
+
+					// Works.
+					_APP.timeIt("ws_buff", "s");
+					_APP.m_lcd.canvas.canvas.toBuffer((err, buf) => {
+						_APP.timeIt("ws_buff", "e");
+						if (err) throw err // encoding failed
+						_APP.m_lcd.canvas.buff2 = buf;
+						
+						_APP.timeIt("ws_send", "s");
+						_APP.m_lcd.WebSocket.sendToAll(_APP.m_lcd.canvas.buff2);
+						_APP.timeIt("ws_send", "e");
+						
+						_MOD.canvas.updatingLCD=false;
+						_MOD.canvas.lcdUpdateNeeded = false;
+						resolve();
+					}, 'image/jpeg', { quality: 0.25} );
+				}
+				else{
+					_APP.timeIt("ws_send", "s");
+					_APP.timeIt("ws_send", "e");
+					_APP.timeIt("ws_buff", "s");
+					_APP.timeIt("ws_buff", "e");
+
+					// Clear the updating flag. 
+					_MOD.canvas.updatingLCD=false;
+	
+					// Clear the update needed flag. 
+					_MOD.canvas.lcdUpdateNeeded = false;
+	
+					resolve();
+				}
+			});
 		},
 
 		// INTERVAL TIMER FOR LCD UPDATES.
-		interval : null,
-		delay: (1/30)*1000,
-		startInterval : async function(){
-			// Clear the current interval timer if it is already set. 
-			if(_MOD.canvas.interval){ clearInterval(_MOD.canvas.interval); }
+		// interval : null,
+		// delay: (1/30)*1000,
+		// startInterval : async function(){
+		// 	// Clear the current interval timer if it is already set. 
+		// 	if(_MOD.canvas.interval){ clearInterval(_MOD.canvas.interval); }
 
-			// Start the interval timer and store the interval id.
-			_MOD.canvas.interval = setInterval(async function(){
-				// Update only if the lcdUpdateNeeded flag is set. 
-				if(_MOD.canvas.lcdUpdateNeeded){ 
-					setImmediate( ()=>{
-						// UPDATE THE LCD DISPLAY.
-						_MOD.canvas.updateFrameBuffer();
+		// 	// Start the interval timer and store the interval id.
+		// 	_MOD.canvas.interval = setInterval(async function(){
+		// 		// Update only if the lcdUpdateNeeded flag is set. 
+		// 		if(_MOD.canvas.lcdUpdateNeeded){ 
+		// 			setImmediate( ()=>{
+		// 				// UPDATE THE LCD DISPLAY.
+		// 				_MOD.canvas.updateFrameBuffer();
 						
-						// SEND AN UPDATE TO ALL CONNECTED CLIENTS. 
-						setImmediate( ()=>{
-							_MOD.canvas.buff2 = _MOD.canvas.canvas.toBuffer();
-							_APP.m_lcd.WebSocket.sendToAll(_MOD.canvas.buff2);
-						});
-					});
-				}
-			}, _MOD.canvas.delay);
-		},
+		// 				// SEND AN UPDATE TO ALL CONNECTED CLIENTS. 
+		// 				setImmediate( ()=>{
+		// 					_MOD.canvas.buff2 = _MOD.canvas.canvas.toBuffer();
+		// 					_APP.m_lcd.WebSocket.sendToAll(_MOD.canvas.buff2);
+		// 				});
+		// 			});
+		// 		}
+		// 	}, _MOD.canvas.delay);
+		// },
 
 		// INITIALIZE THE CANVAS. 
 		init: async function(){
 			// CANVAS SETUP.
 			_MOD.canvas.canvas = createCanvas(_APP.m_config.config.lcd.width, _APP.m_config.config.lcd.height ); // (not the whole screen.) VNC
 			_MOD.canvas.ctx    = _MOD.canvas.canvas.getContext("2d");	
+			_MOD.canvas.ctx.translate(4, 0);
 			_MOD.canvas.ctx.mozImageSmoothingEnabled    = false; // Firefox
 			_MOD.canvas.ctx.imageSmoothingEnabled       = false; // Firefox
 			_MOD.canvas.ctx.oImageSmoothingEnabled      = false; //
 			_MOD.canvas.ctx.webkitImageSmoothingEnabled = false; //
 			_MOD.canvas.ctx.msImageSmoothingEnabled     = false; //
-			_MOD.canvas.ctx.translate(2, 0);
 
 			// OPEN/STORE A HANDLE TO THE FRAMEBUFFER.
 			_MOD.canvas.fb = fs.openSync("/dev/fb0", "w");
@@ -336,16 +442,18 @@ let _MOD = {
 			_MOD.canvas.tileset = await loadImage("test3.png");
 			// _MOD.canvas.tileset = await loadImage("ExportedFont.bmp");
 
-			// CLEAR THE SCREEN (LEAVE GRAY THE PART OF THE SCREEN THAT CANNOT BE SEEN ON THE LCD.)
-			_MOD.canvas.clearRect(0,0, _MOD.canvas.canvas.width, _MOD.canvas.canvas.height);
-			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width, _MOD.canvas.canvas.height, "darkgray");
-			_MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-16, _MOD.canvas.canvas.height, "#191919");
-			// _MOD.canvas.fillRect(0, 0, _MOD.canvas.canvas.width-8, _MOD.canvas.canvas.height, "blue");
-			console.log("_MOD.canvas.canvas.width, _MOD.canvas.canvas.height:", _MOD.canvas.canvas.width, _MOD.canvas.canvas.height);
+			// COMPLETE CLEAR OF THE SCREEN.
+			_MOD.canvas.fullClearScreen();
+			
+			// CLEAR THE ACTIVE AREA OF THE SCREEN. 
+			_MOD.canvas.clearScreen();
+			
 			// DEBUG TEXT.
-
 			_MOD.canvas.fillTile("tile1"  , 0, 0, 16, 1); 
 			_MOD.canvas.print("COMMAND-ER MINI:"  , 0 , 0);
+			// _MOD.canvas.startInterval(); return; 
+
+			_MOD.canvas.fillTile("tile2"  , 0, 1, 24, 1); 
 
 			_MOD.canvas.print("FILLTILE:"  , 0 , 3);
 			_MOD.canvas.fillTile("tile1"   , 10, 3, 2, 1); 
@@ -356,21 +464,39 @@ let _MOD = {
 			_MOD.canvas.fillTile("cursor4" , 19, 3, 1, 2); 
 			_MOD.canvas.fillTile("nochar"  , 21, 3, 3, 3); 
 
-			_MOD.canvas.print("SETTILE:"  , 0 , 6);
-			_MOD.canvas.setTile("tile1"   , 10, 6); 
-			_MOD.canvas.setTile("tile2"   , 11, 6); 
-			_MOD.canvas.setTile("tile3"   , 12, 6); 
-			_MOD.canvas.setTile("cursor1" , 13, 6); 
-			_MOD.canvas.setTile("cursor2" , 14, 6); 
-			_MOD.canvas.setTile("cursor3" , 15, 6); 
-			_MOD.canvas.setTile("cursor4" , 16, 6); 
-			_MOD.canvas.setTile("nochar"  , 17, 6); 
+			_MOD.canvas.print("SETTILE :"   , 0 , 7);
+			_MOD.canvas.setTile("tile1"     , 10, 7); 
+			_MOD.canvas.setTile("tile2"     , 11, 7); 
+			_MOD.canvas.setTile("tile3"     , 12, 7); 
+			_MOD.canvas.setTile("cursor1"   , 13, 7); 
+			_MOD.canvas.setTile("cursor2"   , 14, 7); 
+			_MOD.canvas.setTile("cursor3"   , 15, 7); 
+			_MOD.canvas.setTile("cursor4"   , 16, 7); 
+			_MOD.canvas.setTile("nochar"    , 17, 7); 
+			_MOD.canvas.setTile("battcharge", 18, 7); 
+			_MOD.canvas.setTile("batt1"     , 19, 7); 
+			_MOD.canvas.setTile("batt2"     , 20, 7); 
+			_MOD.canvas.setTile("batt3"     , 21, 7); 
+			_MOD.canvas.setTile("batt4"     , 22, 7); 
+			_MOD.canvas.setTile("clock1"    , 23, 7); 
 			
-			_MOD.canvas.print("FONTTEST:", 0, 8);
-			_MOD.canvas.print(" !\"#$%&'()*+,-./", 0, 9);
-			_MOD.canvas.print("0123456789:;<=>?", 0,  10);
-			_MOD.canvas.print("@ABCDEFGHIJKLMNO", 0,  11);
-			_MOD.canvas.print("PQRSTUVWXYZ[\\]^_", 0, 12);
+			_MOD.canvas.print("FONTTEST:", 0, 9);
+			_MOD.canvas.print(" !\"#$%&'()*+,-./", 8, 10);
+			_MOD.canvas.print("0123456789:;<=>?" , 8, 11);
+			_MOD.canvas.print("@ABCDEFGHIJKLMNO" , 8, 12);
+			_MOD.canvas.print("PQRSTUVWXYZ[\\]^_", 8, 13);
+			
+			_MOD.canvas.print("OOB TEST:", 0, 15);
+			_MOD.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
+			_MOD.canvas.print("NO WRAP: HAS 24 CHARS...", 0, 17);
+			_MOD.canvas.print("CUTOFF : HAS 25 CHARS....", 0, 18);
+			
+			// Create a bar near the bottom.
+			_MOD.canvas.fillTile("tile2"  , 0, 23, 24, 1); 
+			// _MOD.canvas.print("..........11111111112222", 0, 24);
+			// _MOD.canvas.fillTile("cursor4" , 0, 24, 24, 1); 
+			// _MOD.canvas.fillTile("cursor3" , 0, 0, 1, 25); 
+			// _MOD.canvas.clearScreen("tile1");
 
 			// CURSOR TEST.
 			let cursor = 0;
@@ -387,7 +513,7 @@ let _MOD = {
 			}, 250);
 
 			// START THE FRAMEBUFFER UPDATE TIMER.
-			_MOD.canvas.startInterval();
+			// _MOD.canvas.startInterval();
 		},
 	},
 	WebSocket: {
@@ -484,13 +610,22 @@ let _MOD = {
 				}
 			}
 		},
-		el_close  : async function(ws, event){ console.log("close"); ws.close(); },
-		el_error  : async function(ws, event){ console.log("error:", event); ws.close(); },
+		el_close  : async function(ws, event){ 
+			console.log("close"); 
+			ws.close(); 
+			setTimeout(function(){ws.terminate(); }, 1000);
+		},
+		el_error  : async function(ws, event){ 
+			console.log("error:", event); 
+			ws.close(); 
+			setTimeout(function(){ws.terminate(); }, 1000);
+		},
 
 		// INIT THE WEBSOCKET CONNECTION.
 		initWss: async function(app, express){
 			// THIS IS APPLIED FOR ALL NEW WEBSOCKET CONNECTIONS.
 			_APP.wss.on('connection', function connection(ws, res) {
+
 				// GENERATE A UNIQUE ID FOR THIS CONNECTION. 
 				ws.id = _MOD.WebSocket.uuidv4();
 

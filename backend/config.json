@@ -4,7 +4,13 @@
 		"port": 7777
 	},
 	"lcd":{
-		"width": 304,
-		"height": 300
+		"width"       : 304,
+		"height"      : 300,
+		"usableWidth" : 288,
+		"usableHeight": 300,
+		"tileWidth"   : 12, 
+		"tileHeight"  : 12, 
+		"cols"        : 24, 
+		"rows"        : 25 
 	}
 }

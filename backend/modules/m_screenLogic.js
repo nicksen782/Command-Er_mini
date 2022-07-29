@@ -67,14 +67,19 @@ _MOD.main = {
 			case "KEY_PRESS_PIN": { if(state){ } break; }
 
 			// Status screen.
-			case "KEY1_PIN"     : { if(state){ } break; }
+			case "KEY1_PIN"     : { 
+				if(state){ 
+					if(_APP.m_lcd.canvas.lcdUpdateNeeded==false){
+						_APP.m_lcd.canvas.lcdUpdateNeeded = true;
+					}
+				}
+				break; 
+			}
 
 			// 
 			case "KEY2_PIN"     : { 
 				if(state){ 
-					// if(_APP.m_lcd.canvas.lcdUpdateNeeded==false){
-					// 	_APP.m_lcd.canvas.lcdUpdateNeeded = true;
-					// }
+					_APP.m_lcd.canvas.clearScreen();
 				}
 				break; 
 			}

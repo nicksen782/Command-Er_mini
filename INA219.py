@@ -208,7 +208,9 @@ if __name__=='__main__':
         print(" \"V\": {:0.3f},".format(bus_voltage))
         print(" \"A\": {:0.3f},".format(current/1000))
         print(" \"W\": {:0.3f},".format(power))
-        print(" \"%\": {:0.1f}".format(p))
+        print(" \"%\": {:0.1f},".format(p))
+        print(" \"PV\": {:6.3f},".format(bus_voltage + shunt_voltage))
+        print(" \"SV\": {:9.6f}".format(shunt_voltage))
         print("}")
         break
         time.sleep(2)

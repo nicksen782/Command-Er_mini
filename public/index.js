@@ -46,17 +46,19 @@ let lcd = {
 		// RUNS ON WEBSOCKET CLOSE.
 		onclose   : async function(e){ 
 			// console.log(`onclose: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
+			lcd.ws.close();
 			document.getElementById("div_container").classList.add("disconnected");
 			console.log("Connection: CLOSED. Will try to reconnect.");
-			setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 250);
+			setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 2000);
 		},
 
 		// RUNS ON WEBSOCKET ERROR.
 		onerror  : async function(e){ 
 			// console.log(`onerror: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
+			lcd.ws.close();
 			document.getElementById("div_container").classList.add("disconnected");
 			console.log("Connection: ERROR. Will try to reconnect.");
-			setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 250);
+			setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 2000);
 		},
 
 		// UTILITY FUNCTION TO SEND DATA TO THE WEBSOCKET. 
@@ -220,6 +222,14 @@ async function isServerUp(){
 	});
 };
 
+function canvasTest(){
+	c = document.getElementById("CANVAS1");
+	let start = performance.now();
+	let img = c.getContext('2d').getImageData(0,0, c.width, c.height);
+	let end = performance.now();
+	console.log(end-start, img);	
+}
+
 // INIT.
 window.onload = function(){
 	window.onload = null;
@@ -236,6 +246,13 @@ window.onload = function(){
 	
 	// BUTTONS: OUTPUT: Event listeners.
 	document.getElementById("BL_PIN")       .addEventListener("click", ()=>post('toggle_pin'            , {button:"BL_PIN"}       ), false);
+	
+	// BUTTONS: DEBUG
+	document.getElementById("DEBUG_01")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER"}); }, false);
+	document.getElementById("DEBUG_02")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER_ALL"}); }, false);
+	document.getElementById("DEBUG_03")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_CONFIG"}); }, false);
+	document.getElementById("DEBUG_04")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_UUID"}); }, false);
+	document.getElementById("DEBUG_05")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"GET_CLIENT_IDS"}); }, false);
 	
 	// CANVAS
 	lcd.canvas = document.getElementById("CANVAS1");

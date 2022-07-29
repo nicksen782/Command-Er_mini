@@ -2,8 +2,11 @@ body {
 	background-color: darkblue;
 }
 
-.button {
-	min-width: 26px;
+.button_small {
+	min-width: 32px;
+}
+.button_mid {
+	width: 200px;
 }
 
 #CANVAS1 {

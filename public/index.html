@@ -4,43 +4,38 @@
 <div id="div_container" class="disconnected">
 	<table class="inline-block">
 		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
 		<tr>
 			<td>&nbsp;</td>
-			<td><button class="button" id="KEY_UP_PIN">U</button></td>
+			<td><button class="button_small" id="KEY_UP_PIN"    >U</button></td>
 			<td>&nbsp;</td>
 		</tr>
 		<tr>
-			<td><button class="button" id="KEY_LEFT_PIN">L</button></td>
-			<td><button class="button" id="KEY_PRESS_PIN">P</button></td>
-			<td><button class="button" id="KEY_RIGHT_PIN">R</button></td>
+			<td><button class="button_small" id="KEY_LEFT_PIN"  >L</button></td>
+			<td><button class="button_small" id="KEY_PRESS_PIN" >P</button></td>
+			<td><button class="button_small" id="KEY_RIGHT_PIN" >R</button></td>
 		</tr>
 		<tr>
 			<td>&nbsp;</td>
-			<td><button class="button" id="KEY_DOWN_PIN">D</button></td>
+			<td>
+				<button class="button_small" id="KEY_DOWN_PIN" >D</button><br>
+				<br>
+				<button class="button_small" id="KEY1_PIN" >B1</button><br><br>
+				<button class="button_small" id="KEY2_PIN" >B2</button><br><br>
+				<button class="button_small" id="KEY3_PIN" >B3</button><br><br>
+			</td>
 			<td>&nbsp;</td>
 		</tr>
-		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
 	</table>
 
 	<canvas class="inline-block" width="304" height="300" id="CANVAS1"></canvas>
 
 	<table class="inline-block">
-		<tr> <td><button class="button" id="KEY1_PIN">KEY1</button></td> </tr>
-		<tr> <td><button class="button" id="KEY2_PIN">KEY2</button></td> </tr>
-		<tr> <td><button class="button" id="KEY3_PIN">KEY3</button></td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
-		<tr> <td><button class="button" title="Toggle the lcd backlight"    id="BL_PIN">BL</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_LCD_FRAMEBUFFER"     onclick='lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER"})'    >FB</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_LCD_FRAMEBUFFER_ALL" onclick='lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER_ALL"})'>FBA</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_LCD_CONFIG"          onclick='lcd.WebSocket.send({mode:"REQUEST_LCD_CONFIG"})'         >CFG</button></td> </tr>
-		<tr> <td><button class="button" title="REQUEST_UUID"                onclick='lcd.WebSocket.send({mode:"REQUEST_UUID"})'               >CID</button></td> </tr>
-		<tr> <td><button class="button" title="GET_CLIENT_IDS"              onclick='lcd.WebSocket.send({mode:"GET_CLIENT_IDS"})'             >CIDS</button></td> </tr>
+		<tr> <td><button class="button_mid" id="BL_PIN"  >Toggle backlight.</button></td> </tr>
+		<tr> <td><button class="button_mid" id="DEBUG_01">Request recent framebuffer.</button></td> </tr>
+		<tr> <td><button class="button_mid" id="DEBUG_02">Update LCD of all clients.</button></td> </tr>
+		<tr> <td><button class="button_mid" id="DEBUG_03">Get LCD config.</button></td> </tr>
+		<tr> <td><button class="button_mid" id="DEBUG_04">Get UUID</button></td> </tr>
+		<tr> <td><button class="button_mid" id="DEBUG_05">Get all UUIDs</button></td> </tr>
 		<tr> <td>&nbsp;</td> </tr>
 	</table>
 </div>
