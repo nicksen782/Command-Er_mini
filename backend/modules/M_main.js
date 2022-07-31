@@ -2,19 +2,23 @@
 const fs   = require('fs');
 const path = require('path'); 
 
+// WWS server start
+const WSServer = require('ws').Server;
+
 // Modules saved within THIS module.
 const m_config      = require('./m_config.js');
 const m_gpio        = require('./m_gpio.js');
 const m_lcd         = require('./m_lcd.js');
 const m_screenLogic = require('./m_screenLogic.js');
 const m_battery     = require('./m_battery.js');
+const m_s_timing    = require('./m_s_timing.js');
 
 // Main app.
 let _APP = {
 	// Express variables.
-	app    : null,
-	express: null,
-	wss    : null,
+	app      : null,
+	express  : null,
+	wss      : null,
 
 	// Manual route list. (Emulates something like route annotations.)
 	routeList: {}, 
@@ -25,12 +29,16 @@ let _APP = {
 	m_lcd         : m_lcd  ,
 	m_screenLogic : m_screenLogic ,
 	m_battery     : m_battery ,
+	m_s_timing    : m_s_timing ,
 
-	// Can be: [ "main" ]
-	currentScreen : "main",
-
-	// This is added to by the other modules.
-	logic: {},
+	screens: [
+		"main", 
+		"timings_test",
+		"drawTest"
+	],
+	// currentScreen : "main",
+	// currentScreen : "timings_test",
+	currentScreen : "drawTest",
 
 	// Init this module.
 	module_init: function(parent){
@@ -59,12 +67,24 @@ let _APP = {
 	module_inits: function(){
 		return new Promise(async function(resolve,reject){
 			await _APP         .module_init(_APP);
-			
+
+			// CONFIG FIRST.
 			await _APP.m_config.module_init(_APP);
-			await _APP.m_gpio.module_init(_APP);
-			await _APP.m_lcd.module_init(_APP);
-			await _APP.m_battery.module_init(_APP);
+
+			_APP.fps.setFpsInterval(3);
+
+			if(_APP.m_config.config.ws.active){
+				_APP.wss = new WSServer({ server: _APP.server });
+				_APP.server.on('request', _APP.app);
+			}
+			else{
+				_APP.wss = null;
+			}
+			await _APP.m_gpio       .module_init(_APP);
+			await _APP.m_lcd        .module_init(_APP);
+			await _APP.m_battery    .module_init(_APP);
 			await _APP.m_screenLogic.module_init(_APP);
+			await _APP.m_s_timing   .module_init(_APP);
 
 			// Timers.
 			await _APP.m_lcd.canvas.init();
@@ -78,12 +98,16 @@ let _APP = {
 			// SET AN LCD DRAW TO BE NEEDED.
 			_APP.m_lcd.canvas.lcdUpdateNeeded = true;
 			await _APP.m_lcd.canvas.updateFrameBuffer();
+			
+			// setInterval(function(){
+			// 	// Set the lcdUpdateNeeded flag.
+			// 	_APP.m_lcd.canvas.lcdUpdateNeeded = true;
+			// }, 2000);
 
-			checks.loop.last = performance.now(); 
-			checks.draw.last = performance.now(); 
-			checks.batt.last = performance.now(); 
-			checks.time.last = performance.now(); 
-			setImmediate( ()=>{ loop( performance.now() ); });
+			// checks.logic.last = performance.now(); 
+			// checks.draw.last = performance.now(); 
+			// setImmediate( ()=>{ loop( performance.now() ); });
+			_APP.scheduleNextLoop();
 			resolve();
 		});
 	},
@@ -143,87 +167,302 @@ let _APP = {
 	},
 
 	// DEBUG: Used to measure how long something takes.
-	timeIt_timings : {},
+	timeIt_timings : { },
 	timeIt: function(key, type, toConsole=false){
 		if(type == "s"){
 			_APP.timeIt_timings[key] = {
+				// performance.now
 				s: performance.now(),
 				e: 0,
 				t: 0,
+
+				// process.hrtime
+				// s: process.hrtime(),
+				// e: 0,
+				// t: 0,
 			};
 			if(toConsole){ console.log(key, "START"); }
 		}
 		else if(type == "e"){
+			// performance.now
 			_APP.timeIt_timings[key].e = performance.now();
 			_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
 			if(toConsole){ console.log(key, "END", _APP.timeIt_timings[key].t); }
+
+			// process.hrtime
+			// _APP.timeIt_timings[key].e = process.hrtime(_APP.timeIt_timings[key].s);
+			// _APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e[0]*1000 + _APP.timeIt_timings[key].e[1] / 1000000;
+			// if(toConsole){ console.log(key, "END", _APP.timeIt_timings[key].t); }
 		}
 		else if(type == "t"){
-			return _APP.timeIt_timings[key].t;
+			if(_APP.timeIt_timings[key]){
+				return _APP.timeIt_timings[key].t;
+			}
+			return 0;
 		}
+	},
+
+	// Calculates the average frames per second.
+	fps : {
+		// colxi: https://stackoverflow.com/a/55644176/2731377
+		sampleSize : 60,    
+		value : 0,
+		_sample_ : [],
+		_index_ : 0,
+		_lastTick_: false,
+		tick : function(){
+			// if is first tick, just set tick timestamp and return
+			if( !this._lastTick_ ){
+				this._lastTick_ = performance.now();
+				return 0;
+			}
+			// calculate necessary values to obtain current tick FPS
+			let now = performance.now();
+			let delta = (now - this._lastTick_)/1000;
+			let fps = 1/delta;
+			// add to fps samples, current tick fps value 
+			this._sample_[ this._index_ ] = Math.round(fps);
+			
+			// iterate samples to obtain the average
+			let average = 0;
+			for(i=0; i<this._sample_.length; i++) average += this._sample_[ i ];
+	
+			average = Math.round( average / this._sample_.length);
+	
+			// set new FPS
+			this.value = average;
+			// store current timestamp
+			this._lastTick_ = now;
+			// increase sample index counter, and reset it
+			// to 0 if exceded maximum sampleSize limit
+			this._index_++;
+			if( this._index_ === this.sampleSize) this._index_ = 0;
+			this.average = this.value;
+			return this.value;
+		},
+		setFpsInterval: function(newFPS){
+			// Ensure only integers will be used.
+			newFPS = Math.floor(newFPS);
+
+			// If FPS is 60 (max) then there is no time between frames which will block anything that is outside of the main game loop such as debug.)
+			if(newFPS >= 60){ newFPS=59; }
+			
+			// Make sure at least 1 fps is set. 
+			if(newFPS <= 0){ newFPS=1; }
+
+			// Set the values. 
+			// core.SETTINGS.fps = newFPS ;
+			this._sample_   = []   ;
+			this._index_    = 0    ;
+			this._lastTick_ = false;
+
+			this.now      = null                   ;
+			this._then    = performance.now()      ;
+			this.delta    = null;
+
+			this.fps = newFPS;
+			this.interval = 1000/newFPS;
+		},
+	},	
+
+	scheduleNextLoop: function(){
+		// Start right away.
+		// loop2(performance.now());
+
+		// Start next loop immediately after thie current event loop finishes.
+		setImmediate( ()=>{ loop2(performance.now()); } );
+
+		// Start next loop at the next iteration of the event loop.
+		// process.nextTick( ()=>{ loop2(performance.now()); } );
 	},
 };
 
+let innerLoop = function(){
+	return new Promise(async function(res_loop, rej_loop){
+		// Render output.
+		//
+		
+		// Get user inputs.
+		_APP.timeIt("readbuttons", "s");
+		_APP.m_gpio.readAll();
+		_APP.timeIt("readbuttons", "e");
+		
+		// Run func for the current screen state.
+		_APP.timeIt("l_" + _APP.currentScreen, "s");
+		_APP.m_screenLogic.screens[_APP.currentScreen].func();
+		// _APP.timeIt("batt", "s");
+		// _APP.m_battery.func();
+		// _APP.timeIt("batt", "e");
+		_APP.timeIt("l_" + _APP.currentScreen, "e");
+
+		// UPDATE THE TIMINGS DISPLAY.
+		if(_APP.currentScreen == "timings_test"){
+			// Get the previous lines length. 
+			let thisScreen = _APP.m_screenLogic.screens[_APP.currentScreen];
+			let len = thisScreen.lines.length;
+
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+			let ts = c.tilesets[c.activeTileset];
+
+			// Clear the previous display region.
+			_APP.m_lcd.canvas.fillTile("tile3"  , 0, 0, 24, len); 
+			
+			// Clear the lines. 
+			thisScreen.lines = [];
+			
+			// for(let k in _APP.timeIt_timings){
+				// 	thisScreen.lines.push(
+					// 		k.padEnd(15, " ") + ":" + 
+					// 		Number(_APP.timeIt(k, "t")).toFixed(2)
+					// 		.padStart(8, " ")
+			// 	);
+			// }
+			// thisScreen.lines.push(".".repeat(24))
+			// thisScreen.lines.push("readbuttons"   .padEnd(15, " ") + ":" + Number(_APP.timeIt("readbuttons"   , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("l_timings_test".padEnd(15, " ") + ":" + Number(_APP.timeIt("l_timings_test", "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push(" time"         .padEnd(15, " ") + ":" + Number(_APP.timeIt("time"          , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push(" batt"         .padEnd(15, " ") + ":" + Number(_APP.timeIt("batt"          , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push(" buttons"      .padEnd(15, " ") + ":" + Number(_APP.timeIt("buttons"       , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push(" cursor"       .padEnd(15, " ") + ":" + Number(_APP.timeIt("cursor"        , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("updatescreen"  .padEnd(15, " ") + ":" + Number(_APP.timeIt("updatescreen"  , "t")).toFixed(2).padStart(8, " "));
+			
+			// thisScreen.lines.push(".".repeat(24));
+			// thisScreen.lines.push("interval"      .padEnd(15, " ") + ":" + Number(_APP.fps.interval).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("set fps"       .padEnd(15, " ") + ":" + Number(_APP.fps.fps)     .toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("avg fps"       .padEnd(15, " ") + ":" + Number(_APP.fps.average) .toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("delta"         .padEnd(15, " ") + ":" + Number(_APP.fps.delta)   .toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push(".".repeat(24));
+			// thisScreen.lines.push("lcd_buff_gen"  .padEnd(15, " ") + ":" + Number(_APP.timeIt("lcd_buff_gen"  , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("lcd_buff_send" .padEnd(15, " ") + ":" + Number(_APP.timeIt("lcd_buff_send" , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("ws_buff_gen"   .padEnd(15, " ") + ":" + Number(_APP.timeIt("ws_buff_gen"   , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("ws_buff_send"  .padEnd(15, " ") + ":" + Number(_APP.timeIt("ws_buff_send"  , "t")).toFixed(2).padStart(8, " "));
+			// thisScreen.lines.push("ws active"     .padEnd(15, " ") + ":" + Number(_APP.m_config.config.ws.active).toFixed(0).padStart(8, " "));
+			// thisScreen.lines.push("ws clients"    .padEnd(15, " ") + ":" + Number(_APP.m_lcd.WebSocket.getClientCount()).toFixed(0).padStart(8, " "));
+			// thisScreen.lines.push(".".repeat(24));
+			let y=0;
+
+			_APP.timeIt("timings_test2", "s");
+			// for(let v of thisScreen.lines){ _APP.m_lcd.canvas.print(v  , 0 , y++); }
+
+			_APP.timeIt("timings_test2", "e");
+			// console.log("timings_test2:", _APP.timeIt("timings_test2", "t"));
+			// console.log(_APP.m_lcd.canvas.tileImages);
+		}
+		
+		// // Update the LCD and ws buffer send.
+		_APP.timeIt("updatescreen", "s");
+		await _APP.m_lcd.canvas.updateFrameBuffer(); // FRAMEBUFFER UPDATE.
+		_APP.timeIt("updatescreen", "e");
+
+		res_loop();
+	});
+
+};
+let loop2 = async function(timestamp){
+	// Should the loop run?
+
+	// Update the timing values.
+	_APP.fps.now           = timestamp;
+	_APP.fps.delta         = _APP.fps.now - _APP.fps._then;
+	// _APP.fps.nextFrameTime = _APP.fps.now + _APP.fps.interval ;
+
+	// Ready to run a graphics/logic update?
+	let is_deltaOverInterval = (_APP.fps.delta >= _APP.fps.interval ? true : false) ;
+	let is_paused            = false
+	// let ms_untilNextScheduledLoop = _APP.fps.nextFrameTime - _APP.fps.now;
+
+	// Ready for the next loop?
+	if(is_deltaOverInterval) {
+		// Update the timing data.
+		// _APP.fps._then = _APP.fps.now - (_APP.fps.delta % _APP.fps.interval);
+		// _APP.fps._then = _APP.fps.now ;
+
+		// Calculate the average FPS.
+		_APP.fps.tick(timestamp);
+
+		// Paused? Do not run the game.loop.
+		if(is_paused){
+			// Schedule the next game.gameloop.
+			_APP.scheduleNextLoop();
+		}
+		else{
+			// Call the inner loop.
+			await innerLoop();
+
+			_APP.fps._then = performance.now(); ;
+
+			// Set next loop call.
+			_APP.scheduleNextLoop();
+			return;
+		}
+	}
+	// No. Do something else?
+	else{
+		//
+		if(console._LOG_BUFFER){
+			// console.log("nothing", _APP.fps.delta );
+			console._LOG_BUFFER.flush();
+		}
+		else{
+			// console.log("nothing", _APP.fps.delta );
+		}
+
+		// Update the LCD and ws buffer send.
+		// _APP.timeIt("updatescreen", "s");
+		// await _APP.m_lcd.canvas.updateFrameBuffer(); // FRAMEBUFFER UPDATE.
+		// _APP.timeIt("updatescreen", "e");
+
+		// Set next loop call.
+		_APP.scheduleNextLoop();
+	}
+};
+
+
+
+
+
+
 let checks = {
-	loop: { last:0, run: false },
+	logic: { last:0, run: false },
 	draw: { last:0, run: false },
-	batt: { last:0, run: false },
-	time: { last:0, run: false },
 }
 let loop = async function(timestamp){
-	checks.loop.run = timestamp - checks.loop.last > 33;
-	if(checks.loop.run){
-		// UPDATE THE TIME DISPLAY.
-		checks.time.run = timestamp - checks.time.last > 1000;
-		if(checks.time.run){
-			_APP.timeIt("time", "s");
-			_APP.m_lcd.timeUpdate.func();          // TIME UPDATE.
-			_APP.timeIt("time", "e");
-			// console.log("UPDATED TIME   :", _APP.timeIt("time", "t").toFixed(3).padStart(7, " "));
-			checks.time.last = performance.now();
-		}
+	checks.logic.run = timestamp - checks.logic.last > 1;
+	checks.draw.run = timestamp - checks.draw.last > 30 && _APP.m_lcd.canvas.lcdUpdateNeeded;
 
-		// UPDATE THE LCD DISPLAY.
-		checks.draw.run = timestamp - checks.draw.last > 33 && _APP.m_lcd.canvas.lcdUpdateNeeded;
-		if(checks.draw.run){
-			// _APP.m_lcd.canvas.lcdUpdateNeeded = true;
-			_APP.timeIt("draw", "s");
-			await _APP.m_lcd.canvas.updateFrameBuffer(); // FRAMEBUFFER UPDATE.
-			_APP.timeIt("draw", "e");
-			
-			// console.log(
-			// 	"UPDATED DISPLAY:", 
-			// 	"draw :"            , _APP.timeIt("draw"             , "t").toFixed(1).padStart(6, " "), 
-			// 	"rawBuffer_gen:"    , _APP.timeIt("rawBuffer_gen"    , "t").toFixed(1).padStart(6, " "),
-			// 	"rawBuffer_write:"  , _APP.timeIt("rawBuffer_write"  , "t").toFixed(1).padStart(6, " "),
-			// 	"ws_buff :"         , _APP.timeIt("ws_buff"          , "t").toFixed(1).padStart(6, " "),
-			// 	"ws_send :"         , _APP.timeIt("ws_send"          , "t").toFixed(1).padStart(6, " "),
-			// 	""
-			// );
-			checks.draw.last = performance.now();
-		}
+	// RUN LOGIC.
+	if(checks.logic.run){
+		// READ THE BUTTONS.
+		_APP.timeIt("readbuttons", "s");
+		let states = _APP.m_gpio.readAll();
+		_APP.timeIt("readbuttons", "e");
+		// console.log(states);
+		_APP.timeIt("l_" + _APP.currentScreen, "s");
+		_APP.m_screenLogic.screens[_APP.currentScreen].func();
+		_APP.timeIt("l_" + _APP.currentScreen, "e");
+		
+		checks.logic.last = timestamp; 
+	}
 
-		checks.loop.last = timestamp; 
+	// UPDATE THE LCD DISPLAY.
+	if(checks.draw.run){
+		_APP.timeIt("updatescreen", "s");
+		await _APP.m_lcd.canvas.updateFrameBuffer(); // FRAMEBUFFER UPDATE.
+		_APP.timeIt("updatescreen", "e");
+		
+		checks.draw.last = performance.now();
 	}
 	else{
-		// UPDATE THE BATTERY DISPLAY.
-		checks.batt.run = timestamp - checks.batt.last > 5000;
-		if(checks.batt.run){
-			_APP.timeIt("batt", "s");
-			_APP.m_battery.func();                 // BATTERY UPDATE.
-			_APP.timeIt("batt", "e");
-			// console.log("UPDATED BATTERY:", _APP.timeIt("batt", "t").toFixed(3).padStart(7, " "));
-		}
-		checks.batt.last = performance.now();
 	}
 
 	setImmediate( ()=>{ loop(performance.now()); } );
 };
 
 // Save app and express to _APP and then return _APP.
-module.exports = function(app, express, wss){
+module.exports = function(app, express, server){
 	_APP.app     = app;
 	_APP.express = express;
-	_APP.wss     = wss;
+	_APP.server  = server;
 	return _APP;
 };

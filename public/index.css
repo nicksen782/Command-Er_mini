@@ -1,19 +1,122 @@
+/* BODY */
 body {
 	background-color: darkblue;
 }
 
-.button_small {
+/* SHARED */
+.inline-block {
+	display: inline-block;
+	vertical-align: top;
+}
+
+.bg1{
+	background-color:gray;
+}
+.center{
+	text-align:center;
+}
+
+/* BUTTONS */
+.button1 {
 	min-width: 32px;
 }
-.button_mid {
-	width: 200px;
+.button2 {
+	/* min-width: 32px; */
+	/* width: 200px; */
+	width: 100%;
+}
+.button3 {
+	width: 300px;
+	/* width: 100%; */
+	text-align: left;
+	font-family:
+	monospace;
+}
+.button1:hover,
+.button2:hover,
+.button3:hover {
+	background-color:goldenrod;
+}
+.button1:active,
+.button2:active,
+.button3:active {
+	background-color:yellow;
 }
 
+#container1{
+	/* width: 600px; */
+	border: 5px solid navajowhite;
+}
+
+#liveControls{
+	/* width: 100px; */
+	/* height: 100%; */
+}
+
+#debugControls {
+    /* width: 500px; */
+	border: 5px solid navajowhite;
+}
+#canvasDisplay {
+    /* width: 500px; */
+}
+
+#container1,
+#liveControls,
+#canvasDisplay,
+#debugControls{
+	display: inline-block;
+	vertical-align: top;
+	padding: 2px;
+	background-color: black;
+	border-radius: 5px;
+	/* color:antiquewhite; */
+}
+.disconnected{
+	border-color:red !important;
+}
+
+/* CANVAS */
 #CANVAS1 {
 	border: 1px solid antiquewhite;
+	background-color: black;
 }
 
-#div_container {
+
+.tableType1 {}
+
+.tableType1 {
+	margin-bottom: 5px;
+	border: 2px solid black;
+	border-top: 0px;
+	border-radius: 0px 0px 5px 5px;
+	border-collapse: collapse;
+	background-color: darkkhaki;
+	width:100%;
+}
+
+.tableType1 caption {
+	background-color: #c1c1c1;
+	font-weight: bold;
+	text-decoration: underline;
+	border: 2px solid black;
+	border-bottom: 1px solid black;
+	/* border-top: 1px solid black; */
+	border-radius: 5px 5px 0px 0px;
+	padding: 4px
+}
+
+.tableType1 th,
+.tableType1 td {
+	/* border: 1px solid black; */
+	padding: 4px;
+}
+
+.tableType1 th {}
+
+/* 
+#div_container1,
+#div_container2 {
 	border: 5px solid navajowhite;
 	display: inline-block;
 	vertical-align: top;
@@ -21,11 +124,9 @@ body {
 	background-color: black;
 	border-radius: 10px;
 }
-#div_container.disconnected{
+#div_container1.disconnected,
+#div_container2.disconnected{
 	border-color:red;
 }
 
-.inline-block {
-	display: inline-block;
-	vertical-align: top;
-}
+ */

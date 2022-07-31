@@ -46,8 +46,26 @@ let _MOD = {
 			// Read/Store the JSON. 
 			_MOD.config = JSON.parse( fs.readFileSync(_MOD.config_filename, 'utf8') );
 
+			// config.lcd: Add the missing values for n and s.
+			let lcd = _MOD.config.lcd;
+			for(let tkey in lcd.tilesets){
+				let t = lcd.tilesets[tkey];
+				let subkeys = ["n", "s"];
+				for(let i=0; i<subkeys.length; i+=1){
+					let sk = subkeys[i];
+					t[sk]._cols       = Math.floor(lcd.width  / t[sk].tileWidth);
+					t[sk]._rows       = Math.floor(lcd.height / t[sk].tileHeight);
+					t[sk]._calcWidth  = t[sk]._cols * t[sk].tileWidth;
+					t[sk]._calcHeight = t[sk]._rows * t[sk].tileHeight;
+					t[sk]._resMatch   = (t[sk]._calcWidth == lcd.width) && (t[sk]._calcHeight == lcd.height)  ? true : false;
+				};
+			}
+
 			resolve(_MOD.config);
 		});
+	},
+	read_config: function(){
+		return _MOD.config;
 	},
 
 };

@@ -1,41 +1,99 @@
-<link rel="stylesheet" href="index.css">
-<script src="index.js"></script>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com;"> -->
 
-<div id="div_container" class="disconnected">
-	<table class="inline-block">
-		<tr> <td>&nbsp;</td> </tr>
-		<tr>
-			<td>&nbsp;</td>
-			<td><button class="button_small" id="KEY_UP_PIN"    >U</button></td>
-			<td>&nbsp;</td>
-		</tr>
-		<tr>
-			<td><button class="button_small" id="KEY_LEFT_PIN"  >L</button></td>
-			<td><button class="button_small" id="KEY_PRESS_PIN" >P</button></td>
-			<td><button class="button_small" id="KEY_RIGHT_PIN" >R</button></td>
-		</tr>
-		<tr>
-			<td>&nbsp;</td>
-			<td>
-				<button class="button_small" id="KEY_DOWN_PIN" >D</button><br>
-				<br>
-				<button class="button_small" id="KEY1_PIN" >B1</button><br><br>
-				<button class="button_small" id="KEY2_PIN" >B2</button><br><br>
-				<button class="button_small" id="KEY3_PIN" >B3</button><br><br>
-			</td>
-			<td>&nbsp;</td>
-		</tr>
-	</table>
+	<title>Command-Er Mini (debug)</title>
+	<link rel="icon" type="image/x-icon" href="favicon.ico">
 
-	<canvas class="inline-block" width="304" height="300" id="CANVAS1"></canvas>
+	<link rel="stylesheet" href="index.css">
+	<script src="index.js" defer></script>
+</head>
+<body>
+	<div id="container1" class="disconnected">
+		<div id="liveControls">
+			<div class="inline-block">
+				<!-- CONTROLS 1 -->
+				<table class="tableType1">
+					<caption>CONTROLS</caption>
 
-	<table class="inline-block">
-		<tr> <td><button class="button_mid" id="BL_PIN"  >Toggle backlight.</button></td> </tr>
-		<tr> <td><button class="button_mid" id="DEBUG_01">Request recent framebuffer.</button></td> </tr>
-		<tr> <td><button class="button_mid" id="DEBUG_02">Update LCD of all clients.</button></td> </tr>
-		<tr> <td><button class="button_mid" id="DEBUG_03">Get LCD config.</button></td> </tr>
-		<tr> <td><button class="button_mid" id="DEBUG_04">Get UUID</button></td> </tr>
-		<tr> <td><button class="button_mid" id="DEBUG_05">Get all UUIDs</button></td> </tr>
-		<tr> <td>&nbsp;</td> </tr>
-	</table>
-</div>
+					<!-- <tr> <td>&nbsp;</td> </tr> -->
+					<tr>
+						<td>&nbsp;</td>
+						<td><button class="button1" id="KEY_UP_PIN"    >U</button></td>
+						<td>&nbsp;</td>
+					</tr>
+					<tr>
+						<td><button class="button1" id="KEY_LEFT_PIN"  >L</button></td>
+						<td><button class="button1" id="KEY_PRESS_PIN" >P</button></td>
+						<td><button class="button1" id="KEY_RIGHT_PIN" >R</button></td>
+					</tr>
+					<tr>
+						<td>&nbsp;</td>
+						<td>
+							<button class="button1" id="KEY_DOWN_PIN" >D</button><br>
+						</td>
+						<td>&nbsp;</td>
+					</tr>
+		
+					<!-- <tr> <td>&nbsp;</td> </tr> -->
+					
+					<tr>
+						<td><button class="button1" id="KEY1_PIN" >B1</button>&nbsp;</td>
+						<td><button class="button1" id="KEY2_PIN" >B2</button>&nbsp;</td>
+						<td><button class="button1" id="KEY3_PIN" >B3</button>&nbsp;</td>
+					</tr>
+
+				</table>
+
+				<!-- CONTROLS 2 -->
+				<table class="tableType1">
+					<caption>DISPLAY</caption>
+					<tr> 
+						<td class="bg1">
+							<label title="Auto reconnect after lost connection.">
+								<input type="checkbox" id="autoReconnectWs" value="1">
+								Reconnect
+							</label>
+						</td> 
+					</tr>
+					<tr> <td><button class="button2" id="ws_open">Open</button></td> </tr>
+					<tr> <td><button class="button2" id="ws_close">Close</button></td> </tr>
+		
+					<!-- <tr> <td>&nbsp;</td> </tr> -->
+				</table>
+			</div>
+		</div>
+
+		<div id="canvasDisplay" class="inline-block">
+			<table class="tableType1">
+				<caption>DISPLAY</caption>
+				<tr>
+					<td>
+						<canvas width="240" height="240" id="CANVAS1"></canvas>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+	</div>
+
+	<br><br>
+
+	<div id="debugControls" class="disconnected">
+		<table class="tableType1">
+			<caption>DEBUG</caption>
+			<tr> <td><button class="button3" id="BL_PIN"  >(POST) Toggle backlight.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_01">( WS ) Request recent framebuffer.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_02">( WS ) Update LCD of all clients.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_03">( WS ) Get LCD config.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_04">( WS ) Get UUID</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_05">( WS ) Get all UUIDs</button></td> </tr>
+			<tr> <td>&nbsp;</td> </tr>
+		</table>
+	</div>
+
+</body>
+</html>
+

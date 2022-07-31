@@ -2,9 +2,9 @@
 const os       = require('os');
 const fs       = require('fs');
 const path     = require('path');
+// const logbuffer = require('console-buffer')(100);
 
 // Express/WS requires. 
-const WSServer = require('ws').Server;
 const server   = require('http').createServer();
 const express  = require('express');
 const app      = express();
@@ -19,12 +19,8 @@ const shouldCompress = (req, res) => {
 	return compression.filter(req, res);
 }
 
-// WWS server start
-const wss = new WSServer({ server: server });
-server.on('request', app);
-
 // Modules (includes routes.)
-const _APP   = require('./modules/M_main.js')(app, express, wss);
+const _APP   = require('./modules/M_main.js')(app, express, server);
 
 // START THE SERVER.
 (async function startServer(){

@@ -43,7 +43,11 @@ let _MOD = {
 		
 					// CREATE THE STRING. 
 					let str = (json['%'].toFixed(1)+"%").padStart(6, " ");
-					if(str == _MOD.prevBattStr){ resolve(); return; }
+					if(str == _MOD.prevBattStr){ 
+						// console.log("SAME BATT", _MOD.prevBattStr); 
+						resolve(); return; 
+					}
+					_MOD.prevBattStr = str; 
 		
 					// DETERMINE WHICH BATTERY ICON TO DISPLAY.
 					let batIcon;
@@ -60,6 +64,7 @@ let _MOD = {
 						_APP.m_lcd.canvas.setTile("battcharge"  , x, y); 
 					}
 					_APP.m_lcd.canvas.print(str, x+1, y);
+					// console.log(str);
 					resolve();
 				}
 			)

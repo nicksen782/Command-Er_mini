@@ -8,6 +8,7 @@ let lcd = {
 	// WEBSOCKET OBJECT.
 	WebSocket: {
 		uuid: null,
+		autoReconnectWs: true,
 
 		// STATUS CODES
 		statusCodes: {
@@ -34,41 +35,62 @@ let lcd = {
 			"1":"OPEN",
 			"2":"CLOSING",
 			"3":"CLOSED",
+			"CONNECTING":0,
+			"OPEN"      :1,
+			"CLOSING"   :2,
+			"CLOSED"    :3,
 		},
 
 		// RUNS ON WEBSOCKET OPEN.
 		onopen   : async function(e){
 			// console.log(`onopen: readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}, binaryType: ${e.currentTarget.binaryType}`); 
-			document.getElementById("div_container").classList.remove("disconnected");
+			document.getElementById("container1").classList.remove("disconnected");
+			document.getElementById("debugControls").classList.remove("disconnected");
 			console.log("Connection: OPEN");
 		},
 
 		// RUNS ON WEBSOCKET CLOSE.
 		onclose   : async function(e){ 
 			// console.log(`onclose: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
-			lcd.ws.close();
-			document.getElementById("div_container").classList.add("disconnected");
-			console.log("Connection: CLOSED. Will try to reconnect.");
-			setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 2000);
+			// lcd.ws.close();
+			document.getElementById("container1").classList.add("disconnected");
+			document.getElementById("debugControls").classList.add("disconnected");
+			if(lcd.WebSocket.autoReconnectWs){
+				console.log("Connection: CLOSED. Will try to reconnect.");
+				setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 2000);
+			}
+			else{
+				console.log("Connection: CLOSED. Will NOT try to reconnect.");
+			}
 		},
 
 		// RUNS ON WEBSOCKET ERROR.
 		onerror  : async function(e){ 
 			// console.log(`onerror: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
-			lcd.ws.close();
-			document.getElementById("div_container").classList.add("disconnected");
-			console.log("Connection: ERROR. Will try to reconnect.");
-			setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 2000);
+			// lcd.ws.close();
+			document.getElementById("container1").classList.add("disconnected");
+			document.getElementById("debugControls").classList.add("disconnected");
+			if(lcd.WebSocket.autoReconnectWs){
+				console.log("Connection: ERROR. Will try to reconnect.");
+				setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 2000);
+			}
+			else{
+				console.log("Connection: CLOSED. Will NOT try to reconnect.");
+			}
 		},
 
 		// UTILITY FUNCTION TO SEND DATA TO THE WEBSOCKET. 
 		send: async function(obj){
-			// Add the client UUID.
-			obj.uuid = lcd.WebSocket.uuid;
+			if(lcd.ws){ 
+				// Add the client UUID.
+				obj.uuid = lcd.WebSocket.uuid;
 
-			// Send the request.
-			// console.log(obj);
-			lcd.ws.send( JSON.stringify(obj) );
+				// Send the request.
+				lcd.ws.send( JSON.stringify(obj) );
+			}
+			else{
+				console.log("WS connection not found.");
+			}
 		},
 
 		// connecting : false,
@@ -87,7 +109,9 @@ let lcd = {
 					// console.log("Checking readyState.", `readyState: (${lcd.ws.readyState}) ${lcd.WebSocket.readyStates[lcd.ws.readyState]}`, `TEST: ${lcd.WebSocket.readyStates[lcd.ws.readyState]}`);
 					
 					if(!validReadyState){
-						setTimeout(function(){ lcd.WebSocket.tryToConnect("retry_ws") }, 1000); 
+						if(lcd.WebSocket.autoReconnectWs){
+							setTimeout(function(){ lcd.WebSocket.tryToConnect("retry_ws") }, 1000); 
+						}
 						return;
 					}
 					else{
@@ -96,7 +120,9 @@ let lcd = {
 				}, 1000);
 			}
 			else{
-				setTimeout(function(){ lcd.WebSocket.tryToConnect("retry_server_down") }, 1000); 
+				if(lcd.WebSocket.autoReconnectWs){
+					setTimeout(function(){ lcd.WebSocket.tryToConnect("retry_server_down") }, 1000); 
+				}
 				return;
 			}
 		},
@@ -131,6 +157,12 @@ let lcd = {
 					tests.isText = true; 
 				}
 			}
+			
+			// DEBUG
+			// if(tests.isJson)       { console.log("ISJSON"); }
+			// if(tests.isText)       { console.log("ISTEXT"); }
+			// if(tests.isArrayBuffer){ console.log("ISARRAYBUFFER"); }
+			// if(tests.isBlob)       { console.log("ISBLOB"); }
 
 			if(tests.isJson){
 				// console.log("JSON:", data);
@@ -150,16 +182,73 @@ let lcd = {
 					}
 					case "REQUEST_LCD_CONFIG" : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
 					case "GET_CLIENT_IDS"     : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
+					case "SVG"                : { 
+						console.log(`CLIENT: ${data.mode}:`, data.svg) ; 
+						// var img = new Image();
+						// img.onload = function(){
+						// 	URL.revokeObjectURL(img.src);
+						// 	lcd.ctx.drawImage(img, 0, 0);
+						// }
+						// let blob = new Blob([data.svg], {type: 'image/svg+xml'});
+						// img.src = URL.createObjectURL(blob);
+						break;
+					}
+					case "DATAURL"                : { 
+						// console.log(`CLIENT: ${data.mode}:`, data.dataurl) ; 
+						var img = new Image();
+						img.onload = function(){
+							// URL.revokeObjectURL(img.src);
+							lcd.ctx.drawImage(img, 0, 0);
+						}
+						// let blob = new Blob([data.svg], {type: 'image/svg+xml'});
+						// img.src = URL.createObjectURL(blob);
+						img.src = data.dataurl;
+						break;
+					}
 					case "ERROR"              : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
 					default: { console.log("CLIENT:", { "mode":"ERROR", msg:"UNKNOWN MODE: " + data.mode, data:data }); break; }
 				}
 			}
 			else if(tests.isText){
-				console.log("TEXT:", data);
+				// console.log("TEXT:", data);
 			}
 			else if(tests.isArrayBuffer){
-				console.log("ARRAYBUFFER:", data);
-				//
+				// Is this SVG?
+				let view8 = new Uint8Array(data);
+				let header = Array.prototype.slice.call(view8, 0, 14).toString();
+				if (header == "60,63,120,109,108,32,118,101,114,115,105,111,110,61") { // <?xml version=
+					var img = new Image();
+					img.onload = function(){
+						lcd.ctx.clearRect(0,0, lcd.canvas.width, lcd.canvas.height);
+						lcd.ctx.drawImage(img, 0, 0, lcd.lcdconfig.width, lcd.lcdconfig.height);
+						URL.revokeObjectURL(o_url);
+					}
+					let blob = new Blob([data], {type: 'image/svg+xml'});
+					let o_url = URL.createObjectURL(blob);
+					img.src = o_url;
+				}
+
+				// Assume that this is raw ABGR data.
+				else{
+					// Create pixel data.
+					let pixels = new Uint8ClampedArray(data);
+					for(let i=0; i<pixels.length; i+=4){
+						// Swap some values.
+						let r = pixels[i+2];
+						let g = pixels[i+1];
+						let b = pixels[i+0];
+						let a = pixels[i+3];
+
+						// Write those pixels.
+						pixels[i+0] = r;
+						pixels[i+1] = g;
+						pixels[i+2] = b;
+						pixels[i+3] = a;
+					}
+
+					const imageData = new ImageData(pixels, lcd.lcdconfig.width, lcd.lcdconfig.height);
+					lcd.ctx.putImageData(imageData, 0, 0);
+				}
 			}
 			else if(tests.isBlob){
 				// console.log("BLOB:", data);
@@ -199,8 +288,8 @@ let lcd = {
 		lcd.ws.onmessage= lcd.WebSocket.onmessage;
 		lcd.ws.onclose  = lcd.WebSocket.onclose;
 		lcd.ws.onerror  = lcd.WebSocket.onerror;
-		// lcd.WebSocket.binaryType = 'arraybuffer';
-		lcd.ws.binaryType = 'blob';
+		lcd.ws.binaryType = 'arraybuffer';
+		// lcd.ws.binaryType = 'blob';
 	},
 };
 
@@ -216,7 +305,7 @@ async function post(url, body){
 
 async function isServerUp(){
 	return new Promise(async function(resolve,reject){
-		fetch("pingfff")
+		fetch("ping")
 		.then(r=>{ resolve(true); })
 		.catch(err=>{ resolve(false); })
 	});
@@ -231,8 +320,25 @@ function canvasTest(){
 }
 
 // INIT.
-window.onload = function(){
+window.onload = async function(){
 	window.onload = null;
+
+	// Set the auto reconnect value. 
+	let autoReconnectWs = document.getElementById("autoReconnectWs")
+	autoReconnectWs.checked=true;
+	autoReconnectWs.addEventListener("change", function(){ 
+		lcd.WebSocket.autoReconnectWs = this.checked;
+	});
+
+	// Get the lcdconfig.
+	lcd.lcdconfig = await post('REQUEST_LCD_CONFIG', {});
+	// await post('REQUEST_TIMINGS', {});
+
+	// CANVAS - size according to the lcdconfig.
+	lcd.canvas = document.getElementById("CANVAS1");
+	lcd.canvas.width = lcd.lcdconfig.width;
+	lcd.canvas.height = lcd.lcdconfig.height;
+	lcd.ctx = lcd.canvas.getContext("2d");
 
 	// BUTTONS: INPUT: Event listeners.
 	document.getElementById("KEY_UP_PIN")   .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY_UP_PIN"}   ), false);
@@ -254,11 +360,25 @@ window.onload = function(){
 	document.getElementById("DEBUG_04")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_UUID"}); }, false);
 	document.getElementById("DEBUG_05")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"GET_CLIENT_IDS"}); }, false);
 	
-	// CANVAS
-	lcd.canvas = document.getElementById("CANVAS1");
-	lcd.ctx    = lcd.canvas.getContext("2d");
-
+	// WEBSOCKET CONNECTIONS.
+	document.getElementById("ws_open")        .addEventListener("click", ()=>{ lcd.WebSocket.tryToConnect("ws_open"); }, false);
+	document.getElementById("ws_close")       .addEventListener("click", async function(){ 
+		if(lcd.ws){ 
+			console.log("Closing WS connection...");
+			lcd.ws.close(); 
+			await new Promise(function(res,rej){
+				setTimeout(function(){ lcd.ws = null; res(); }, 1000);
+			});
+		}
+		else{
+			console.log("WS connection not found.");
+		}
+	}, false);
+	
 	// "LCD" / WEBSOCKET
-	lcd.WebSocket.tryToConnect("init");
+	// if(lcd.WebSocket.autoReconnectWs){
+		// lcd.WebSocket.tryToConnect("init");
+	// }
 	// lcd.init();
+	
 };

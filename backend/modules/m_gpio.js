@@ -29,7 +29,12 @@ let _MOD = {
 			_APP = parent;
 	
 			// Init the buttons.
-			await _MOD.init();
+			if( _APP.m_config.config.gpio.active ){ 
+				await _MOD.buttons_init();
+			}
+			else{
+				console.log("m_gpio: module_init: GPIO DISABLED IN CONFIG");
+			}
 
 			// Add routes.
 			_MOD.addRoutes(_APP.app, _APP.express);
@@ -66,10 +71,16 @@ let _MOD = {
 	// Intended for the backlight.
 	toggle_pin: async function(buttonKey){
 		return new Promise(async function(resolve,reject){
-			let currentState = _APP.m_gpio.outputs[buttonKey].readSync() ? 1 : 0;
-			let newState     = currentState ? 0 : 1;
-			_APP.m_gpio.outputs[buttonKey].writeSync(newState);
-			resolve(`toggle_pin: ${buttonKey} to: ${newState}`);
+			if( _APP.m_config.config.gpio.active ){
+				let currentState = _APP.m_gpio.outputs[buttonKey].readSync() ? 1 : 0;
+				let newState     = currentState ? 0 : 1;
+				_APP.m_gpio.outputs[buttonKey].writeSync(newState);
+				resolve(`toggle_pin: ${buttonKey} to: ${newState}`);
+			}
+			else{
+				console.log("m_gpio: toggle_pin: GPIO DISABLED IN CONFIG");
+				resolve(`toggle_pin: ${buttonKey} GPIO DISABLED IN CONFIG`);
+			}
 		});
 	},
 
@@ -86,16 +97,61 @@ let _MOD = {
 		});
 	},
 
+	//
+	states: {},
+	states_held    : 0,
+	states_prev    : 0,
+	states_pressed : 0,
+	states_released: 0,
+	// game.btnPrev1     = game.btnHeld1;
+	// game.btnHeld1     = joypad1_status_lo;
+	// game.btnPressed1  = game.btnHeld1 & (game.btnHeld1 ^ game.btnPrev1);
+	// game.btnReleased1 = game.btnPrev1 & (game.btnHeld1 ^ game.btnPrev1);
+	readAll: function(){
+		for(k in _MOD.inputs){
+			let value = _MOD.inputs[k].readSync() ? 1 : 0;
+			if(value){
+				_MOD.states[k] = 1;
+			}
+			else{
+				_MOD.states[k] = 0;
+			}
+		}
+		
+		// Get the prev states.
+		_MOD.states_prev = _MOD.states_held;
+
+		// Get the held states. (current state.)
+		if(_MOD.states['KEY_UP_PIN']   ){ _MOD.states_held |= (1 << 7); } else{ _MOD.states_held &= ~(1 << 7); }
+		if(_MOD.states['KEY_DOWN_PIN'] ){ _MOD.states_held |= (1 << 6); } else{ _MOD.states_held &= ~(1 << 6); }
+		if(_MOD.states['KEY_LEFT_PIN'] ){ _MOD.states_held |= (1 << 5); } else{ _MOD.states_held &= ~(1 << 5); }
+		if(_MOD.states['KEY_RIGHT_PIN']){ _MOD.states_held |= (1 << 4); } else{ _MOD.states_held &= ~(1 << 4); }
+		if(_MOD.states['KEY_PRESS_PIN']){ _MOD.states_held |= (1 << 3); } else{ _MOD.states_held &= ~(1 << 3); }
+		if(_MOD.states['KEY1_PIN']     ){ _MOD.states_held |= (1 << 2); } else{ _MOD.states_held &= ~(1 << 2); }
+		if(_MOD.states['KEY2_PIN']     ){ _MOD.states_held |= (1 << 1); } else{ _MOD.states_held &= ~(1 << 1); }
+		if(_MOD.states['KEY3_PIN']     ){ _MOD.states_held |= (1 << 0); } else{ _MOD.states_held &= ~(1 << 0); }
+
+		// Get the pressed states.
+		_MOD.states_pressed = _MOD.states_held & (_MOD.states_held ^ _MOD.states_prev);
+		
+		// Get the released states.
+		_MOD.states_released = _MOD.states_prev & (_MOD.states_held ^ _MOD.states_prev);
+		
+		return _MOD.states;
+	},
+
 	// Pipes the button inputs to their handler based on _APP.currentScreen.
 	buttonHandler: async function(key, state){
 		// console.log("key, state:", key, state);
 		switch(_APP.currentScreen){
-			case "main" : { _APP.m_screenLogic.main.buttons(key, state); break; }
+			case "main"         : { _APP.m_screenLogic.screens.main        .buttons(key, state); break; }
+			case "timings_test" : { _APP.m_screenLogic.screens.timings_test.buttons(key, state); break; }
+			default: { console.log("buttonHandler: unknown currentScreen:", _APP.currentScreen); break; }
 		}
 	},
 
 	// Inits the button states and adds listeners (watches) to the input buttons. 
-	init: async function(){
+	buttons_init: async function(){
 		return new Promise(async function(resolve,reject){
 			// Setup the GPIO buttons. 
 
@@ -113,12 +169,12 @@ let _MOD = {
 			_APP.m_gpio.outputs.BL_PIN  = new Gpio( 24, 'high' ); // Output, default to high.
 
 			// Add the button handler to each button. 
-			for(let key in _APP.m_gpio.inputs){
-				_APP.m_gpio.inputs[key].watch((err, value) => {
-					if(err){ console.log("err:", err); return; }
-					_APP.m_gpio.buttonHandler(key, value);
-				});
-			}
+			// for(let key in _APP.m_gpio.inputs){
+			// 	_APP.m_gpio.inputs[key].watch((err, value) => {
+			// 		if(err){ console.log("err:", err); return; }
+			// 		_APP.m_gpio.buttonHandler(key, value);
+			// 	});
+			// }
 
 			resolve();
 		});
