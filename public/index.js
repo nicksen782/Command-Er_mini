@@ -4,11 +4,12 @@ let lcd = {
 	canvas: null,
 	ctx   : null,
 	ws:null,
-
+	
 	// WEBSOCKET OBJECT.
 	WebSocket: {
 		uuid: null,
 		autoReconnectWs: true,
+		tryingToConnect: false,
 
 		// STATUS CODES
 		statusCodes: {
@@ -48,6 +49,7 @@ let lcd = {
 			document.getElementById("debugControls").classList.remove("disconnected");
 			document.getElementById("debugOutput").classList.remove("disconnected");
 			console.log("Connection: OPEN");
+			lcd.WebSocket.tryingToConnect = false;
 		},
 
 		// RUNS ON WEBSOCKET CLOSE.
@@ -59,9 +61,11 @@ let lcd = {
 			document.getElementById("debugOutput").classList.add("disconnected");
 			if(lcd.WebSocket.autoReconnectWs){
 				console.log("Connection: CLOSED. Will try to reconnect.");
+				// lcd.WebSocket.tryingToConnect = true;
 				setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 2000);
 			}
 			else{
+				lcd.WebSocket.tryingToConnect = false;
 				console.log("Connection: CLOSED. Will NOT try to reconnect.");
 			}
 		},
@@ -75,10 +79,12 @@ let lcd = {
 			document.getElementById("debugOutput").classList.add("disconnected");
 			if(lcd.WebSocket.autoReconnectWs){
 				console.log("Connection: ERROR. Will try to reconnect.");
+				// lcd.WebSocket.tryingToConnect = true;
 				setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 2000);
 			}
 			else{
 				console.log("Connection: CLOSED. Will NOT try to reconnect.");
+				lcd.WebSocket.tryingToConnect = false;
 			}
 		},
 
@@ -137,27 +143,22 @@ let lcd = {
 			let data;
 			let tests = { isJson: false, isText: false, isArrayBuffer: false, isBlob: false };
 
-			// First, assume the data is JSON (verify this.)
+			// Check if the data is JSON by trying to parse it.
 			try{ data = JSON.parse(e.data); tests.isJson = true; }
 			
-			// Isn't JSON. Determine what type of data this is.
+			// It isn't JSON. Determine what type of data this is.
 			catch(error){ 
+				// Get the data.
+				data = e.data;
+
 				// ARRAYBUFFER
-				if(e.data instanceof ArrayBuffer){
-					data = e.data; 
-					tests.isArrayBuffer = true; 
-				}
+				if(e.data instanceof ArrayBuffer){ tests.isArrayBuffer = true; }
 
 				// BLOB
-				else if(e.data instanceof Blob){
-					data = e.data; 
-					tests.isBlob = true; 
-				}
+				else if(e.data instanceof Blob){ tests.isBlob = true; }
 				
 				// TEXT
-				else{
-					data = e.data; 
-					tests.isText = true; 
+				else{ tests.isText = true; 
 				}
 			}
 			
@@ -175,45 +176,112 @@ let lcd = {
 						lcd.WebSocket.uuid = data.msg;
 						break; 
 					}
-					case "WELCOMEMESSAGE"     : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
-					// case "REQUEST_LCD_FRAMEBUFFER" : { break; }
-					// case "REQUEST_LCD_FRAMEBUFFER_ALL" : { break; }
-					case "REQUEST_UUID"       : { 
-						console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
-						lcd.WebSocket.uuid = data.msg;
+					case "WELCOMEMESSAGE"          : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
+					case "REQUEST_UUID"            : { 
+						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
+						// lcd.WebSocket.uuid = data.msg;
+
+						let json = data.msg;
+
+						// Get DOM handles. 
+						let debugOutput = document.getElementById("debugOutput");
+						let caption     = debugOutput.querySelector("caption");
+						let output      = debugOutput.querySelector("textarea");
+
+						// Dim the output text area.
+						output.style.opacity = 0.25;
+
+						// Change caption.
+						caption.innerText = "OUTPUT: (REQUEST_UUID)";
+
+						// Display the output text.
+						output.value = json;
+
+						// Undim the output text area.
+						output.style.opacity = 1.0;
+
 						break; 
 					}
-					case "REQUEST_LCD_CONFIG" : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
-					case "GET_CLIENT_IDS"     : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
-					case "SVG"                : { 
+					case "REQUEST_LCD_CONFIG"      : { 
+						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
+						let json = data.msg;
+
+						// Get DOM handles. 
+						let debugOutput = document.getElementById("debugOutput");
+						let caption     = debugOutput.querySelector("caption");
+						let output      = debugOutput.querySelector("textarea");
+
+						// Dim the output text area.
+						output.style.opacity = 0.25;
+
+						// Change caption.
+						caption.innerText = "OUTPUT: (REQUEST_LCD_CONFIG)";
+
+						// Display the output text.
+						output.value = JSON.stringify(json,null,1);
+
+						// Undim the output text area.
+						output.style.opacity = 1.0;
+						break; 
+					}
+					case "GET_CLIENT_IDS"          : { 
+						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
+						
+						let json = data.msg;
+
+						// Get DOM handles. 
+						let debugOutput = document.getElementById("debugOutput");
+						let caption     = debugOutput.querySelector("caption");
+						let output      = debugOutput.querySelector("textarea");
+
+						// Dim the output text area.
+						output.style.opacity = 0.25;
+
+						// Change caption.
+						caption.innerText = "OUTPUT: (GET_CLIENT_IDS)";
+
+						// Display the output text.
+						output.value = JSON.stringify(json,null,1);
+						
+						// Undim the output text area.
+						output.style.opacity = 1.0;
+
+						break; 
+					}
+					case "SVG"                     : { 
 						console.log(`CLIENT: ${data.mode}:`, data.svg) ; 
-						// var img = new Image();
-						// img.onload = function(){
-						// 	URL.revokeObjectURL(img.src);
-						// 	lcd.ctx.drawImage(img, 0, 0);
-						// }
-						// let blob = new Blob([data.svg], {type: 'image/svg+xml'});
-						// img.src = URL.createObjectURL(blob);
+						var img = new Image();
+						img.onload = function(){
+							URL.revokeObjectURL(img.src);
+							lcd.ctx.drawImage(img, 0, 0);
+						}
+						let blob = new Blob([data.svg], {type: 'image/svg+xml'});
+						img.src = URL.createObjectURL(blob);
 						break;
 					}
-					case "DATAURL"                : { 
+					case "DATAURL"                 : { 
 						// console.log(`CLIENT: ${data.mode}:`, data.dataurl) ; 
 						var img = new Image();
 						img.onload = function(){
-							// URL.revokeObjectURL(img.src);
 							lcd.ctx.drawImage(img, 0, 0);
 						}
-						// let blob = new Blob([data.svg], {type: 'image/svg+xml'});
-						// img.src = URL.createObjectURL(blob);
 						img.src = data.dataurl;
 						break;
+					}
+					case "PRESS_AND_RELEASE_BUTTON": { 
+						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
+						break; 
+					}
+					case "TOGGLE_PIN": { 
+						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
+						break; 
 					}
 					case "ERROR"              : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
 					default: { console.log("CLIENT:", { "mode":"ERROR", msg:"UNKNOWN MODE: " + data.mode, data:data }); break; }
 				}
 			}
 			else if(tests.isText){
-				// console.log("TEXT:", data);
+				console.log("TEXT:", data);
 			}
 			else if(tests.isArrayBuffer){
 				// Is this SVG?
@@ -274,6 +342,8 @@ let lcd = {
 				setTimeout(function(){ lcd.ws = null; res(); }, 1000);
 			});
 		}
+		// if(lcd.WebSocket.tryingToConnect){ console.log("Already trying to connect."); return; }
+		// lcd.WebSocket.tryingToConnect = true;
 		
 		// GENERATE THE WEBSOCKET URL.
 		let locUrl = `` +
@@ -343,17 +413,51 @@ window.onload = async function(){
 	lcd.ctx = lcd.canvas.getContext("2d");
 
 	// BUTTONS: INPUT: Event listeners.
-	document.getElementById("KEY_UP_PIN")   .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY_UP_PIN"}   ), false);
-	document.getElementById("KEY_DOWN_PIN") .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY_DOWN_PIN"} ), false);
-	document.getElementById("KEY_LEFT_PIN") .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY_LEFT_PIN"} ), false);
-	document.getElementById("KEY_RIGHT_PIN").addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY_RIGHT_PIN"}), false);
-	document.getElementById("KEY_PRESS_PIN").addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY_PRESS_PIN"}), false);
-	document.getElementById("KEY1_PIN")     .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY1_PIN"}     ), false);
-	document.getElementById("KEY2_PIN")     .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY2_PIN"}     ), false);
-	document.getElementById("KEY3_PIN")     .addEventListener("click", ()=>post('pressAndRelease_button', {button:"KEY3_PIN"}     ), false);
+	document.getElementById("KEY_UP_PIN")   .addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY_UP_PIN"}   ) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY_UP_PIN" });
+	}, false);
+
+	document.getElementById("KEY_DOWN_PIN") .addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY_DOWN_PIN"} ) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY_DOWN_PIN" });
+	}, false);
+
+	document.getElementById("KEY_LEFT_PIN") .addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY_LEFT_PIN"} ) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY_LEFT_PIN" });
+	}, false);
+
+	document.getElementById("KEY_RIGHT_PIN").addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY_RIGHT_PIN"}) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY_RIGHT_PIN" });
+	}, false);
+
+	document.getElementById("KEY_PRESS_PIN").addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY_PRESS_PIN"}) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY_PRESS_PIN" });
+	}, false);
+
+	document.getElementById("KEY1_PIN")     .addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY1_PIN"}     ) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY1_PIN" });
+	}, false);
+
+	document.getElementById("KEY2_PIN")     .addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY2_PIN"}     ) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY2_PIN" });
+	}, false);
+
+	document.getElementById("KEY3_PIN")     .addEventListener("click", ()=>{ 
+		// post('pressAndRelease_button', {button:"KEY3_PIN"}     ) ;
+		lcd.WebSocket.send({ "mode":"PRESS_AND_RELEASE_BUTTON", button:"KEY3_PIN" });
+	}, false);
 	
 	// BUTTONS: OUTPUT: Event listeners.
-	document.getElementById("BL_PIN")       .addEventListener("click", ()=>post('toggle_pin'            , {button:"BL_PIN"}       ), false);
+	document.getElementById("BL_PIN")       .addEventListener("click", ()=>{ 
+		// post('toggle_pin'            , {button:"BL_PIN"}       ); 
+		lcd.WebSocket.send({ "mode":"TOGGLE_PIN", button:"BL_PIN" });
+	}, false);
 	
 	// BUTTONS: DEBUG
 	document.getElementById("DEBUG_01")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER"}); }, false);
@@ -362,7 +466,6 @@ window.onload = async function(){
 	document.getElementById("DEBUG_04")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_UUID"}); }, false);
 	document.getElementById("DEBUG_05")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"GET_CLIENT_IDS"}); }, false);
 	document.getElementById("requestTimingsButton").addEventListener("click", async ()=>{ 
-		
 		// Get DOM handles. 
 		let debugOutput = document.getElementById("debugOutput");
 		let caption     = debugOutput.querySelector("caption");

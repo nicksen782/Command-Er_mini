@@ -87,20 +87,23 @@ let _MOD = {
 	// Performs the action as if the actual button was pressed and then quickly released.
 	pressAndRelease_button: async function(buttonKey){
 		return new Promise(async function(resolve,reject){
+			if(!buttonKey){ resolve("buttonKey was NOT specified."); return; }
 			_APP.m_gpio.buttonHandler(buttonKey, 1);
+
+			// Wait a number of frames before "releasing" the button.
 			await new Promise(function(res,rej){
 				setTimeout(function(){
 					_APP.m_gpio.buttonHandler(buttonKey, 0);
 					resolve(`pressAndRelease_button: ${buttonKey}`);
-				}, 10);
+				}, _APP.fps.interval*3);
 			});
 		});
 	},
 
 	//
 	states: {},
-	states_held    : 0,
 	states_prev    : 0,
+	states_held    : 0,
 	states_pressed : 0,
 	states_released: 0,
 	// game.btnPrev1     = game.btnHeld1;
@@ -140,14 +143,36 @@ let _MOD = {
 		return _MOD.states;
 	},
 
+	buttonActions: function(){
+		// _MOD.states_prev;
+		// _MOD.states_held;
+		// _MOD.states_pressed;
+		// _MOD.states_released;
+		
+		// Send pressed buttons.
+		if( _MOD.states_pressed & (1 << 7) ) {_MOD.buttonHandler("KEY_UP_PIN"   , true); } // KEY_UP_PIN
+		if( _MOD.states_pressed & (1 << 6) ) {_MOD.buttonHandler("KEY_DOWN_PIN" , true); } // KEY_DOWN_PIN
+		if( _MOD.states_pressed & (1 << 5) ) {_MOD.buttonHandler("KEY_LEFT_PIN" , true); } // KEY_LEFT_PIN
+		if( _MOD.states_pressed & (1 << 4) ) {_MOD.buttonHandler("KEY_RIGHT_PIN", true); } // KEY_RIGHT_PIN
+		if( _MOD.states_pressed & (1 << 3) ) {_MOD.buttonHandler("KEY_PRESS_PIN", true); } // KEY_PRESS_PIN
+		if( _MOD.states_pressed & (1 << 2) ) {_MOD.buttonHandler("KEY1_PIN"     , true); } // KEY1_PIN
+		if( _MOD.states_pressed & (1 << 1) ) {_MOD.buttonHandler("KEY2_PIN"     , true); } // KEY2_PIN
+		if( _MOD.states_pressed & (1 << 0) ) {_MOD.buttonHandler("KEY3_PIN"     , true); } // KEY3_PIN
+	},
+
+	isPrev : function(){},
+	isHeld : function(){},
+	isPress: function(){},
+	isReal : function(){},
+
 	// Pipes the button inputs to their handler based on _APP.currentScreen.
 	buttonHandler: async function(key, state){
 		// console.log("key, state:", key, state);
 		switch(_APP.currentScreen){
 			case "main"         : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
 			case "timings_test" : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
-			case "drawingTest1" : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
-			default: { console.log("buttonHandler: unknown currentScreen:", _APP.currentScreen); break; }
+			case "drawingTest"  : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
+			default: { console.log("buttonHandler: unknown currentScreen:", _APP.currentScreen, key, state ? true : false); break; }
 		}
 	},
 

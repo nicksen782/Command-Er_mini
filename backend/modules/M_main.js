@@ -34,11 +34,11 @@ let _APP = {
 	screens: [
 		"main", 
 		"timings_test",
-		"drawTest"
+		"drawingTest"
 	],
 	// currentScreen : "main",
 	// currentScreen : "timings_test",
-	currentScreen : "drawTest",
+	currentScreen : "drawingTest",
 
 	// Init this module.
 	module_init: function(parent){
@@ -72,7 +72,7 @@ let _APP = {
 			await _APP.m_config.module_init(_APP);
 
 			// 3 seems solid.
-			_APP.fps.setFpsInterval(2);
+			_APP.fps.setFpsInterval(3);
 
 			if(_APP.m_config.config.ws.active){
 				_APP.wss = new WSServer({ server: _APP.server });
@@ -108,7 +108,8 @@ let _APP = {
 			// checks.logic.last = performance.now(); 
 			// checks.draw.last = performance.now(); 
 			// setImmediate( ()=>{ loop( performance.now() ); });
-			_APP.scheduleNextLoop();
+			// _APP.scheduleNextLoop();
+			appLoop( performance.now() );
 			resolve();
 		});
 	},
@@ -272,6 +273,135 @@ let _APP = {
 			loop2(performance.now());
 		}, 10);
 	},
+};
+
+let stats = {
+	lastFullRun: performance.now(),
+	last:{
+		loopTime    :0,
+		framesCost  :0,
+		lastLoop    :0,
+		interval    :0,
+		intervalDiff:0,
+		lostFrames  :0,
+		lostMs      :0,
+	},
+};
+let appLoop = async function(timestamp){
+	// timestamp should be performance.now().
+	
+	// How long has it been since a full loop has been completed?
+	let timeSinceLastRun = timestamp - stats.lastFullRun;
+	// console.log("timeSinceLastRun",timeSinceLastRun);
+
+	// Should the full loop run?
+	let runLoop = timeSinceLastRun > _APP.fps.interval ? true : false;
+	let diff = timeSinceLastRun - _APP.fps.interval;
+
+	// YES
+	if(runLoop){
+		// full loop start: performance.now();
+		_APP.timeIt("FULLLOOP", "s");
+
+		let loopStart = performance.now();
+		stats.lastFullRun = loopStart;
+		
+		// BUTTONS
+		_APP.timeIt("GPIO", "s");
+		_APP.m_gpio.readAll();
+		_APP.timeIt("GPIO", "e");
+		
+		// BUTTON ACTIONS.
+		_APP.timeIt("GPIO_ACTIONS", "s");
+		_APP.m_gpio.buttonActions();
+		_APP.timeIt("GPIO_ACTIONS", "e");
+		
+		// STATE
+		_APP.timeIt("LOGIC", "s");
+		await _APP.m_screenLogic.screens[_APP.currentScreen].func();
+		_APP.timeIt("LOGIC", "e");
+		
+		// MISC
+		// _APP.timeIt("BATTERY", "s");
+		// _APP.m_battery.func();
+		// _APP.timeIt("BATTERY", "e");
+
+		// // MISC
+		// _APP.timeIt("TIME", "s");
+		// await _APP.m_lcd.timeUpdate.func();
+		// _APP.timeIt("TIME", "e");
+
+		// UPDATE DISPLAY(S)
+		_APP.timeIt("DISPLAYUPDATE", "s");
+		if(_APP.m_lcd.canvas.lcdUpdateNeeded && !_APP.m_lcd.canvas.updatingLCD){ 
+			await _APP.m_lcd.canvas.updateFrameBuffer();
+		}
+		_APP.timeIt("DISPLAYUPDATE", "e");
+		
+		// full loop complete: performance.now();
+		let loopEnd = performance.now();
+
+		// let addToEnd = ( (loopEnd-loopStart)/_APP.fps.interval );
+		
+		_APP.fps.tick();
+
+		_APP.timeIt("FULLLOOP", "e");
+
+		// stats.lastFullRun = loopEnd;
+
+		stats.last.loopTime     = (loopEnd-loopStart)                    ; // 
+		stats.last.framesCost   = ((loopEnd-loopStart)/_APP.fps.interval); // 
+		stats.last.lastLoop     = timeSinceLastRun                       ; // 
+		stats.last.interval     = _APP.fps.interval                      ; // 
+		stats.last.intervalDiff = diff                                   ; // 
+		stats.last.lostFrames   = (diff/_APP.fps.interval)               ; // 
+		stats.last.lostMs       = (diff/_APP.fps.interval)*_APP.fps.interval ;
+		stats.last.avgFps       = (_APP.fps.value) ;
+
+		if(0){
+			console.log( 
+				"GPIO:"   , _APP.timeIt("GPIO", "t")   .toFixed(2).padStart(6, " ")   + ", " +
+				"LOGIC:"  , _APP.timeIt("LOGIC", "t")  .toFixed(2).padStart(6, " ")   + ", " +
+				"BATTERY:", _APP.timeIt("BATTERY", "t").toFixed(2).padStart(6, " ")   + ", " +
+				"TIME:"   , _APP.timeIt("TIME", "t")   .toFixed(2).padStart(6, " ")   + ", " +
+				"AVG FPS:", ` ${stats.last.avgFps      .toFixed(0).padStart(2, " ")}` + ", " +
+				""
+			 );
+		}
+		if(0){
+			console.log(
+				`LOOP *** `       +                     
+				`Time:`           + ` ${stats.last.loopTime    .toFixed(2).padStart(6, " ") }, ` +
+				`Frames cost:`    + ` ${stats.last.framesCost  .toFixed(2).padStart(6, " ") }, ` +
+				`Last:`           + ` ${stats.last.lastLoop    .toFixed(2).padStart(6, " ") }, ` +
+				`> `              + ` ${stats.last.interval    .toFixed(2).padStart(4, " ") }, ` +
+				`By `             + ` ${stats.last.intervalDiff.toFixed(2).padStart(6, " ") }, ` +
+				`Waiting frames:` + ` ${stats.last.lostFrames  .toFixed(2).padStart(6, " ") }, ` +
+				`Waiting ms:`     + ` ${stats.last.lostMs      .toFixed(2).padStart(6, " ") }, ` +
+				`AVG FPS:`        + ` ${stats.last.avgFps      .toFixed(0).padStart(2, " ") } ` +
+				""
+			);
+		}
+
+		setTimeout(function(){
+			// appLoop( loopEnd + addToEnd );
+			// appLoop( loopEnd - addToEnd );
+			appLoop( loopEnd );
+		}, 10);
+	}
+	// NO
+	else{
+		// setTimeout -- Gives a little "breathing room" for the CPU.
+		// console.log(
+		// 	"NO LOOP", 
+		// 	timeSinceLastRun.toFixed(2), 
+		// 	(-1*diff).toFixed(2), 
+		// 	`I: ${stats.last.interval.toFixed(2)}` 
+		// );
+		setTimeout(function(){
+			appLoop( performance.now() );
+		}, 10);
+	}
 };
 
 let innerLoop = function(){

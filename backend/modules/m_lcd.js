@@ -56,8 +56,8 @@ let _MOD = {
 				let str2 = `${h}:${m}:${s}${ampm}`;
 		
 				// Only update the canvas if the timestring has changed.
-				if(str2 != _MOD.timeUpdate.prevTimeString){
-					let x=0; let y=24;
+				if(str2 != _MOD.timeUpdate.prevTimeString || 1){
+					let x=0; let y=28;
 					_MOD.timeUpdate.prevTimeString = str2;
 					_MOD.canvas.fillTile("tile1", x, y, 11, 1); 
 					_MOD.canvas.setTile("clock1", x, y);
@@ -631,14 +631,6 @@ let _MOD = {
 				// CLEAR THE ACTIVE AREA OF THE SCREEN. 
 				_MOD.canvas.clearScreen();
 				resolve(); return; 
-				
-				// DEBUG TEXT.
-				_MOD.canvas.fillTile("tile1"  , 0, 0, 16, 1); 
-				_MOD.canvas.print("COMMAND-ER MINI:"  , 0 , 0);
-				_MOD.canvas.fillTile("tile1"  , 0, 1, 23, 1); 
-				// _MOD.canvas.startInterval(); return; 
-
-				_MOD.canvas.fillTile("tile2"  , 0, 1, 24, 1); 
 			});
 		},
 	},
@@ -747,6 +739,18 @@ let _MOD = {
 					let arr = _MOD.WebSocket.getClientIds();
 					ws.send(JSON.stringify({ "mode":"GET_CLIENT_IDS", msg:arr }));
 				},
+				
+				PRESS_AND_RELEASE_BUTTON:    async function(ws, event){
+					let json = JSON.parse(event.data);
+					let result = await _APP.m_gpio.pressAndRelease_button(json.button); 
+					ws.send(JSON.stringify({ "mode":"PRESS_AND_RELEASE_BUTTON", msg:result }));
+				},
+
+				TOGGLE_PIN:    async function(ws, event){
+					let json = JSON.parse(event.data);
+					let result = await _APP.m_gpio.toggle_pin(json.button); 
+					ws.send(JSON.stringify({ "mode":"TOGGLE_PIN", msg:result }));
+				},
 			},
 			TEXT: {
 			},
@@ -765,7 +769,7 @@ let _MOD = {
 
 			if(tests.isJson){
 				if(_MOD.WebSocket.request_handlers.JSON[data.mode]){
-					_MOD.WebSocket.request_handlers.JSON[data.mode](ws);
+					_MOD.WebSocket.request_handlers.JSON[data.mode](ws, event);
 				}
 				else{
 					ws.send(JSON.stringify({"mode":"ERROR", msg:"UNKNOWN MODE: " + data.mode}));

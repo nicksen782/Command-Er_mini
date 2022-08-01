@@ -45,9 +45,9 @@ _MOD.goToPrevScreen = function(){
 	if(canMove){ 
 		_APP.currentScreen = _APP.screens[index -1];
 		_APP.m_screenLogic.screens[_APP.currentScreen].init();
-		console.log("Switching to:", _APP.currentScreen);
+		// console.log("Switching to:", _APP.currentScreen);
 	}
-	// console.log(`PREV: ${index} of ${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`);
+	// console.log(`PREV: ${index}/${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`);
 };
 _MOD.goToNextScreen = function(){
 	// Find the index of the current screen.
@@ -57,9 +57,9 @@ _MOD.goToNextScreen = function(){
 	if(canMove){ 
 		_APP.currentScreen = _APP.screens[index +1];
 		_APP.m_screenLogic.screens[_APP.currentScreen].init();
-		console.log("Switching to:", _APP.currentScreen);
+		// console.log("Switching to:", _APP.currentScreen);
 	}
-	// console.log(`NEXT: ${index} of ${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`);
+	// console.log(`NEXT: ${index+1}/${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`, _APP.screens);
 };
 
 _MOD.screens = {
@@ -111,7 +111,7 @@ _MOD.screens = {
 		},
 		init: async function(){
 			let thisScreen = _APP.m_screenLogic.screens[_APP.currentScreen];
-			console.log("init of:", _APP.currentScreen);
+			// console.log("init of:", _APP.currentScreen);
 
 			// Clear the screen.
 			_APP.m_lcd.canvas.clearScreen();
@@ -127,15 +127,35 @@ _MOD.screens = {
 			thisScreen.inited = true;
 		},
 		func: async function(){
-			let thisScreen = _APP.m_screenLogic.screens["main"];
-			if(!thisScreen.inited){ thisScreen.init(); return; }
+			return new Promise(async function(resolve,reject){
+				let thisScreen = _APP.m_screenLogic.screens["main"];
+				if(!thisScreen.inited){ thisScreen.init(); resolve(); return; }
+	
+				// Get the LCD config.
+				let c = _APP.m_config.config.lcd;
+				let ts = c.tilesets[c.activeTileset];
+	
+				_APP.m_lcd.canvas.fillTile("tile3"         , 0, 0, ts.s._cols, 1); 
+				_APP.m_lcd.canvas.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+				_APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
+				_APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
+
+				resolve();
+			});
+
 		}
 	},
-	drawTest: {
+	drawingTest: {
 		inited: false,
-		lines: [],
+		
 		flag1: false,
+		lines: [], // screenDimensionsTest
+		
+		lines2: [], // fpsTest
+		flag2: false, // fpsTest
+
 		buttons: async function(key, state){
+			// console.log(_APP.currentScreen, key, state);
 			switch(key){
 				// Command cursor movements. 
 				case "KEY_UP_PIN"   : { if(state){ } break; }
@@ -175,7 +195,7 @@ _MOD.screens = {
 		},
 		init: async function(){
 			let thisScreen = _APP.m_screenLogic.screens[_APP.currentScreen];
-			console.log("init of:", _APP.currentScreen);
+			// console.log("init of:", _APP.currentScreen);
 
 			// Clear the screen.
 			_APP.m_lcd.canvas.clearScreen();
@@ -191,103 +211,124 @@ _MOD.screens = {
 			thisScreen.inited = true;
 		},
 		func: async function(){
-			let thisScreen = _APP.m_screenLogic.screens[_APP.currentScreen];
-			if(!thisScreen.inited){ thisScreen.init(); return; }
-
-			let c = _APP.m_config.config.lcd;
-			let ts = c.tilesets[c.activeTileset];
-
-
-			let screenDimensionsTest = function(){
-				let len = thisScreen.lines.length;
-				if(thisScreen.flag1){ _APP.m_lcd.canvas.fillTile("tile2"  , 0, 0, ts.s._cols, len); }
-				else{                 _APP.m_lcd.canvas.fillTile("tile4"  , 0, 0, ts.s._cols, len); }
-				thisScreen.flag1 = ! thisScreen.flag1;
-				thisScreen.lines = [];
-
-				let chars = ["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
-
-				let rowNum=0;
-				let char_i=0;
-				for(let i=0; i<ts.s._rows-0; i+=1){
-					if(char_i > chars.length-1){ char_i = 0; }
-					thisScreen.lines.push({text:chars[char_i], x:ts.s._cols-1, y:rowNum});
-					char_i++;
-					rowNum++;
-				}
-				let colNum=0;
-				char_i=0;
-				for(let i=0; i<ts.s._cols-0; i+=1){
-					if(char_i > chars.length-1){ char_i = 0; }
-					thisScreen.lines.push({text:chars[char_i], x:colNum, y:ts.s._rows-1});
-					char_i++;
-					colNum++;
-				}
-
-				for(let v of thisScreen.lines){ _APP.m_lcd.canvas.print(v.text  , v.x , v.y); }
-			};
-			let drawTest = function(){
-				_APP.m_lcd.canvas.print("FILLTILE:"    , 0 , 3);
-				_APP.m_lcd.canvas.fillTile("tile_red"  , 10, 3, 2, 1); 
-				_APP.m_lcd.canvas.fillTile("tile_green", 10, 4, 2, 1); 
-				_APP.m_lcd.canvas.fillTile("tile_blue" , 12, 3, 1, 2); 
-				_APP.m_lcd.canvas.fillTile("cursor2"   , 14, 3, 2, 2); 
-				_APP.m_lcd.canvas.fillTile("cursor3"   , 17, 3, 1, 2); 
-				_APP.m_lcd.canvas.fillTile("cursor4"   , 19, 3, 1, 2); 
-				_APP.m_lcd.canvas.fillTile("nochar"    , 21, 3, 3, 3); 
-
-				_APP.m_lcd.canvas.print("SETTILE TEST:", 0 , 7);
-				_APP.m_lcd.canvas.setTile("tile_red"   , 10, 7); 
-				_APP.m_lcd.canvas.setTile("tile_green" , 11, 7); 
-				_APP.m_lcd.canvas.setTile("tile_blue"  , 12, 7); 
-				_APP.m_lcd.canvas.setTile("cursor1"    , 13, 7); 
-				_APP.m_lcd.canvas.setTile("cursor2"    , 14, 7); 
-				_APP.m_lcd.canvas.setTile("cursor3"    , 15, 7); 
-				_APP.m_lcd.canvas.setTile("cursor4"    , 16, 7); 
-				_APP.m_lcd.canvas.setTile("nochar"     , 17, 7); 
-				_APP.m_lcd.canvas.setTile("battcharge" , 18, 7); 
-				_APP.m_lcd.canvas.setTile("batt1"      , 19, 7); 
-				_APP.m_lcd.canvas.setTile("batt2"      , 20, 7); 
-				_APP.m_lcd.canvas.setTile("batt3"      , 21, 7); 
-				_APP.m_lcd.canvas.setTile("batt4"      , 22, 7); 
-				_APP.m_lcd.canvas.setTile("clock1"     , 23, 7); 
+			return new Promise(async function(resolve,reject){
+				let thisScreen = _APP.m_screenLogic.screens[_APP.currentScreen];
+				if(!thisScreen.inited){ thisScreen.init(); resolve(); return; }
+	
+				// Get the LCD config.
+				let c = _APP.m_config.config.lcd;
+				let ts = c.tilesets[c.activeTileset];
+	
+				_APP.m_lcd.canvas.fillTile("tile3"         , 0, 0, ts.s._cols, 1); 
+				_APP.m_lcd.canvas.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+				_APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
+				_APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
+	
+				let screenDimensionsTest = function(){
+					thisScreen.lines = [];
+	
+					let chars = ["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
+	
+					let rowNum=0;
+					let char_i=0;
+					for(let i=0; i<ts.s._rows-0; i+=1){
+						if(char_i > chars.length-1){ char_i = 0; }
+						thisScreen.lines.push({text:chars[char_i], x:ts.s._cols-1, y:rowNum});
+						char_i++;
+						rowNum++;
+					}
+					let colNum=0;
+					char_i=0;
+					for(let i=0; i<ts.s._cols-0; i+=1){
+						if(char_i > chars.length-1){ char_i = 0; }
+						thisScreen.lines.push({text:chars[char_i], x:colNum, y:ts.s._rows-1});
+						char_i++;
+						colNum++;
+					}
+	
+					for(let v of thisScreen.lines){ _APP.m_lcd.canvas.print(v.text  , v.x , v.y); }
+				};
+				let drawTest = function(){
+					_APP.m_lcd.canvas.print("FILLTILE:"    , 0 , 3);
+					_APP.m_lcd.canvas.fillTile("tile_red"  , 10, 3, 2, 1); 
+					_APP.m_lcd.canvas.fillTile("tile_green", 10, 4, 2, 1); 
+					_APP.m_lcd.canvas.fillTile("tile_blue" , 12, 3, 1, 2); 
+					_APP.m_lcd.canvas.fillTile("cursor2"   , 14, 3, 2, 2); 
+					_APP.m_lcd.canvas.fillTile("cursor3"   , 17, 3, 1, 2); 
+					_APP.m_lcd.canvas.fillTile("cursor4"   , 19, 3, 1, 2); 
+					_APP.m_lcd.canvas.fillTile("nochar"    , 21, 3, 3, 3); 
+	
+					_APP.m_lcd.canvas.print("SETTILE TEST:", 0 , 7);
+					_APP.m_lcd.canvas.setTile("tile_red"   , 10+4, 7); 
+					_APP.m_lcd.canvas.setTile("tile_green" , 11+4, 7); 
+					_APP.m_lcd.canvas.setTile("tile_blue"  , 12+4, 7); 
+					_APP.m_lcd.canvas.setTile("cursor1"    , 13+4, 7); 
+					_APP.m_lcd.canvas.setTile("cursor2"    , 14+4, 7); 
+					_APP.m_lcd.canvas.setTile("cursor3"    , 15+4, 7); 
+					_APP.m_lcd.canvas.setTile("cursor4"    , 16+4, 7); 
+					_APP.m_lcd.canvas.setTile("nochar"     , 17+4, 7); 
+					_APP.m_lcd.canvas.setTile("battcharge" , 18+4, 7); 
+					_APP.m_lcd.canvas.setTile("batt1"      , 19+4, 7); 
+					_APP.m_lcd.canvas.setTile("batt2"      , 20+4, 7); 
+					_APP.m_lcd.canvas.setTile("batt3"      , 21+4, 7); 
+					_APP.m_lcd.canvas.setTile("batt4"      , 22+4, 7); 
+					_APP.m_lcd.canvas.setTile("clock1"     , 23+4, 7); 
+					
+					_APP.m_lcd.canvas.print("FONT TEST:"       , 0, 9);
+					_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./", 1, 10);
+					_APP.m_lcd.canvas.print("0123456789:;<=>?" , 1, 11);
+					_APP.m_lcd.canvas.print("@ABCDEFGHIJKLMNO" , 1, 12);
+					_APP.m_lcd.canvas.print("PQRSTUVWXYZ[\\]^_", 1, 13);
+					
+					_APP.m_lcd.canvas.print("MISSING TILES TEST:", 0, 15);
+					_APP.m_lcd.canvas.print("{}|[]\\"            , 0, 16);
+					// _APP.m_lcd.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
+					// _APP.m_lcd.canvas.print("NO WRAP: HAS 30 CHARS........*", 0, 17);
+					// _APP.m_lcd.canvas.print("CUTOFF : HAS 31 CHARS........*-", 0, 18);
+				};
+				let fpsTest = function(){
+					let len = thisScreen.lines2.length;
+					let longest = 0;
+					thisScreen.lines2.forEach(function(d){ if(d.length > longest){longest = d.length;} });
+					thisScreen.lines2=[];
+					let y=18;
+					// _APP.m_lcd.canvas.fillTile("tile3"  , 0, y, longest, len);
+					if(thisScreen.flag2){ _APP.m_lcd.canvas.fillTile("tile2"  , 0, y, longest, len); }
+					else{                 _APP.m_lcd.canvas.fillTile("tile4"  , 0, y, longest, len); }
+					thisScreen.flag2 = !thisScreen.flag2;
+	
+					try{ thisScreen.lines2.push(`value        : ${_APP.fps.value                    .toFixed(1).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`average      : ${_APP.fps.average                  .toFixed(1).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`fps          : ${_APP.fps.fps                      .toFixed(1).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`interval     : ${_APP.fps.interval                 .toFixed(3).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`delta        : ${_APP.fps.delta                    .toFixed(3).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`overBy    ** : ${_APP.fps.overBy                   .toFixed(3).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`next loop    : ${_APP.fps.ms_untilNextScheduledLoop.toFixed(3).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`sampleSize   : ${_APP.fps.sampleSize               .toFixed(0).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`_index_      : ${_APP.fps._index_                  .toFixed(0).padStart(10, " ")}`); } catch(e){}
+	
+					for(let v of thisScreen.lines2){ _APP.m_lcd.canvas.print(v , 0 , y++); }
+				};
+				let timeTest = function(){
+					_APP.timeIt("TIME", "s");
+					_APP.m_lcd.timeUpdate.func();
+					_APP.timeIt("TIME", "e");
+				};
+				let batteryTest = function(){
+					_APP.timeIt("BATTERY", "s");
+					_APP.m_battery.func();
+					_APP.timeIt("BATTERY", "e");
+				};
 				
-				_APP.m_lcd.canvas.print("FONT TEST:"       , 0, 9);
-				_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./", 8, 10);
-				_APP.m_lcd.canvas.print("0123456789:;<=>?" , 8, 11);
-				_APP.m_lcd.canvas.print("@ABCDEFGHIJKLMNO" , 8, 12);
-				_APP.m_lcd.canvas.print("PQRSTUVWXYZ[\\]^_", 8, 13);
-				
-				_APP.m_lcd.canvas.print("MISSING TILES TEST:", 0, 15);
-				_APP.m_lcd.canvas.print("{}|[]\\"            , 0, 16);
-				// _APP.m_lcd.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
-				// _APP.m_lcd.canvas.print("NO WRAP: HAS 30 CHARS........*", 0, 17);
-				// _APP.m_lcd.canvas.print("CUTOFF : HAS 31 CHARS........*-", 0, 18);
-			};
-			let fpsTest = function(){
-				let y=18;
-				try{ _APP.m_lcd.canvas.print(`value        : ${_APP.fps.value                    .toFixed(1).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`average      : ${_APP.fps.average                  .toFixed(1).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`fps          : ${_APP.fps.fps                      .toFixed(1).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`interval     : ${_APP.fps.interval                 .toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`delta        : ${_APP.fps.delta                    .toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`overBy    ** : ${_APP.fps.overBy                   .toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`next loop    : ${_APP.fps.ms_untilNextScheduledLoop.toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`sampleSize   : ${_APP.fps.sampleSize               .toFixed(0).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				try{ _APP.m_lcd.canvas.print(`_index_      : ${_APP.fps._index_                  .toFixed(0).padStart(10, " ")}`, 0 , y++); } catch(e){}
-				// _APP.m_lcd.canvas.print(`_lastTick_   : ${_APP.fps._lastTick_               .toFixed(3).padStart(10, " ")}`, 0 , y++);
-				// _APP.m_lcd.canvas.print(`now          : ${_APP.fps.now                      .toFixed(3).padStart(10, " ")}`, 0 , y++);
-				// _APP.m_lcd.canvas.print(`nextFrameTime: ${_APP.fps.nextFrameTime            .toFixed(3).padStart(10, " ")}`, 0 , y++);
-			};
-			
-			screenDimensionsTest();
-			drawTest();
-			fpsTest();
+				screenDimensionsTest();
+				drawTest();
+				fpsTest();
+				timeTest();
+				batteryTest();
+
+				resolve();
+			});
 		}
-
-		// // Get the LCD config.
-		// let c = _APP.m_config.config.lcd;
-		// let ts = c.tilesets[c.activeTileset];
 	}
 };
 

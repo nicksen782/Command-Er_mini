@@ -43,8 +43,8 @@ let _MOD = {
 		
 					// CREATE THE STRING. 
 					let str = (json['%'].toFixed(1)+"%").padStart(6, " ");
-					if(str == _MOD.prevBattStr){ 
-						// console.log("SAME BATT", _MOD.prevBattStr); 
+					if(str == _MOD.prevBattStr && 0){ 
+						console.log("SAME BATT", _MOD.prevBattStr); 
 						resolve(); return; 
 					}
 					_MOD.prevBattStr = str; 
@@ -57,7 +57,7 @@ let _MOD = {
 					else { batIcon = "batt4"; } // GREEN
 					
 					// CLEAR THE LINE AND THEN DISPLAY THE ICON AND THE STRING. 
-					let x=17; y=24;
+					let x=17; y=28;
 					_APP.m_lcd.canvas.fillTile("tile1"  , x, y, str.length + 1, 1); 
 					_APP.m_lcd.canvas.setTile(batIcon  , x, y); 
 					if(Math.sign(json['A']) == 1){
