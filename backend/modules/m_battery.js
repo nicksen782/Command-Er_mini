@@ -95,10 +95,11 @@ let _MOD = {
 		});
 	},
 	startServer: function(){
-		_MOD.cp_child = cp.exec("python3 /home/pi/MINI/INA219_srv.py", { shell:"/bin/bash", cwd: "/home/pi/MINI", detatched: false }, function(){});
+		_MOD.cp_child = cp.exec(`python3 ${process.cwd()}/INA219_srv.py`, { shell:"/bin/bash", cwd: `${process.cwd()}`, detatched: false }, function(){});
 	},
 	stopServer: async function(){
-		cp.execSync( `yes yes| /home/pi/.local/bin/freeport ${_MOD.PORT}`, [], { shell:"bash" } );
+		let resp = cp.execSync( `yes yes| ~/.local/bin/freeport ${_MOD.PORT}`, [], { shell:"bash" } );
+		// console.log("stopServer:", resp.toString());
 	},
 	pingServer: async function(){
 		// Ping up to 10 times with 1000ms between pings. (10 seconds max.)

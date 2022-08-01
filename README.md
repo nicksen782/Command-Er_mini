@@ -17,3 +17,12 @@ Designed to interact with this software:
 * Connection to Command-Er to send commands through a selected terminal or a default terminal.
 * Menu system to govern the usage of the device. 
 * Status updates on a command that is sent. 
+
+## Tested with:
+Python 3.9.2
+NodeJs 16.15.1
+
+## Installation:
+pip3 install freeport
+git clone git@github.com:nicksen782/Command-Er_mini.git
+Command-Er_mini
