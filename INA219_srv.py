@@ -1,5 +1,13 @@
+# INA219
 import smbus
 import time
+# INA219
+
+# WEB SERVER
+import json
+import sys
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+# WEB SERVER
 
 # Config Register (R/W)
 _REG_CONFIG                 = 0x00
@@ -54,7 +62,6 @@ class Mode:
     SVOLT_CONTINUOUS        = 0x05      # shunt voltage continuous
     BVOLT_CONTINUOUS        = 0x06      # bus voltage continuous
     SANDBVOLT_CONTINUOUS    = 0x07      # shunt and bus voltage continuous
-
 
 class INA219:
     def __init__(self, i2c_bus=1, addr=0x40):
@@ -187,30 +194,66 @@ class INA219:
         if value > 32767:
             value -= 65535
         return value * self._power_lsb
-        
+
+def returnJSON():
+    # Generate the data values. 
+    ina219        = INA219(addr=0x43)                  # Create an INA219 instance.
+    bus_voltage   = ina219.getBusVoltage_V()           # Voltage on V- (load side)
+    shunt_voltage = ina219.getShuntVoltage_mV() / 1000 # Voltage between V+ and V- across the shunt
+    current       = ina219.getCurrent_mA()             # Current in mA
+    power         = ina219.getPower_W()                # Power in W
+    p             = (bus_voltage - 3)/1.2*100          # Percentage.
+    if(p > 100):p = 100
+    if(p < 0):p = 0
+    
+    # Store the data values to an object.
+    jsonObj = {}
+    jsonObj['V']  = (bus_voltage)
+    jsonObj['A']  = (current/1000)
+    jsonObj['W']  = (power)
+    jsonObj['%']  = (p)
+    jsonObj['PV'] = (bus_voltage + shunt_voltage)
+    jsonObj['SV'] = (shunt_voltage)
+
+    # Return the object. 
+    return jsonObj
+
 if __name__=='__main__':
+    class PythonServer(SimpleHTTPRequestHandler):
+        """Python HTTP Server that handles GET and POST requests"""
+        def do_GET(self):
+            if self.path == '/':
+                self.send_response(200, "OK")
+                self.send_header('Content-Type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(bytes("HELLO! NOTHING HERE.", 'utf-8'))
+            if self.path == '/getData':
+                self.send_response(200, "OK")
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(bytes(json.dumps(returnJSON(), ensure_ascii=False), 'utf-8'))
+            elif self.path == '/ping':
+                self.send_response(200, "OK")
+                self.send_header('Content-Type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(bytes("PONG", 'utf-8'))
+            else:
+                self.send_response(200, "OK")
+                self.send_header('Content-Type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(bytes("UNKNOWN REQUEST", 'utf-8'))
 
-    # Create an INA219 instance.
-    ina219 = INA219(addr=0x43)
-    while True:
-        bus_voltage = ina219.getBusVoltage_V()             # voltage on V- (load side)
-        shunt_voltage = ina219.getShuntVoltage_mV() / 1000 # voltage between V+ and V- across the shunt
-        current = ina219.getCurrent_mA()                   # current in mA
-        power = ina219.getPower_W()                        # power in W
-        p = (bus_voltage - 3)/1.2*100
-        if(p > 100):p = 100
-        if(p < 0):p = 0
+    print("INA219_srv: Server started")
+    
+    # HOST_NAME="0.0.0.0"   # Listen on all interfaces.
+    HOST_NAME="127.0.0.1" # Listen only on the loopback interface.
 
-        # INA219 measure bus voltage on the load side. So PSU voltage = bus_voltage + shunt_voltage
-        #print("PSU Voltage:   {:6.3f} V".format(bus_voltage + shunt_voltage))
-        #print("Shunt Voltage: {:9.6f} V".format(shunt_voltage))
-        print("{")
-        print(" \"V\": {:0.3f},".format(bus_voltage))
-        print(" \"A\": {:0.3f},".format(current/1000))
-        print(" \"W\": {:0.3f},".format(power))
-        print(" \"%\": {:0.1f},".format(p))
-        print(" \"PV\": {:6.3f},".format(bus_voltage + shunt_voltage))
-        print(" \"SV\": {:9.6f}".format(shunt_voltage))
-        print("}")
-        break
-        time.sleep(2)
+    PORT=7778
+    server = HTTPServer((HOST_NAME, PORT), PythonServer)
+    # print(f"INA219_srv: Server started http://{HOST_NAME}:{PORT}")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.server_close()
+        print("Server stopped successfully")
+        sys.exit(0)

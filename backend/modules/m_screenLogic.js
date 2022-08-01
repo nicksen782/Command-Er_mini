@@ -257,31 +257,48 @@ _MOD.screens = {
 					_APP.m_lcd.canvas.fillTile("cursor3"   , 17, 3, 1, 2); 
 					_APP.m_lcd.canvas.fillTile("cursor4"   , 19, 3, 1, 2); 
 					_APP.m_lcd.canvas.fillTile("nochar"    , 21, 3, 3, 3); 
-	
-					_APP.m_lcd.canvas.print("SETTILE TEST:", 0 , 7);
-					_APP.m_lcd.canvas.setTile("tile_red"   , 10+4, 7); 
-					_APP.m_lcd.canvas.setTile("tile_green" , 11+4, 7); 
-					_APP.m_lcd.canvas.setTile("tile_blue"  , 12+4, 7); 
-					_APP.m_lcd.canvas.setTile("cursor1"    , 13+4, 7); 
-					_APP.m_lcd.canvas.setTile("cursor2"    , 14+4, 7); 
-					_APP.m_lcd.canvas.setTile("cursor3"    , 15+4, 7); 
-					_APP.m_lcd.canvas.setTile("cursor4"    , 16+4, 7); 
-					_APP.m_lcd.canvas.setTile("nochar"     , 17+4, 7); 
-					_APP.m_lcd.canvas.setTile("battcharge" , 18+4, 7); 
-					_APP.m_lcd.canvas.setTile("batt1"      , 19+4, 7); 
-					_APP.m_lcd.canvas.setTile("batt2"      , 20+4, 7); 
-					_APP.m_lcd.canvas.setTile("batt3"      , 21+4, 7); 
-					_APP.m_lcd.canvas.setTile("batt4"      , 22+4, 7); 
-					_APP.m_lcd.canvas.setTile("clock1"     , 23+4, 7); 
 					
-					_APP.m_lcd.canvas.print("FONT TEST:"       , 0, 9);
-					_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./", 1, 10);
-					_APP.m_lcd.canvas.print("0123456789:;<=>?" , 1, 11);
-					_APP.m_lcd.canvas.print("@ABCDEFGHIJKLMNO" , 1, 12);
-					_APP.m_lcd.canvas.print("PQRSTUVWXYZ[\\]^_", 1, 13);
+					// Row 0
+					let x=14;
+					let y=7;
+					_APP.m_lcd.canvas.print("SETTILE TEST:", 0 , y);
+
+					// Row 1
+					_APP.m_lcd.canvas.setTile("tile_red"   , x++, y); 
+					_APP.m_lcd.canvas.setTile("tile_green" , x++, y); 
+					_APP.m_lcd.canvas.setTile("tile_blue"  , x++, y); 
+					x++;
+					_APP.m_lcd.canvas.setTile("cursor1"    , x++, y); 
+					_APP.m_lcd.canvas.setTile("cursor2"    , x++, y); 
+					_APP.m_lcd.canvas.setTile("cursor3"    , x++, y); 
+					_APP.m_lcd.canvas.setTile("cursor4"    , x++, y); 
+					x++;
+					_APP.m_lcd.canvas.setTile("clock1"     , x++, y); 
+					_APP.m_lcd.canvas.setTile("nochar"     , x++, y); 
+					y++;
+
+					// Row 2
+					x=14;
+					_APP.m_lcd.canvas.setTile("battcharge1", x++, y); 
+					_APP.m_lcd.canvas.setTile("battcharge2", x++, y); 
+					x++;
+					x++;
+					_APP.m_lcd.canvas.setTile("batt1"      , x++, y); 
+					_APP.m_lcd.canvas.setTile("batt2"      , x++, y); 
+					_APP.m_lcd.canvas.setTile("batt3"      , x++, y); 
+					_APP.m_lcd.canvas.setTile("batt4"      , x++, y); 
+					x++;
 					
-					_APP.m_lcd.canvas.print("MISSING TILES TEST:", 0, 15);
-					_APP.m_lcd.canvas.print("{}|[]\\"            , 0, 16);
+					x=0; y++;
+					_APP.m_lcd.canvas.print("FONT TEST:"       , x, y++); x++;
+					_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./", x, y++);
+					_APP.m_lcd.canvas.print("0123456789:;<=>?" , x, y++);
+					_APP.m_lcd.canvas.print("@ABCDEFGHIJKLMNO" , x, y++);
+					_APP.m_lcd.canvas.print("PQRSTUVWXYZ[\\]^_", x, y++);
+					
+					x=0; y++;
+					_APP.m_lcd.canvas.print("MISSING TILES TEST:", x, y++);
+					_APP.m_lcd.canvas.print("{}|[]\\"            , x, y++);
 					// _APP.m_lcd.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
 					// _APP.m_lcd.canvas.print("NO WRAP: HAS 30 CHARS........*", 0, 17);
 					// _APP.m_lcd.canvas.print("CUTOFF : HAS 31 CHARS........*-", 0, 18);
@@ -311,12 +328,12 @@ _MOD.screens = {
 				};
 				let timeTest = function(){
 					_APP.timeIt("TIME", "s");
-					_APP.m_lcd.timeUpdate.func();
+					_APP.m_lcd.timeUpdate.func(0,ts.s._rows-2);
 					_APP.timeIt("TIME", "e");
 				};
-				let batteryTest = function(){
+				let batteryTest = async function(){
 					_APP.timeIt("BATTERY", "s");
-					_APP.m_battery.func();
+					await _APP.m_battery.func(ts.s._cols-9,ts.s._rows-2);
 					_APP.timeIt("BATTERY", "e");
 				};
 				
@@ -325,7 +342,7 @@ _MOD.screens = {
 				fpsTest();
 				timeTest();
 				batteryTest();
-
+				
 				resolve();
 			});
 		}

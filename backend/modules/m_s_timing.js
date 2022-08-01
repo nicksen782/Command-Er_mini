@@ -88,6 +88,22 @@ let timings_test = {
 			_APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
 			_APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
 	
+			_APP.m_lcd.canvas.fillTile("tile1"         , 0, ts.s._rows-2, ts.s._cols, 1); 
+
+			let timeTest = function(){
+				_APP.timeIt("TIME", "s");
+				_APP.m_lcd.timeUpdate.func(0,ts.s._rows-1);
+				_APP.timeIt("TIME", "e");
+			};
+			let batteryTest = async function(){
+				_APP.timeIt("BATTERY", "s");
+				await _APP.m_battery.func(ts.s._cols-8,ts.s._rows-1);
+				_APP.timeIt("BATTERY", "e");
+			};
+
+			timeTest();
+			batteryTest();
+
 			resolve();
 			return;
 	

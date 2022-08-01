@@ -66,49 +66,39 @@ let _APP = {
 	// Add the _APP object to each required object.
 	module_inits: function(){
 		return new Promise(async function(resolve,reject){
+			console.log("INIT: M_main");
 			await _APP         .module_init(_APP);
-
+			
 			// CONFIG FIRST.
+			console.log("INIT: m_config");
 			await _APP.m_config.module_init(_APP);
-
-			// 3 seems solid.
-			_APP.fps.setFpsInterval(3);
-
+			
+			// 2 seems solid.
+			_APP.fps.setFpsInterval( _APP.m_config.config.lcd.fps );
+			
 			if(_APP.m_config.config.ws.active){
+				console.log("INIT: WSServer");
 				_APP.wss = new WSServer({ server: _APP.server });
 				_APP.server.on('request', _APP.app);
 			}
 			else{
 				_APP.wss = null;
 			}
-			await _APP.m_gpio       .module_init(_APP);
-			await _APP.m_lcd        .module_init(_APP);
-			await _APP.m_battery    .module_init(_APP);
-			await _APP.m_screenLogic.module_init(_APP);
-			await _APP.m_s_timing   .module_init(_APP);
+			
+			console.log("INIT: m_gpio");        await _APP.m_gpio       .module_init(_APP);
+			console.log("INIT: m_battery");     await _APP.m_battery    .module_init(_APP);
+			console.log("INIT: m_lcd");         await _APP.m_lcd        .module_init(_APP);
+			console.log("INIT: m_screenLogic"); await _APP.m_screenLogic.module_init(_APP);
+			console.log("INIT: m_s_timing");    await _APP.m_s_timing   .module_init(_APP);
 
-			// Timers.
+			// Init the canvas
 			await _APP.m_lcd.canvas.init();
-
-			// GET THE FIRST BATTERY UPDATE.
-			await _APP.m_battery.func();
-
-			// GET THE FIRST TIME UPDATE.
-			await _APP.m_lcd.timeUpdate.func();
 
 			// SET AN LCD DRAW TO BE NEEDED.
 			_APP.m_lcd.canvas.lcdUpdateNeeded = true;
 			await _APP.m_lcd.canvas.updateFrameBuffer();
 			
-			// setInterval(function(){
-			// 	// Set the lcdUpdateNeeded flag.
-			// 	_APP.m_lcd.canvas.lcdUpdateNeeded = true;
-			// }, 2000);
-
-			// checks.logic.last = performance.now(); 
-			// checks.draw.last = performance.now(); 
-			// setImmediate( ()=>{ loop( performance.now() ); });
-			// _APP.scheduleNextLoop();
+			// Start the appLoop.
 			appLoop( performance.now() );
 			resolve();
 		});

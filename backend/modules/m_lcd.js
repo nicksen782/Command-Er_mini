@@ -42,7 +42,7 @@ let _MOD = {
 		intervalId: null,
 		prevTimeString: "",
 		delay: 500,
-		func: function(){
+		func: function(x=0, y=28, tile="tile1"){
 			return new Promise(async function(resolve,reject){
 				var d = new Date(); // for now
 				let h = d.getHours();
@@ -57,9 +57,9 @@ let _MOD = {
 		
 				// Only update the canvas if the timestring has changed.
 				if(str2 != _MOD.timeUpdate.prevTimeString || 1){
-					let x=0; let y=28;
+					// let x=0; let y=28;
 					_MOD.timeUpdate.prevTimeString = str2;
-					_MOD.canvas.fillTile("tile1", x, y, 11, 1); 
+					_MOD.canvas.fillTile(tile, x, y, 11, 1); 
 					_MOD.canvas.setTile("clock1", x, y);
 					_MOD.canvas.print(str2, x+1, y);
 				}
@@ -173,7 +173,8 @@ let _MOD = {
 			"cursor4"    : { L:17 , T:3 },
 			"nochar"     : { L:16 , T:0 },
 			"clock1"     : { L:12 , T:5 },
-			"battcharge" : { L:13 , T:5 },
+			"battcharge1": { L:13 , T:5 },
+			"battcharge2": { L:13 , T:4 },
 			"batt1"      : { L:14 , T:5 },
 			"batt2"      : { L:15 , T:5 },
 			"batt3"      : { L:16 , T:5 },
