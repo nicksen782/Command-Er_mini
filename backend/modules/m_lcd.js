@@ -7,7 +7,7 @@ let _MOD = {
 
 	// Init this module.
 	module_init: async function(parent){
-		return new Promise(async function(resolve,reject){
+		return new Promise(function(resolve,reject){
 			// Save reference to the parent module.
 			_APP = parent;
 	
@@ -33,7 +33,7 @@ let _MOD = {
 
 		// REQUEST_LCD_CONFIG
 		_APP.addToRouteList({ path: "/REQUEST_LCD_CONFIG", method: "post", args: [], file: __filename, desc: "REQUEST_LCD_CONFIG" });
-		app.post('/REQUEST_LCD_CONFIG'    ,express.json(), async (req, res) => {
+		app.post('/REQUEST_LCD_CONFIG'    ,express.json(), (req, res) => {
 			let c = _APP.m_config.config.lcd;
 			res.json(c);
 		});
@@ -182,32 +182,37 @@ let _MOD = {
 		tileImages: {
 		},
 
-		loadTilesetImageToCanvas: async function(tilesetKey){
-			// Get the LCD config.
-			let c = _APP.m_config.config.lcd;
+		loadTilesetImageToCanvas: function(tilesetKey){
+			return new Promise(function(resolve,reject){
+				// Get the LCD config.
+				let c = _APP.m_config.config.lcd;
+	
+				// Load the image. 
+				loadImage(c.tilesets[tilesetKey].file)
+				.then(function(img){
+					// Create the canvas for the image.
+					_MOD.canvas.tileset = createCanvas(img.width, img.height ); 
+		
+					// Create temporary drawing context.
+					let ctx = _MOD.canvas.tileset.getContext("2d");	
+		
+					// Disable all anti-aliasing effects.
+					ctx.mozImageSmoothingEnabled    = false; // Firefox
+					ctx.imageSmoothingEnabled       = false; // Firefox
+					ctx.oImageSmoothingEnabled      = false; //
+					ctx.webkitImageSmoothingEnabled = false; //
+					ctx.msImageSmoothingEnabled     = false; //
+		
+					// Draw the image to the new canvas. 
+					ctx.drawImage(img, 0, 0);
+					resolve();
+				})
+				.catch(function(e){ console.log("loadTilesetImageToCanvas: Error using loadImage.", c.tilesets[tilesetKey].file, e); reject(e); throw e;});
 
-			// Load the image. 
-			let img = await loadImage(c.tilesets[tilesetKey].file);
-
-			// Create the canvas for the image.
-			_MOD.canvas.tileset = createCanvas(img.width, img.height ); 
-
-			// Create temporary drawing context.
-			let ctx = _MOD.canvas.tileset.getContext("2d");	
-
-			// Disable all anti-aliasing effects.
-			ctx.mozImageSmoothingEnabled    = false; // Firefox
-			ctx.imageSmoothingEnabled       = false; // Firefox
-			ctx.oImageSmoothingEnabled      = false; //
-			ctx.webkitImageSmoothingEnabled = false; //
-			ctx.msImageSmoothingEnabled     = false; //
-
-			// Draw the image to the new canvas. 
-			ctx.drawImage(img, 0, 0);
-
+			});
 		},
-		tmpCanvas : null, // TODO: use these instead of local vars.
-		tmpCtx    : null, // TODO: use these instead of local vars.
+		tmpCanvas : null,
+		tmpCtx    : null,
 		genCachedTiles: function(){
 			for(let k in _MOD.canvas.charCoords){
 				// Check the cache. Create it if it doesn't exist. 
@@ -247,13 +252,13 @@ let _MOD = {
 				
 				// Draw to the cached canvas.
 				let args = [
-					_MOD.canvas.tileset   , // image
+					_MOD.canvas.tileset    , // image
 					(rec.L*ts.n.tileWidth) , // sx
 					(rec.T*ts.n.tileHeight), // sy
 					ts.n.tileWidth         , // sWidth
 					ts.n.tileHeight        , // sHeight
-					0                     , // dx
-					0                     , // dy
+					0                      , // dx
+					0                      , // dy
 					ts.s.tileWidth         , // dWidth
 					ts.s.tileHeight          // dHeight
 				];
@@ -603,7 +608,9 @@ let _MOD = {
 		},
 		init: async function(){
 			return new Promise(async function(resolve,reject){
+				// Get the LCD config.
 				let c = _APP.m_config.config.lcd;
+				let ts = c.tilesets[c.activeTileset];
 
 				// CANVAS SETUP.
 				_MOD.canvas.createMainCanvas();
@@ -612,10 +619,6 @@ let _MOD = {
 
 				// OPEN/STORE A HANDLE TO THE FRAMEBUFFER.
 				_MOD.canvas.fb = fs.openSync("/dev/fb0", "w");
-
-				// Load the tileset graphic.
-				// _MOD.canvas.tileset = await loadImage("test3.png");
-				// _MOD.canvas.tileset = await loadImage(c.tileset1);
 
 				// Generate cached tiles. 
 				_APP.timeIt("genCachedTiles", "s");
@@ -636,61 +639,6 @@ let _MOD = {
 				// _MOD.canvas.startInterval(); return; 
 
 				_MOD.canvas.fillTile("tile2"  , 0, 1, 24, 1); 
-
-				if(1){
-					_MOD.canvas.print("FILLTILE:"  , 0 , 3);
-					_MOD.canvas.fillTile("tile1"   , 10, 3, 2, 1); 
-					_MOD.canvas.fillTile("tile2"   , 10, 4, 2, 1); 
-					_MOD.canvas.fillTile("tile3"   , 12, 3, 1, 2); 
-					_MOD.canvas.fillTile("cursor2" , 14, 3, 2, 2); 
-					_MOD.canvas.fillTile("cursor3" , 17, 3, 1, 2); 
-					_MOD.canvas.fillTile("cursor4" , 19, 3, 1, 2); 
-					_MOD.canvas.fillTile("nochar"  , 21, 3, 3, 3); 
-
-					_MOD.canvas.print("SETTILE :"   , 0 , 7);
-					_MOD.canvas.setTile("tile1"     , 10, 7); 
-					_MOD.canvas.setTile("tile2"     , 11, 7); 
-					_MOD.canvas.setTile("tile3"     , 12, 7); 
-					_MOD.canvas.setTile("cursor1"   , 13, 7); 
-					_MOD.canvas.setTile("cursor2"   , 14, 7); 
-					_MOD.canvas.setTile("cursor3"   , 15, 7); 
-					_MOD.canvas.setTile("cursor4"   , 16, 7); 
-					_MOD.canvas.setTile("nochar"    , 17, 7); 
-					_MOD.canvas.setTile("battcharge", 18, 7); 
-					_MOD.canvas.setTile("batt1"     , 19, 7); 
-					_MOD.canvas.setTile("batt2"     , 20, 7); 
-					_MOD.canvas.setTile("batt3"     , 21, 7); 
-					_MOD.canvas.setTile("batt4"     , 22, 7); 
-					_MOD.canvas.setTile("clock1"    , 23, 7); 
-					
-					_MOD.canvas.print("FONTTEST:", 0, 9);
-					_MOD.canvas.print(" !\"#$%&'()*+,-./", 8, 10);
-					_MOD.canvas.print("0123456789:;<=>?" , 8, 11);
-					_MOD.canvas.print("@ABCDEFGHIJKLMNO" , 8, 12);
-					_MOD.canvas.print("PQRSTUVWXYZ[\\]^_", 8, 13);
-					
-					_MOD.canvas.print("OOB TEST:", 0, 15);
-					_MOD.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
-					_MOD.canvas.print("NO WRAP: HAS 24 CHARS...", 0, 17);
-					_MOD.canvas.print("CUTOFF : HAS 25 CHARS....", 0, 18);
-					
-					// Create a bar near the bottom.
-					_MOD.canvas.fillTile("tile2"  , 0, 23, 24, 1); 
-
-					// _MOD.canvas.lcdUpdateNeeded = true; 
-					// await _APP.m_lcd.canvas.updateFrameBuffer();
-					// await new Promise(function(res,rej){ 
-					// 	setTimeout(function(){ 
-					// 		fs.writeFileSync('public/out.png', _APP.m_lcd.canvas.canvas.toBuffer());
-					// 		_MOD.canvas.fullClearScreen(); 
-					// 		res(); 
-					// 		resolve();
-					// 	}, 100)
-					// });
-					resolve();
-				}
-				else{
-				}
 			});
 		},
 	},
@@ -804,7 +752,7 @@ let _MOD = {
 			},
 		},
 
-		el_message: async function(ws, event){
+		el_message: function(ws, event){
 			// console.log("message:", event.data);
 			let data;
 			let tests = { isJson: false, isText: false };
@@ -834,19 +782,19 @@ let _MOD = {
 				}
 			}
 		},
-		el_close  : async function(ws, event){ 
+		el_close  : function(ws, event){ 
 			console.log("close:", ws.id ); 
 			ws.close(); 
 			setTimeout(function(){ws.terminate(); }, 1000);
 		},
-		el_error  : async function(ws, event){ 
+		el_error  : function(ws, event){ 
 			console.log("error:", event); 
 			ws.close(); 
 			setTimeout(function(){ws.terminate(); }, 1000);
 		},
 
 		// INIT THE WEBSOCKET CONNECTION.
-		initWss: async function(app, express){
+		initWss: function(app, express){
 			// THIS IS APPLIED FOR ALL NEW WEBSOCKET CONNECTIONS.
 			_APP.wss.on('connection', function connection(ws, res) {
 				// ws.binaryType = "arraybuffer";

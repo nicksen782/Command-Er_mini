@@ -144,8 +144,9 @@ let _MOD = {
 	buttonHandler: async function(key, state){
 		// console.log("key, state:", key, state);
 		switch(_APP.currentScreen){
-			case "main"         : { _APP.m_screenLogic.screens.main        .buttons(key, state); break; }
-			case "timings_test" : { _APP.m_screenLogic.screens.timings_test.buttons(key, state); break; }
+			case "main"         : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
+			case "timings_test" : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
+			case "drawingTest1" : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
 			default: { console.log("buttonHandler: unknown currentScreen:", _APP.currentScreen); break; }
 		}
 	},

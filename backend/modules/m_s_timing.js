@@ -28,7 +28,11 @@ let _MOD = {
 		// REQUEST_TIMINGS
 		_APP.addToRouteList({ path: "/REQUEST_TIMINGS", method: "post", args: [], file: __filename, desc: "REQUEST_LCD_CONFIG" });
 		app.post('/REQUEST_TIMINGS'    ,express.json(), async (req, res) => {
-			res.json( _APP.timeIt_timings);
+			let resp = [];
+			for(let key in _APP.timeIt_timings){
+				resp.push( { [key] : _APP.timeIt_timings[key].t } );
+			}
+			res.json( resp );
 		});
 	},
 };
@@ -74,7 +78,6 @@ let timings_test = {
 		let thisScreen = _APP.m_screenLogic.screens[_APP.currentScreen];
 		if(!thisScreen.inited){ thisScreen.init(); return; }
 		return;
-
 
 		// UPDATE THE TIME DISPLAY?
 		{

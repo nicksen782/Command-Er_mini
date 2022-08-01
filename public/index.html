@@ -81,16 +81,28 @@
 
 	<br><br>
 
-	<div id="debugControls" class="disconnected">
+	<div id="debugControls" class="disconnected inline-block">
 		<table class="tableType1">
 			<caption>DEBUG</caption>
-			<tr> <td><button class="button3" id="BL_PIN"  >(POST) Toggle backlight.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_01">( WS ) Request recent framebuffer.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_02">( WS ) Update LCD of all clients.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_03">( WS ) Get LCD config.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_04">( WS ) Get UUID</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_05">( WS ) Get all UUIDs</button></td> </tr>
+			<tr> <td><button class="button3" id="requestTimingsButton">(POST) Request timings.</button></td> </tr>
+			<tr> <td><button class="button3" id="BL_PIN"              >(POST) Toggle backlight.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_01"            >( WS ) Request recent framebuffer.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_02"            >( WS ) Update LCD of all clients.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_03"            >( WS ) Get LCD config.</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_04"            >( WS ) Get UUID</button></td> </tr>
+			<tr> <td><button class="button3" id="DEBUG_05"            >( WS ) Get all UUIDs</button></td> </tr>
 			<tr> <td>&nbsp;</td> </tr>
+		</table>
+	</div>
+
+	<div id="debugOutput" class="disconnected inline-block"> 
+		<table class="tableType1">
+			<caption>OUTPUT</caption>
+			<tr> 
+				<td>
+					<textarea id="debugOutput_output"></textarea>
+				</td>
+			</tr>
 		</table>
 	</div>
 

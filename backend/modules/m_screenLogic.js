@@ -197,11 +197,13 @@ _MOD.screens = {
 			let c = _APP.m_config.config.lcd;
 			let ts = c.tilesets[c.activeTileset];
 
-			let func1 = function(){
+
+			let screenDimensionsTest = function(){
 				let len = thisScreen.lines.length;
-				if(thisScreen.flag1){ _APP.m_lcd.canvas.fillTile("tile_red"  , 0, 0, ts.s._cols, len); }
-				else{                 _APP.m_lcd.canvas.fillTile("tile_blue"  , 0, 0, ts.s._cols, len); }
+				if(thisScreen.flag1){ _APP.m_lcd.canvas.fillTile("tile2"  , 0, 0, ts.s._cols, len); }
+				else{                 _APP.m_lcd.canvas.fillTile("tile4"  , 0, 0, ts.s._cols, len); }
 				thisScreen.flag1 = ! thisScreen.flag1;
+				thisScreen.lines = [];
 
 				let chars = ["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"];
 
@@ -224,46 +226,63 @@ _MOD.screens = {
 
 				for(let v of thisScreen.lines){ _APP.m_lcd.canvas.print(v.text  , v.x , v.y); }
 			};
-			let func2 = function(){
-				_APP.m_lcd.canvas.print("FILLTILE:"  , 0 , 3);
-				_APP.m_lcd.canvas.fillTile("tile1"   , 10, 3, 2, 1); 
-				_APP.m_lcd.canvas.fillTile("tile2"   , 10, 4, 2, 1); 
-				_APP.m_lcd.canvas.fillTile("tile3"   , 12, 3, 1, 2); 
-				_APP.m_lcd.canvas.fillTile("cursor2" , 14, 3, 2, 2); 
-				_APP.m_lcd.canvas.fillTile("cursor3" , 17, 3, 1, 2); 
-				_APP.m_lcd.canvas.fillTile("cursor4" , 19, 3, 1, 2); 
-				_APP.m_lcd.canvas.fillTile("nochar"  , 21, 3, 3, 3); 
+			let drawTest = function(){
+				_APP.m_lcd.canvas.print("FILLTILE:"    , 0 , 3);
+				_APP.m_lcd.canvas.fillTile("tile_red"  , 10, 3, 2, 1); 
+				_APP.m_lcd.canvas.fillTile("tile_green", 10, 4, 2, 1); 
+				_APP.m_lcd.canvas.fillTile("tile_blue" , 12, 3, 1, 2); 
+				_APP.m_lcd.canvas.fillTile("cursor2"   , 14, 3, 2, 2); 
+				_APP.m_lcd.canvas.fillTile("cursor3"   , 17, 3, 1, 2); 
+				_APP.m_lcd.canvas.fillTile("cursor4"   , 19, 3, 1, 2); 
+				_APP.m_lcd.canvas.fillTile("nochar"    , 21, 3, 3, 3); 
 
-				_APP.m_lcd.canvas.print("SETTILE :"   , 0 , 7);
-				_APP.m_lcd.canvas.setTile("tile1"     , 10, 7); 
-				_APP.m_lcd.canvas.setTile("tile2"     , 11, 7); 
-				_APP.m_lcd.canvas.setTile("tile3"     , 12, 7); 
-				_APP.m_lcd.canvas.setTile("cursor1"   , 13, 7); 
-				_APP.m_lcd.canvas.setTile("cursor2"   , 14, 7); 
-				_APP.m_lcd.canvas.setTile("cursor3"   , 15, 7); 
-				_APP.m_lcd.canvas.setTile("cursor4"   , 16, 7); 
-				_APP.m_lcd.canvas.setTile("nochar"    , 17, 7); 
-				_APP.m_lcd.canvas.setTile("battcharge", 18, 7); 
-				_APP.m_lcd.canvas.setTile("batt1"     , 19, 7); 
-				_APP.m_lcd.canvas.setTile("batt2"     , 20, 7); 
-				_APP.m_lcd.canvas.setTile("batt3"     , 21, 7); 
-				_APP.m_lcd.canvas.setTile("batt4"     , 22, 7); 
-				_APP.m_lcd.canvas.setTile("clock1"    , 23, 7); 
+				_APP.m_lcd.canvas.print("SETTILE TEST:", 0 , 7);
+				_APP.m_lcd.canvas.setTile("tile_red"   , 10, 7); 
+				_APP.m_lcd.canvas.setTile("tile_green" , 11, 7); 
+				_APP.m_lcd.canvas.setTile("tile_blue"  , 12, 7); 
+				_APP.m_lcd.canvas.setTile("cursor1"    , 13, 7); 
+				_APP.m_lcd.canvas.setTile("cursor2"    , 14, 7); 
+				_APP.m_lcd.canvas.setTile("cursor3"    , 15, 7); 
+				_APP.m_lcd.canvas.setTile("cursor4"    , 16, 7); 
+				_APP.m_lcd.canvas.setTile("nochar"     , 17, 7); 
+				_APP.m_lcd.canvas.setTile("battcharge" , 18, 7); 
+				_APP.m_lcd.canvas.setTile("batt1"      , 19, 7); 
+				_APP.m_lcd.canvas.setTile("batt2"      , 20, 7); 
+				_APP.m_lcd.canvas.setTile("batt3"      , 21, 7); 
+				_APP.m_lcd.canvas.setTile("batt4"      , 22, 7); 
+				_APP.m_lcd.canvas.setTile("clock1"     , 23, 7); 
 				
-				_APP.m_lcd.canvas.print("FONTTEST:", 0, 9);
+				_APP.m_lcd.canvas.print("FONT TEST:"       , 0, 9);
 				_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./", 8, 10);
 				_APP.m_lcd.canvas.print("0123456789:;<=>?" , 8, 11);
 				_APP.m_lcd.canvas.print("@ABCDEFGHIJKLMNO" , 8, 12);
 				_APP.m_lcd.canvas.print("PQRSTUVWXYZ[\\]^_", 8, 13);
 				
-				// _APP.m_lcd.canvas.print("OOB TEST:", 0, 15);
-				_APP.m_lcd.canvas.print("{}|[]\\", 0, 16);
+				_APP.m_lcd.canvas.print("MISSING TILES TEST:", 0, 15);
+				_APP.m_lcd.canvas.print("{}|[]\\"            , 0, 16);
 				// _APP.m_lcd.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
 				// _APP.m_lcd.canvas.print("NO WRAP: HAS 30 CHARS........*", 0, 17);
 				// _APP.m_lcd.canvas.print("CUTOFF : HAS 31 CHARS........*-", 0, 18);
 			};
-			func1();
-			func2();
+			let fpsTest = function(){
+				let y=18;
+				try{ _APP.m_lcd.canvas.print(`value        : ${_APP.fps.value                    .toFixed(1).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`average      : ${_APP.fps.average                  .toFixed(1).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`fps          : ${_APP.fps.fps                      .toFixed(1).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`interval     : ${_APP.fps.interval                 .toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`delta        : ${_APP.fps.delta                    .toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`overBy    ** : ${_APP.fps.overBy                   .toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`next loop    : ${_APP.fps.ms_untilNextScheduledLoop.toFixed(3).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`sampleSize   : ${_APP.fps.sampleSize               .toFixed(0).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				try{ _APP.m_lcd.canvas.print(`_index_      : ${_APP.fps._index_                  .toFixed(0).padStart(10, " ")}`, 0 , y++); } catch(e){}
+				// _APP.m_lcd.canvas.print(`_lastTick_   : ${_APP.fps._lastTick_               .toFixed(3).padStart(10, " ")}`, 0 , y++);
+				// _APP.m_lcd.canvas.print(`now          : ${_APP.fps.now                      .toFixed(3).padStart(10, " ")}`, 0 , y++);
+				// _APP.m_lcd.canvas.print(`nextFrameTime: ${_APP.fps.nextFrameTime            .toFixed(3).padStart(10, " ")}`, 0 , y++);
+			};
+			
+			screenDimensionsTest();
+			drawTest();
+			fpsTest();
 		}
 
 		// // Get the LCD config.

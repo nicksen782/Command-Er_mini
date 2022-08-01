@@ -46,6 +46,7 @@ let lcd = {
 			// console.log(`onopen: readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}, binaryType: ${e.currentTarget.binaryType}`); 
 			document.getElementById("container1").classList.remove("disconnected");
 			document.getElementById("debugControls").classList.remove("disconnected");
+			document.getElementById("debugOutput").classList.remove("disconnected");
 			console.log("Connection: OPEN");
 		},
 
@@ -55,6 +56,7 @@ let lcd = {
 			// lcd.ws.close();
 			document.getElementById("container1").classList.add("disconnected");
 			document.getElementById("debugControls").classList.add("disconnected");
+			document.getElementById("debugOutput").classList.add("disconnected");
 			if(lcd.WebSocket.autoReconnectWs){
 				console.log("Connection: CLOSED. Will try to reconnect.");
 				setTimeout(function(){ lcd.WebSocket.tryToConnect("onclose"); }, 2000);
@@ -70,6 +72,7 @@ let lcd = {
 			// lcd.ws.close();
 			document.getElementById("container1").classList.add("disconnected");
 			document.getElementById("debugControls").classList.add("disconnected");
+			document.getElementById("debugOutput").classList.add("disconnected");
 			if(lcd.WebSocket.autoReconnectWs){
 				console.log("Connection: ERROR. Will try to reconnect.");
 				setTimeout(function(){ lcd.WebSocket.tryToConnect("onerror"); }, 2000);
@@ -332,7 +335,6 @@ window.onload = async function(){
 
 	// Get the lcdconfig.
 	lcd.lcdconfig = await post('REQUEST_LCD_CONFIG', {});
-	// await post('REQUEST_TIMINGS', {});
 
 	// CANVAS - size according to the lcdconfig.
 	lcd.canvas = document.getElementById("CANVAS1");
@@ -354,11 +356,44 @@ window.onload = async function(){
 	document.getElementById("BL_PIN")       .addEventListener("click", ()=>post('toggle_pin'            , {button:"BL_PIN"}       ), false);
 	
 	// BUTTONS: DEBUG
-	document.getElementById("DEBUG_01")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER"}); }, false);
-	document.getElementById("DEBUG_02")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER_ALL"}); }, false);
-	document.getElementById("DEBUG_03")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_CONFIG"}); }, false);
-	document.getElementById("DEBUG_04")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_UUID"}); }, false);
-	document.getElementById("DEBUG_05")       .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"GET_CLIENT_IDS"}); }, false);
+	document.getElementById("DEBUG_01")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER"}); }, false);
+	document.getElementById("DEBUG_02")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_FRAMEBUFFER_ALL"}); }, false);
+	document.getElementById("DEBUG_03")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_LCD_CONFIG"}); }, false);
+	document.getElementById("DEBUG_04")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"REQUEST_UUID"}); }, false);
+	document.getElementById("DEBUG_05")            .addEventListener("click", ()=>{ lcd.WebSocket.send({mode:"GET_CLIENT_IDS"}); }, false);
+	document.getElementById("requestTimingsButton").addEventListener("click", async ()=>{ 
+		
+		// Get DOM handles. 
+		let debugOutput = document.getElementById("debugOutput");
+		let caption     = debugOutput.querySelector("caption");
+		let output      = debugOutput.querySelector("textarea");
+		
+		// Dim the output text area.
+		output.style.opacity = 0.25;
+
+		// Request the data.
+		let json        = await post('REQUEST_TIMINGS', {});
+
+		// Change caption.
+		caption.innerText = "OUTPUT: (REQUEST_TIMINGS)";
+
+		// Generate the output text. 
+		let text = "";
+		let pad = 0;
+		for(let index in json){ let key = Object.keys(json[index])[0]; if(pad < key.length){ pad = key.length; } }
+		for(let index in json){ 
+			// There should only be one key with one value per record.
+			let key = Object.keys(json[index])[0];
+			let value = json[index][key];
+			text += `${key.padEnd(pad, " ")}: ${value.toFixed(3).padStart(9, " ")}\n`;
+		}
+
+		// Display the output text.
+		output.value = text;
+
+		// Undim the output text area.
+		output.style.opacity = 1.0;
+	}, false);
 	
 	// WEBSOCKET CONNECTIONS.
 	document.getElementById("ws_open")        .addEventListener("click", ()=>{ lcd.WebSocket.tryToConnect("ws_open"); }, false);

@@ -71,7 +71,8 @@ let _APP = {
 			// CONFIG FIRST.
 			await _APP.m_config.module_init(_APP);
 
-			_APP.fps.setFpsInterval(3);
+			// 3 seems solid.
+			_APP.fps.setFpsInterval(2);
 
 			if(_APP.m_config.config.ws.active){
 				_APP.wss = new WSServer({ server: _APP.server });
@@ -175,24 +176,16 @@ let _APP = {
 				s: performance.now(),
 				e: 0,
 				t: 0,
-
-				// process.hrtime
-				// s: process.hrtime(),
-				// e: 0,
-				// t: 0,
 			};
 			if(toConsole){ console.log(key, "START"); }
 		}
 		else if(type == "e"){
-			// performance.now
-			_APP.timeIt_timings[key].e = performance.now();
-			_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
-			if(toConsole){ console.log(key, "END", _APP.timeIt_timings[key].t); }
-
-			// process.hrtime
-			// _APP.timeIt_timings[key].e = process.hrtime(_APP.timeIt_timings[key].s);
-			// _APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e[0]*1000 + _APP.timeIt_timings[key].e[1] / 1000000;
-			// if(toConsole){ console.log(key, "END", _APP.timeIt_timings[key].t); }
+			if(_APP.timeIt_timings[key]){
+				// performance.now
+				_APP.timeIt_timings[key].e = performance.now();
+				_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
+				if(toConsole){ console.log(key, "END", _APP.timeIt_timings[key].t); }
+			}
 		}
 		else if(type == "t"){
 			if(_APP.timeIt_timings[key]){
@@ -251,16 +244,15 @@ let _APP = {
 			if(newFPS <= 0){ newFPS=1; }
 
 			// Set the values. 
-			// core.SETTINGS.fps = newFPS ;
 			this._sample_   = []   ;
 			this._index_    = 0    ;
 			this._lastTick_ = false;
 
-			this.now      = null                   ;
-			this._then    = performance.now()      ;
-			this.delta    = null;
+			this.now      = performance.now();
+			this._then    = performance.now();
+			this.delta    = 0;
 
-			this.fps = newFPS;
+			this.fps      = newFPS;
 			this.interval = 1000/newFPS;
 		},
 	},	
@@ -270,10 +262,15 @@ let _APP = {
 		// loop2(performance.now());
 
 		// Start next loop immediately after thie current event loop finishes.
-		setImmediate( ()=>{ loop2(performance.now()); } );
+		// setImmediate( ()=>{ loop2(performance.now()); } );
 
 		// Start next loop at the next iteration of the event loop.
 		// process.nextTick( ()=>{ loop2(performance.now()); } );
+
+		// setTimeout -- Gives a little "breathing room" for the CPU.
+		setTimeout(function(){
+			loop2(performance.now());
+		}, 10);
 	},
 };
 
@@ -352,7 +349,9 @@ let innerLoop = function(){
 		
 		// // Update the LCD and ws buffer send.
 		_APP.timeIt("updatescreen", "s");
-		await _APP.m_lcd.canvas.updateFrameBuffer(); // FRAMEBUFFER UPDATE.
+		if(_APP.m_lcd.canvas.lcdUpdateNeeded && !_APP.m_lcd.canvas.updatingLCD){ 
+			await _APP.m_lcd.canvas.updateFrameBuffer(); // FRAMEBUFFER UPDATE.
+		}
 		_APP.timeIt("updatescreen", "e");
 
 		res_loop();
@@ -365,48 +364,49 @@ let loop2 = async function(timestamp){
 	// Update the timing values.
 	_APP.fps.now           = timestamp;
 	_APP.fps.delta         = _APP.fps.now - _APP.fps._then;
-	// _APP.fps.nextFrameTime = _APP.fps.now + _APP.fps.interval ;
+	_APP.fps.nextFrameTime = _APP.fps.now + _APP.fps.interval ;
 
 	// Ready to run a graphics/logic update?
 	let is_deltaOverInterval = (_APP.fps.delta >= _APP.fps.interval ? true : false) ;
-	let is_paused            = false
-	// let ms_untilNextScheduledLoop = _APP.fps.nextFrameTime - _APP.fps.now;
+	_APP.fps.overBy = _APP.fps.delta - _APP.fps.interval;
+	_APP.fps.ms_untilNextScheduledLoop = _APP.fps.nextFrameTime - _APP.fps.now;
 
 	// Ready for the next loop?
 	if(is_deltaOverInterval) {
 		// Update the timing data.
+		_APP.fps._then = _APP.fps.now - (_APP.fps.delta % _APP.fps.interval);
+
+		// Call the inner loop.
+		await innerLoop();
+		
+		// Calculate the average FPS.
+		_APP.fps.tick();
+
+		// Set the stamp for this loop run.
+
+		// Update the timing data.
 		// _APP.fps._then = _APP.fps.now - (_APP.fps.delta % _APP.fps.interval);
 		// _APP.fps._then = _APP.fps.now ;
 
-		// Calculate the average FPS.
-		_APP.fps.tick(timestamp);
+		// _APP.fps._then = performance.now();
 
-		// Paused? Do not run the game.loop.
-		if(is_paused){
-			// Schedule the next game.gameloop.
-			_APP.scheduleNextLoop();
-		}
-		else{
-			// Call the inner loop.
-			await innerLoop();
+		// console.log("yes");
 
-			_APP.fps._then = performance.now(); ;
-
-			// Set next loop call.
-			_APP.scheduleNextLoop();
-			return;
-		}
+		// Set next loop call.
+		_APP.scheduleNextLoop();
+		return;
 	}
 	// No. Do something else?
 	else{
 		//
 		if(console._LOG_BUFFER){
 			// console.log("nothing", _APP.fps.delta );
-			console._LOG_BUFFER.flush();
+			// console._LOG_BUFFER.flush();
 		}
 		else{
 			// console.log("nothing", _APP.fps.delta );
 		}
+		// console.log("no");
 
 		// Update the LCD and ws buffer send.
 		// _APP.timeIt("updatescreen", "s");
