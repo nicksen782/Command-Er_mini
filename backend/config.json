@@ -11,7 +11,7 @@
 	},
 	"lcd":{
 		"active": true,
-		"fps":5,
+		"fps":15,
 		"width"       : 240,
 		"height"      : 240,
 		"activeTileset": "tileset_8x8",
@@ -42,9 +42,12 @@
 	},
 	"python":{
 		"active": true,
-		"serverType_ALT1": "http",
-		"serverType_ALT2": "ws",
-		"serverType": "http",
-		"serverPort": 7778
+		"serverType": "ws",
+		"ws":{
+			"port": 7778
+		},
+		"http":{
+			"port": 7778
+		}
 	}
 }

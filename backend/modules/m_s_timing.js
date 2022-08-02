@@ -83,82 +83,39 @@ let timings_test = {
 			let c = _APP.m_config.config.lcd;
 			let ts = c.tilesets[c.activeTileset];
 	
+			// Top part.
 			_APP.m_lcd.canvas.fillTile("tile3"         , 0, 0, ts.s._cols, 1); 
 			_APP.m_lcd.canvas.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
 			_APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
 			_APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
 	
+			// Bottom line.
 			_APP.m_lcd.canvas.fillTile("tile1"         , 0, ts.s._rows-2, ts.s._cols, 1); 
 
 			let y=3;
-			for(let k in _APP.timeIt_timings){ 
-				_APP.m_lcd.canvas.fillTile("tile2"     , 0, y, ts.s._cols, 1); 
-				let v = _APP.timeIt_timings[k].t.toFixed(1).padStart(7, " ");
-				_APP.m_lcd.canvas.print(`${k.padEnd(14, " ")}:${v}` , 0 , y); 
-				y++;
+			for(let k in _APP.timeIt_timings_prev){ 
+				if(k.indexOf("S2:") == 0){
+					_APP.m_lcd.canvas.fillTile("tile2"     , 0, y, ts.s._cols, 1); 
+					let v = _APP.timeIt_timings_prev[k].t.toFixed(1).padStart(7, " ");
+					_APP.m_lcd.canvas.print(`${k.padEnd(14, " ")}:${v}` , 0 , y); 
+					y++;
+				}
 			}
 
 			let timeTest = function(){
-				_APP.timeIt("TIME", "s");
 				_APP.m_lcd.timeUpdate.func(0,ts.s._rows-1);
-				_APP.timeIt("TIME", "e");
 			};
 			let batteryTest = async function(){
-				_APP.timeIt("BATTERY", "s");
 				await _APP.m_battery.func(ts.s._cols-8,ts.s._rows-1);
-				_APP.timeIt("BATTERY", "e");
 			};
 
-			timeTest();
-			batteryTest();
+			_APP.timeIt("S2:TIMETEST"   , "s"); timeTest();    _APP.timeIt("S2:TIMETEST"   , "e");
+			_APP.timeIt("S2:BATTEST"    , "s"); batteryTest(); _APP.timeIt("S2:BATTEST"    , "e");
 
 			resolve();
 			return;
 	
-			// UPDATE THE TIME DISPLAY?
-			{
-				_APP.timeIt("time", "s");
-				await _APP.m_lcd.timeUpdate.func();
-				_APP.timeIt("time", "e");
-			}
-	
-			// UPDATE THE BATTERY DISPLAY.
-			{
-				_APP.timeIt("batt", "s");
-				_APP.m_battery.func();
-				_APP.timeIt("batt", "e");
-			}
-	
-			// UPDATE BUTTON STATES.
-			{
-				_APP.timeIt("buttons", "s");
-					
-				// Clear the previous display region.
-				_APP.m_lcd.canvas.fillTile("tile2"  , 0, 20, 24, 4); 
-	
-				// Display the values.
-				let y=22;
-				let line1a = `HD:${_APP.m_gpio.states_held   .toString(2).padStart(8, "0")}`;
-				let line1b = `PV:${_APP.m_gpio.states_prev    .toString(2).padStart(8, "0")}`;
-				let line2a = `PR:${_APP.m_gpio.states_pressed .toString(2).padStart(8, "0")}`;
-				let line2b = `RE:${_APP.m_gpio.states_released.toString(2).padStart(8, "0")}`;
-				_APP.m_lcd.canvas.print(`${line1a}  ${line1b}` , 0 , y++);
-				_APP.m_lcd.canvas.print(`${line2a}  ${line2b}` , 0 , y++);
-	
-				// _APP.m_lcd.canvas.print(`HELD: ${_APP.m_gpio.states_held    .toString(2).padStart(8, "0")}`  , 0 , y++);
-				// _APP.m_lcd.canvas.print(`PREV: ${_APP.m_gpio.states_prev    .toString(2).padStart(8, "0")}`  , 0 , y++);
-				// _APP.m_lcd.canvas.print(`PRES: ${_APP.m_gpio.states_pressed .toString(2).padStart(8, "0")}`  , 0 , y++);
-				// _APP.m_lcd.canvas.print(`RELE: ${_APP.m_gpio.states_released.toString(2).padStart(8, "0")}`  , 0 , y++);
-	
-				_APP.m_lcd.canvas.setTile("tile_red"  , 11, 24); 
-				_APP.m_lcd.canvas.setTile("tile_red"  , 12, 24); 
-				_APP.m_lcd.canvas.setTile("tile_green", 13, 24); 
-				_APP.m_lcd.canvas.setTile("tile_green", 14, 24); 
-				_APP.m_lcd.canvas.setTile("tile_blue" , 15, 24); 
-				_APP.m_lcd.canvas.setTile("tile_blue" , 16, 24); 
-				
-				_APP.timeIt("buttons", "e");
-				
+			{	
 				_APP.timeIt("cursor", "s");
 				if(thisScreen.cursor){
 					_APP.m_lcd.canvas.setTile("cursor2", 11, 24); 

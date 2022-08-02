@@ -300,58 +300,58 @@ _MOD.screens = {
 					
 					x=0; y++;
 					_APP.m_lcd.canvas.print("FONT TEST:"       , x, y++); x++;
-					_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./", x, y++);
-					_APP.m_lcd.canvas.print("0123456789:;<=>?" , x, y++);
-					_APP.m_lcd.canvas.print("@ABCDEFGHIJKLMNO" , x, y++);
-					_APP.m_lcd.canvas.print("PQRSTUVWXYZ[\\]^_", x, y++);
-					
-					x=0; y++;
-					_APP.m_lcd.canvas.print("MISSING TILES TEST:", x, y++);
-					_APP.m_lcd.canvas.print("{}|[]\\"            , x, y++);
-					// _APP.m_lcd.canvas.print("NO WRAP: HAS 23 CHARS..", 0, 16);
-					// _APP.m_lcd.canvas.print("NO WRAP: HAS 30 CHARS........*", 0, 17);
-					// _APP.m_lcd.canvas.print("CUTOFF : HAS 31 CHARS........*-", 0, 18);
+					_APP.m_lcd.canvas.print(" !\"#$%&'()*+,-./0123456789:", x, y++);
+					_APP.m_lcd.canvas.print(";<=>?@ABCDEFGHIJKLMNOPQRSTU" , x, y++);
+					_APP.m_lcd.canvas.print("VWXYZ[\\]^_{}|[]", x, y++);
 				};
 				let fpsTest = function(){
 					let len = thisScreen.lines2.length;
 					let longest = 0;
 					thisScreen.lines2.forEach(function(d){ if(d.length > longest){longest = d.length;} });
 					thisScreen.lines2=[];
-					let y=18;
+					let y=14;
 					// _APP.m_lcd.canvas.fillTile("tile3"  , 0, y, longest, len);
 					if(thisScreen.flag2){ _APP.m_lcd.canvas.fillTile("tile2"  , 0, y, longest, len); }
 					else{                 _APP.m_lcd.canvas.fillTile("tile4"  , 0, y, longest, len); }
 					thisScreen.flag2 = !thisScreen.flag2;
 	
-					try{ thisScreen.lines2.push(`${"*".repeat(22)}`); } catch(e){}
-					try{ thisScreen.lines2.push(`SET FPS   : ${_APP.stats.fps     .toFixed(1).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`AVG FPS   : ${_APP.fps.average   .toFixed(1).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`INTERVAL  : ${_APP.stats.interval.toFixed(2).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`DELTA     : ${_APP.stats.delta   .toFixed(2).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`now       : ${_APP.stats.now     .toFixed(2).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`_then     : ${_APP.stats._then   .toFixed(2).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`SAMPLE POS: ${(_APP.fps._index_  .toFixed(0)+"/"+_APP.fps.sampleSize.toFixed(0)).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`${"*".repeat(22)}`); } catch(e){}
+					try{ thisScreen.lines2.push(`${"*".repeat(24)}`); } catch(e){}
+					try{ thisScreen.lines2.push(`FPS       : ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(12, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`MS/FRAME  : ${_APP.stats.interval.toFixed(2).padStart(12, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`DELTA     : ${_APP.stats.delta   .toFixed(2).padStart(12, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`${"*".repeat(24)}`); } catch(e){}
 	
 					for(let v of thisScreen.lines2){ _APP.m_lcd.canvas.print(v , 0 , y++); }
 				};
 				let timeTest = function(){
-					_APP.timeIt("TIME", "s");
 					_APP.m_lcd.timeUpdate.func(0,ts.s._rows-2);
-					_APP.timeIt("TIME", "e");
 				};
 				let batteryTest = async function(){
-					_APP.timeIt("BATTERY", "s");
 					await _APP.m_battery.func(ts.s._cols-9,ts.s._rows-2);
-					_APP.timeIt("BATTERY", "e");
+				};
+				let buttonsTest = async function(){
+					let lines = [
+						` HELD: ${_APP.m_gpio.states_held   .toString(2).padStart(8, "0")}`,
+						` PREV: ${_APP.m_gpio.states_prev    .toString(2).padStart(8, "0")}`,
+						` PRES: ${_APP.m_gpio.states_pressed .toString(2).padStart(8, "0")}`,
+						` RELE: ${_APP.m_gpio.states_released.toString(2).padStart(8, "0")}`
+					];
+					let y=20;
+					_APP.m_lcd.canvas.print("BUTTONS TEST:"       , 0, y++); 
+					for(v of lines){
+						_APP.m_lcd.canvas.fillTile("tile2"     , 0, y+0, 14, 1); 
+						_APP.m_lcd.canvas.print(`${v}` , 0 , y+0);
+						y+=1;
+					}
 				};
 				
-				screenDimensionsTest();
-				drawTest();
-				fpsTest();
-				timeTest();
-				batteryTest();
-				
+				_APP.timeIt("S3:SCREENDIMS" , "s"); screenDimensionsTest(); _APP.timeIt("S3:SCREENDIMS" , "e");
+				_APP.timeIt("S3:DRAWTEST"   , "s"); drawTest();             _APP.timeIt("S3:DRAWTEST"   , "e");
+				_APP.timeIt("S3:FPSTEST"    , "s"); fpsTest();              _APP.timeIt("S3:FPSTEST"    , "e");
+				_APP.timeIt("S3:TIMETEST"   , "s"); timeTest();             _APP.timeIt("S3:TIMETEST"   , "e");
+				_APP.timeIt("S3:BATTEST"    , "s"); batteryTest();          _APP.timeIt("S3:BATTEST"    , "e");
+				_APP.timeIt("S3:BUTTONSTEST", "s"); buttonsTest();          _APP.timeIt("S3:BUTTONSTEST", "e");
+
 				resolve();
 			});
 		}

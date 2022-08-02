@@ -3,8 +3,8 @@ const fs   = require('fs');
 const path = require('path'); 
 
 // WWS server start
-const WSServer = require('ws').Server;
-
+const WSServer = require('ws').WebSocketServer;
+// console.log(WSServer.);
 // Modules saved within THIS module.
 const m_config      = require('./m_config.js');
 const m_gpio        = require('./m_gpio.js');
@@ -147,22 +147,22 @@ let _APP = {
 
 	// DEBUG: Used to measure how long something takes.
 	timeIt_timings : { },
-	timeIt: function(key, type, toConsole=false){
+	timeIt_timings_prev : { },
+	timeIt: function(key, type){
 		if(type == "s"){
-			_APP.timeIt_timings[key] = {
-				// performance.now
-				s: performance.now(),
-				e: 0,
-				t: 0,
-			};
-			if(toConsole){ console.log(key, "START"); }
+			_APP.timeIt_timings[key] = { s: performance.now(), e: 0, t: 0, };
 		}
 		else if(type == "e"){
 			if(_APP.timeIt_timings[key]){
-				// performance.now
 				_APP.timeIt_timings[key].e = performance.now();
 				_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
-				if(toConsole){ console.log(key, "END", _APP.timeIt_timings[key].t); }
+
+				// Add to prev
+				_APP.timeIt_timings_prev[key] = {
+					s: _APP.timeIt_timings[key].s,
+					e: _APP.timeIt_timings[key].e,
+					t: _APP.timeIt_timings[key].t,
+				}
 			}
 		}
 		else if(type == "t"){
@@ -294,7 +294,7 @@ let _APP = {
 			_APP.timeIt("FULLLOOP", "e");
 	
 			if(_APP.currentScreen == "drawingTest"){
-				console.log(`FULLLOOP: ${_APP.currentScreen}: ${_APP.timeIt("FULLLOOP", "t").toFixed(2).padStart(10, " ")}`);
+				// console.log(`FULLLOOP: ${_APP.currentScreen}: ${_APP.timeIt("FULLLOOP", "t").toFixed(2).padStart(10, " ")}`);
 			}
 
 			_APP.schedule_appLoop();

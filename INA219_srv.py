@@ -202,7 +202,7 @@ class INA219:
             value -= 65535
         return value * self._power_lsb
 
-def returnJSON():
+def getBatteryData():
     # Generate the data values. 
     ina219        = INA219(addr=0x43)                  # Create an INA219 instance.
     bus_voltage   = ina219.getBusVoltage_V()           # Voltage on V- (load side)
@@ -230,7 +230,7 @@ if __name__=='__main__':
     use_websockets_server = 0
 
     # Check for valid command-line args.
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         if sys.argv[1] == "ws":
             use_websockets_server = 1
         elif sys.argv[1] == "http":
@@ -238,36 +238,38 @@ if __name__=='__main__':
         else:
             print(f"Invalid argument: {sys.argv[1]}")
             print(f"Valid arguments are: 'ws', 'http'")
+        PORT=int(sys.argv[2])
     else: 
-        print("not enough args.")
+        print("ERROR: Need to specify TYPE ['ws', 'http'] and PORT number.")
+        sys.exit(0)
+
+    # print(f"argv: {str(sys.argv)}")
 
     if use_web_server == 1:
         HOST_NAME="0.0.0.0"   # Listen on all interfaces.
         # HOST_NAME="127.0.0.1" # Listen only on the loopback interface.
-        PORT=7778
+
         class web_server(SimpleHTTPRequestHandler):
             """Python HTTP Server that handles GET and POST requests"""
             def do_GET(self):
-                if self.path == '/':
-                    self.send_response(200, "OK")
-                    self.send_header('Content-Type', 'text/plain')
-                    self.end_headers()
-                    self.wfile.write(bytes("HELLO! NOTHING HERE.", 'utf-8'))
-                elif self.path == '/getData':
+                if self.path == '/getBatteryData':
                     self.send_response(200, "OK")
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(bytes(json.dumps(returnJSON(), ensure_ascii=False), 'utf-8'))
+                    self.wfile.write(bytes(json.dumps(getBatteryData(), ensure_ascii=False), 'utf-8'))
+
                 elif self.path == '/ping':
                     self.send_response(200, "OK")
                     self.send_header('Content-Type', 'text/plain')
                     self.end_headers()
                     self.wfile.write(bytes("PONG", 'utf-8'))
+
                 else:
                     self.send_response(200, "OK")
                     self.send_header('Content-Type', 'text/plain')
                     self.end_headers()
                     self.wfile.write(bytes("UNKNOWN REQUEST", 'utf-8'))
+
         print(f"INA219_srv: \"web_server\" started http://{HOST_NAME}:{PORT}")
         server = HTTPServer((HOST_NAME, PORT), web_server)
         try:
@@ -279,17 +281,37 @@ if __name__=='__main__':
     elif use_websockets_server == 1:
         HOST_NAME="0.0.0.0"   # Listen on all interfaces.
         # HOST_NAME="127.0.0.1" # Listen only on the loopback interface.
-        PORT=7778
+
         class websockets_server(WebSocket):
             def handle(self):
-                # echo message back to client
-                self.send_message(self.data)
+                if self.data == "getBatteryData":
+                    jsonObj = {}
+                    jsonObj['mode'] = "getBatteryData"
+                    jsonObj['data'] = getBatteryData()
+                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+
+                elif self.data == "ping":
+                    jsonObj = {}
+                    jsonObj['mode'] = "ping"
+                    jsonObj['data'] = "pong"
+                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+
+                else:
+                    jsonObj = {}
+                    jsonObj['mode'] = "UNKNOWN_REQUEST"
+                    jsonObj['data'] = "UNKNOWN REQUEST"
+                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
             def connected(self):
-                print(self.address, 'connected')
+                print(self.address, 'CONNECTED')
+                jsonObj = {}
+                jsonObj['mode'] = "CONNECT"
+                jsonObj['data'] = "CONNECTED"
+                self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
             def handle_close(self):
-                print(self.address, 'closed')
+                print(self.address, 'CLOSED')
+
         print(f"INA219_srv: \"websockets_server\" started http://{HOST_NAME}:{PORT}")
         server = WebSocketServer(HOST_NAME, PORT, websockets_server)
         server.serve_forever()
