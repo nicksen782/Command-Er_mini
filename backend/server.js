@@ -48,7 +48,7 @@ const _APP   = require('./modules/M_main.js')(app, express, server);
 		// REST routes.
 		console.log(`ROUTES: (REST)`);
 		let maxes = { "filename" : 0, "method" : 0, "path" : 0 };
-		for(filename in routes){ if(maxes.filename < filename.length){ maxes.filename = filename.length; } }
+		for(filename in routes){ { if(maxes.filename < filename.length){ maxes.filename = filename.length; } } }
 		for(filename in routes){ 
 			for(rec of routes[filename]){
 				if(rec.method != "ws"){
@@ -74,7 +74,7 @@ const _APP   = require('./modules/M_main.js')(app, express, server);
 		// WS routes.
 		console.log(`ROUTES: (WEBSOCKET)`);
 		maxes = { "filename" : 0, "method" : 0, "path" : 0, "args": 0 };
-		for(filename in routes){ if(maxes.filename < filename.length){ maxes.filename = filename.length; } }
+		for(filename in routes){ { if(maxes.filename < filename.length){ maxes.filename = filename.length; } } }
 		for(filename in routes){ 
 			for(rec of routes[filename]){
 				if(rec.method == "ws"){
@@ -122,13 +122,47 @@ const _APP   = require('./modules/M_main.js')(app, express, server);
 
 		printRoutes(); 
 		
-		console.log(`CONFIG:`);
-		console.log(_APP.m_config.config);
+		// console.log(`CONFIG:`);
+		// console.log(_APP.m_config.config);
+		
+		console.log(`MODULE LOAD TIMES:`);
+		let keys = [
+			"M_main",
+			"m_config",
+			"WSServer",
+			"m_gpio",
+			"m_battery",
+			"m_lcd",
+			"m_screenLogic",
+			"m_s_timing",
+		];
+		let maxKeyLen = 0;
+		let totalTime = 0;
+		for(let key of keys){ if(key.length > maxKeyLen){ maxKeyLen = key.length; } }
+		for(let key of keys){ 
+			console.log( `  ${key.padEnd(maxKeyLen, " ")} : ${_APP.timeIt(key, "t").toFixed(3).padStart(8, " ")}` );
+			totalTime += _APP.timeIt(key, "t");
+		}
+		console.log("  "+"-".repeat(24));
+		console.log(`  ${totalTime.toFixed(3).padEnd(maxKeyLen, " ")}: ${"TOTAL".padStart(8, " ")}`);
 
+		
 		console.log("");
 		console.log("*".repeat(45));
 		console.log("READY");
 		console.log("");
+
+		// Init the canvas
+		_APP.fps.init();
+		_APP.stats.setFps( _APP.m_config.config.lcd.fps );
+		await _APP.m_lcd.canvas.init();
+
+		// SET AN LCD DRAW TO BE NEEDED.
+		_APP.m_lcd.canvas.lcdUpdateNeeded = true;
+		await _APP.m_lcd.canvas.updateFrameBuffer();
+		
+		// Start the _APP.appLoop.
+		_APP.appLoop( performance.now() );
 	});
 
 })();

@@ -12,7 +12,6 @@ body {
 	display: inline-block;
 	vertical-align: top;
 }
-
 .bg1{
 	background-color:gray;
 }
@@ -25,16 +24,12 @@ body {
 	min-width: 32px;
 }
 .button2 {
-	/* min-width: 32px; */
-	/* width: 200px; */
 	width: 100%;
 }
 .button3 {
 	width: 300px;
-	/* width: 100%; */
 	text-align: left;
-	font-family:
-	monospace;
+	font-family: monospace;
 }
 .button1:hover,
 .button2:hover,
@@ -47,27 +42,7 @@ body {
 	background-color:yellow;
 }
 
-#container1{
-	/* width: 600px; */
-	border: 5px solid navajowhite;
-}
-
-#liveControls{
-	/* width: 100px; */
-	/* height: 100%; */
-}
-
-#debugControls {
-	border: 5px solid navajowhite;
-}
-
-#debugOutput {
-	border: 5px solid navajowhite;
-}
-#canvasDisplay {
-    /* width: 500px; */
-}
-
+/* DIV CONTAINERS */
 #container1,
 #liveControls,
 #canvasDisplay,
@@ -78,7 +53,28 @@ body {
 	padding: 2px;
 	background-color: black;
 	border-radius: 5px;
-	/* color:antiquewhite; */
+}
+#container1{
+	border: 5px solid navajowhite;
+}
+#liveControls{
+}
+#debugControls {
+	border: 5px solid navajowhite;
+}
+#debugOutput {
+	border: 5px solid navajowhite;
+	width: 300px;
+	min-height: 275px;
+}
+#canvasDisplay {
+	width: 360px;
+}
+#debugOutput_output{
+	width : 100%;
+	height: 220px;
+	font-family:monospace;
+	white-space:pre;
 }
 .disconnected{
 	border-color:red !important;
@@ -86,13 +82,13 @@ body {
 
 /* CANVAS */
 #CANVAS1 {
-	border: 1px solid antiquewhite;
 	background-color: black;
+	width: 100%;
+	height: 100%;
 }
 
-
+/* TABLES */
 .tableType1 {}
-
 .tableType1 {
 	margin-bottom: 5px;
 	border: 2px solid black;
@@ -102,52 +98,18 @@ body {
 	background-color: darkkhaki;
 	width:100%;
 }
-
 .tableType1 caption {
 	background-color: #c1c1c1;
 	font-weight: bold;
 	text-decoration: underline;
 	border: 2px solid black;
 	border-bottom: 1px solid black;
-	/* border-top: 1px solid black; */
 	border-radius: 5px 5px 0px 0px;
 	padding: 4px
 }
-
 .tableType1 th,
 .tableType1 td {
-	/* border: 1px solid black; */
 	padding: 4px;
 }
 
 .tableType1 th {}
-
-
-
-
-#debugOutput{
-	width: 300px;
-	min-height: 275px;
-}
-#debugOutput_output{
-	width : 100%;
-	height: 220px;
-	font-family:monospace;
-	white-space:pre;
-}
-/* 
-#div_container1,
-#div_container2 {
-	border: 5px solid navajowhite;
-	display: inline-block;
-	vertical-align: top;
-	padding: 5px;
-	background-color: black;
-	border-radius: 10px;
-}
-#div_container1.disconnected,
-#div_container2.disconnected{
-	border-color:red;
-}
-
- */

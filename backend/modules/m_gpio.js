@@ -113,12 +113,8 @@ let _MOD = {
 	readAll: function(){
 		for(k in _MOD.inputs){
 			let value = _MOD.inputs[k].readSync() ? 1 : 0;
-			if(value){
-				_MOD.states[k] = 1;
-			}
-			else{
-				_MOD.states[k] = 0;
-			}
+			if(value){ _MOD.states[k] = 1; }
+			else{ _MOD.states[k] = 0; }
 		}
 		
 		// Get the prev states.
@@ -144,20 +140,52 @@ let _MOD = {
 	},
 
 	buttonActions: function(){
+		// TODO: Turn the calls into for loops.
+
 		// _MOD.states_prev;
 		// _MOD.states_held;
 		// _MOD.states_pressed;
 		// _MOD.states_released;
 		
-		// Send pressed buttons.
-		if( _MOD.states_pressed & (1 << 7) ) {_MOD.buttonHandler("KEY_UP_PIN"   , true); } // KEY_UP_PIN
-		if( _MOD.states_pressed & (1 << 6) ) {_MOD.buttonHandler("KEY_DOWN_PIN" , true); } // KEY_DOWN_PIN
-		if( _MOD.states_pressed & (1 << 5) ) {_MOD.buttonHandler("KEY_LEFT_PIN" , true); } // KEY_LEFT_PIN
-		if( _MOD.states_pressed & (1 << 4) ) {_MOD.buttonHandler("KEY_RIGHT_PIN", true); } // KEY_RIGHT_PIN
-		if( _MOD.states_pressed & (1 << 3) ) {_MOD.buttonHandler("KEY_PRESS_PIN", true); } // KEY_PRESS_PIN
-		if( _MOD.states_pressed & (1 << 2) ) {_MOD.buttonHandler("KEY1_PIN"     , true); } // KEY1_PIN
-		if( _MOD.states_pressed & (1 << 1) ) {_MOD.buttonHandler("KEY2_PIN"     , true); } // KEY2_PIN
-		if( _MOD.states_pressed & (1 << 0) ) {_MOD.buttonHandler("KEY3_PIN"     , true); } // KEY3_PIN
+		// Send PRESSED buttons. (Fires once, no repeat.)
+		if( _MOD.states_pressed & (1 << 7) ) {_MOD.buttonHandler("KEY_UP_PIN"   , true); } 
+		if( _MOD.states_pressed & (1 << 6) ) {_MOD.buttonHandler("KEY_DOWN_PIN" , true); } 
+		if( _MOD.states_pressed & (1 << 5) ) {_MOD.buttonHandler("KEY_LEFT_PIN" , true); } 
+		if( _MOD.states_pressed & (1 << 4) ) {_MOD.buttonHandler("KEY_RIGHT_PIN", true); } 
+		if( _MOD.states_pressed & (1 << 3) ) {_MOD.buttonHandler("KEY_PRESS_PIN", true); } 
+		if( _MOD.states_pressed & (1 << 2) ) {_MOD.buttonHandler("KEY1_PIN"     , true); } 
+		if( _MOD.states_pressed & (1 << 1) ) {_MOD.buttonHandler("KEY2_PIN"     , true); } 
+		if( _MOD.states_pressed & (1 << 0) ) {_MOD.buttonHandler("KEY3_PIN"     , true); } 
+		
+		// Send HELD buttons. (Fires repeatedly.)
+		// if( _MOD.states_pressed & (1 << 7) ) {_MOD.buttonHandler("KEY_UP_PIN"   , true); } 
+		// if( _MOD.states_pressed & (1 << 6) ) {_MOD.buttonHandler("KEY_DOWN_PIN" , true); } 
+		// if( _MOD.states_pressed & (1 << 5) ) {_MOD.buttonHandler("KEY_LEFT_PIN" , true); } 
+		// if( _MOD.states_pressed & (1 << 4) ) {_MOD.buttonHandler("KEY_RIGHT_PIN", true); } 
+		// if( _MOD.states_pressed & (1 << 3) ) {_MOD.buttonHandler("KEY_PRESS_PIN", true); } 
+		// if( _MOD.states_pressed & (1 << 2) ) {_MOD.buttonHandler("KEY1_PIN"     , true); } 
+		// if( _MOD.states_pressed & (1 << 1) ) {_MOD.buttonHandler("KEY2_PIN"     , true); } 
+		// if( _MOD.states_pressed & (1 << 0) ) {_MOD.buttonHandler("KEY3_PIN"     , true); } 
+		
+		// Send PREV buttons. (Buttons that were held on the previous read.)
+		// if( _MOD.states_pressed & (1 << 7) ) {_MOD.buttonHandler("KEY_UP_PIN"   , true); } 
+		// if( _MOD.states_pressed & (1 << 6) ) {_MOD.buttonHandler("KEY_DOWN_PIN" , true); } 
+		// if( _MOD.states_pressed & (1 << 5) ) {_MOD.buttonHandler("KEY_LEFT_PIN" , true); } 
+		// if( _MOD.states_pressed & (1 << 4) ) {_MOD.buttonHandler("KEY_RIGHT_PIN", true); } 
+		// if( _MOD.states_pressed & (1 << 3) ) {_MOD.buttonHandler("KEY_PRESS_PIN", true); } 
+		// if( _MOD.states_pressed & (1 << 2) ) {_MOD.buttonHandler("KEY1_PIN"     , true); } 
+		// if( _MOD.states_pressed & (1 << 1) ) {_MOD.buttonHandler("KEY2_PIN"     , true); } 
+		// if( _MOD.states_pressed & (1 << 0) ) {_MOD.buttonHandler("KEY3_PIN"     , true); } 
+		
+		// Send RELEASED buttons. (Fires once, no repeat.)
+		// if( _MOD.states_pressed & (1 << 7) ) {_MOD.buttonHandler("KEY_UP_PIN"   , true); } 
+		// if( _MOD.states_pressed & (1 << 6) ) {_MOD.buttonHandler("KEY_DOWN_PIN" , true); } 
+		// if( _MOD.states_pressed & (1 << 5) ) {_MOD.buttonHandler("KEY_LEFT_PIN" , true); } 
+		// if( _MOD.states_pressed & (1 << 4) ) {_MOD.buttonHandler("KEY_RIGHT_PIN", true); } 
+		// if( _MOD.states_pressed & (1 << 3) ) {_MOD.buttonHandler("KEY_PRESS_PIN", true); } 
+		// if( _MOD.states_pressed & (1 << 2) ) {_MOD.buttonHandler("KEY1_PIN"     , true); } 
+		// if( _MOD.states_pressed & (1 << 1) ) {_MOD.buttonHandler("KEY2_PIN"     , true); } 
+		// if( _MOD.states_pressed & (1 << 0) ) {_MOD.buttonHandler("KEY3_PIN"     , true); } 
 	},
 
 	isPrev : function(){},

@@ -7,6 +7,7 @@ let _APP = null;
 let _MOD = {
 	config_filename: "backend/config.json",
 	config: {},
+	configLoaded: false,
 
 	// Init this module.
 	module_init: async function(parent){
@@ -15,7 +16,10 @@ let _MOD = {
 			_APP = parent;
 	
 			// Get and store the config file. 
-			await _MOD.get_config();
+			if(!_MOD.configLoaded){
+				await _MOD.get_config();
+				_MOD.configLoaded = true;
+			}
 
 			// Add routes.
 			_MOD.addRoutes(_APP.app, _APP.express);
@@ -26,7 +30,6 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
-
 		//
 		_APP.addToRouteList({ path: "/get_config", method: "post", args: [], file: __filename, desc: "get_config" });
 		app.post('/get_config'    ,express.json(), async (req, res) => {

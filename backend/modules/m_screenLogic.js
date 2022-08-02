@@ -122,6 +122,15 @@ _MOD.screens = {
 				thisScreen.tstamps[k].last = stamp;
 				thisScreen.tstamps[k].run = false;
 			}
+
+			// Get the LCD config.
+			let c = _APP.m_config.config.lcd;
+			let ts = c.tilesets[c.activeTileset];
+
+			_APP.m_lcd.canvas.fillTile("tile3"         , 0, 0, ts.s._cols, 1); 
+			_APP.m_lcd.canvas.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+			_APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
+			_APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
 			
 			// Set the inited flag.
 			thisScreen.inited = true;
@@ -131,14 +140,14 @@ _MOD.screens = {
 				let thisScreen = _APP.m_screenLogic.screens["main"];
 				if(!thisScreen.inited){ thisScreen.init(); resolve(); return; }
 	
-				// Get the LCD config.
-				let c = _APP.m_config.config.lcd;
-				let ts = c.tilesets[c.activeTileset];
+				// // Get the LCD config.
+				// let c = _APP.m_config.config.lcd;
+				// let ts = c.tilesets[c.activeTileset];
 	
-				_APP.m_lcd.canvas.fillTile("tile3"         , 0, 0, ts.s._cols, 1); 
-				_APP.m_lcd.canvas.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
-				_APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
-				_APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
+				// _APP.m_lcd.canvas.fillTile("tile3"         , 0, 0, ts.s._cols, 1); 
+				// _APP.m_lcd.canvas.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+				// _APP.m_lcd.canvas.fillTile("tile1"         , 0, 1, ts.s._cols, 1); 
+				// _APP.m_lcd.canvas.fillTile("tile2"         , 0, 2, ts.s._cols, 1); 
 
 				resolve();
 			});
@@ -314,15 +323,15 @@ _MOD.screens = {
 					else{                 _APP.m_lcd.canvas.fillTile("tile4"  , 0, y, longest, len); }
 					thisScreen.flag2 = !thisScreen.flag2;
 	
-					try{ thisScreen.lines2.push(`value        : ${_APP.fps.value                    .toFixed(1).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`average      : ${_APP.fps.average                  .toFixed(1).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`fps          : ${_APP.fps.fps                      .toFixed(1).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`interval     : ${_APP.fps.interval                 .toFixed(3).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`delta        : ${_APP.fps.delta                    .toFixed(3).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`overBy    ** : ${_APP.fps.overBy                   .toFixed(3).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`next loop    : ${_APP.fps.ms_untilNextScheduledLoop.toFixed(3).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`sampleSize   : ${_APP.fps.sampleSize               .toFixed(0).padStart(10, " ")}`); } catch(e){}
-					try{ thisScreen.lines2.push(`_index_      : ${_APP.fps._index_                  .toFixed(0).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`${"*".repeat(22)}`); } catch(e){}
+					try{ thisScreen.lines2.push(`SET FPS   : ${_APP.stats.fps     .toFixed(1).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`AVG FPS   : ${_APP.fps.average   .toFixed(1).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`INTERVAL  : ${_APP.stats.interval.toFixed(2).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`DELTA     : ${_APP.stats.delta   .toFixed(2).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`now       : ${_APP.stats.now     .toFixed(2).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`_then     : ${_APP.stats._then   .toFixed(2).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`SAMPLE POS: ${(_APP.fps._index_  .toFixed(0)+"/"+_APP.fps.sampleSize.toFixed(0)).padStart(10, " ")}`); } catch(e){}
+					try{ thisScreen.lines2.push(`${"*".repeat(22)}`); } catch(e){}
 	
 					for(let v of thisScreen.lines2){ _APP.m_lcd.canvas.print(v , 0 , y++); }
 				};
