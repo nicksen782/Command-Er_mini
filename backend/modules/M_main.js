@@ -246,6 +246,14 @@ let _APP = {
 		},
 	},
 
+	schedule_appLoop: function(){
+		// setTimeout -- Gives a little "breathing room" for the CPU.
+		// setTimeout(function(){ _APP.appLoop(  performance.now() ); }, 10);
+
+		// setImmediate. Frees up whatever remains of the current event loop. (breathing room?)
+		setImmediate(function(){ _APP.appLoop(  performance.now() ); });
+	},
+
 	// timestamp should be performance.now().
 	appLoop : async function(timestamp){
 		// How long has it been since a full loop has been completed?
@@ -285,18 +293,15 @@ let _APP = {
 			
 			_APP.timeIt("FULLLOOP", "e");
 	
-			console.log(`FULLLOOP: ${_APP.currentScreen}: ${_APP.timeIt("FULLLOOP", "t").toFixed(2).padStart(10, " ")}`);
+			if(_APP.currentScreen == "drawingTest"){
+				console.log(`FULLLOOP: ${_APP.currentScreen}: ${_APP.timeIt("FULLLOOP", "t").toFixed(2).padStart(10, " ")}`);
+			}
 
-			setTimeout(function(){
-				_APP.appLoop(  performance.now() );
-			}, 10);
+			_APP.schedule_appLoop();
 		}
 		// NO
 		else{
-			// setTimeout -- Gives a little "breathing room" for the CPU.
-			setTimeout(function(){
-				_APP.appLoop( performance.now() );
-			}, 10);
+			_APP.schedule_appLoop();
 		}
 	},
 };

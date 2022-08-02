@@ -39,5 +39,12 @@
 				}
 			}
 		}
+	},
+	"python":{
+		"active": true,
+		"serverType_ALT1": "http",
+		"serverType_ALT2": "ws",
+		"serverType": "http",
+		"serverPort": 7778
 	}
 }

@@ -162,7 +162,8 @@ const _APP   = require('./modules/M_main.js')(app, express, server);
 		await _APP.m_lcd.canvas.updateFrameBuffer();
 		
 		// Start the _APP.appLoop.
-		_APP.appLoop( performance.now() );
+		_APP.schedule_appLoop();
+		// _APP.appLoop( performance.now() );
 	});
 
 })();

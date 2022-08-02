@@ -90,6 +90,14 @@ let timings_test = {
 	
 			_APP.m_lcd.canvas.fillTile("tile1"         , 0, ts.s._rows-2, ts.s._cols, 1); 
 
+			let y=3;
+			for(let k in _APP.timeIt_timings){ 
+				_APP.m_lcd.canvas.fillTile("tile2"     , 0, y, ts.s._cols, 1); 
+				let v = _APP.timeIt_timings[k].t.toFixed(1).padStart(7, " ");
+				_APP.m_lcd.canvas.print(`${k.padEnd(14, " ")}:${v}` , 0 , y); 
+				y++;
+			}
+
 			let timeTest = function(){
 				_APP.timeIt("TIME", "s");
 				_APP.m_lcd.timeUpdate.func(0,ts.s._rows-1);

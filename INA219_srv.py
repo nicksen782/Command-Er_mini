@@ -3,11 +3,18 @@ import smbus
 import time
 # INA219
 
-# WEB SERVER
-import json
+# SHARED
 import sys
+import json
+# SHARED
+
+# WEB SERVER
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 # WEB SERVER
+
+# WEBSOCKETS SERVER
+from simple_websocket_server import WebSocketServer, WebSocket
+# WEBSOCKETS SERVER
 
 # Config Register (R/W)
 _REG_CONFIG                 = 0x00
@@ -219,41 +226,73 @@ def returnJSON():
     return jsonObj
 
 if __name__=='__main__':
-    class PythonServer(SimpleHTTPRequestHandler):
-        """Python HTTP Server that handles GET and POST requests"""
-        def do_GET(self):
-            if self.path == '/':
-                self.send_response(200, "OK")
-                self.send_header('Content-Type', 'text/plain')
-                self.end_headers()
-                self.wfile.write(bytes("HELLO! NOTHING HERE.", 'utf-8'))
-            if self.path == '/getData':
-                self.send_response(200, "OK")
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(bytes(json.dumps(returnJSON(), ensure_ascii=False), 'utf-8'))
-            elif self.path == '/ping':
-                self.send_response(200, "OK")
-                self.send_header('Content-Type', 'text/plain')
-                self.end_headers()
-                self.wfile.write(bytes("PONG", 'utf-8'))
-            else:
-                self.send_response(200, "OK")
-                self.send_header('Content-Type', 'text/plain')
-                self.end_headers()
-                self.wfile.write(bytes("UNKNOWN REQUEST", 'utf-8'))
+    use_web_server = 0
+    use_websockets_server = 0
 
-    print("INA219_srv: Server started")
-    
-    # HOST_NAME="0.0.0.0"   # Listen on all interfaces.
-    HOST_NAME="127.0.0.1" # Listen only on the loopback interface.
+    # Check for valid command-line args.
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "ws":
+            use_websockets_server = 1
+        elif sys.argv[1] == "http":
+            use_web_server = 1
+        else:
+            print(f"Invalid argument: {sys.argv[1]}")
+            print(f"Valid arguments are: 'ws', 'http'")
+    else: 
+        print("not enough args.")
 
-    PORT=7778
-    server = HTTPServer((HOST_NAME, PORT), PythonServer)
-    # print(f"INA219_srv: Server started http://{HOST_NAME}:{PORT}")
-    try:
+    if use_web_server == 1:
+        HOST_NAME="0.0.0.0"   # Listen on all interfaces.
+        # HOST_NAME="127.0.0.1" # Listen only on the loopback interface.
+        PORT=7778
+        class web_server(SimpleHTTPRequestHandler):
+            """Python HTTP Server that handles GET and POST requests"""
+            def do_GET(self):
+                if self.path == '/':
+                    self.send_response(200, "OK")
+                    self.send_header('Content-Type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(bytes("HELLO! NOTHING HERE.", 'utf-8'))
+                elif self.path == '/getData':
+                    self.send_response(200, "OK")
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(bytes(json.dumps(returnJSON(), ensure_ascii=False), 'utf-8'))
+                elif self.path == '/ping':
+                    self.send_response(200, "OK")
+                    self.send_header('Content-Type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(bytes("PONG", 'utf-8'))
+                else:
+                    self.send_response(200, "OK")
+                    self.send_header('Content-Type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(bytes("UNKNOWN REQUEST", 'utf-8'))
+        print(f"INA219_srv: \"web_server\" started http://{HOST_NAME}:{PORT}")
+        server = HTTPServer((HOST_NAME, PORT), web_server)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            server.server_close()
+            print("Server stopped successfully")
+            sys.exit(0)
+    elif use_websockets_server == 1:
+        HOST_NAME="0.0.0.0"   # Listen on all interfaces.
+        # HOST_NAME="127.0.0.1" # Listen only on the loopback interface.
+        PORT=7778
+        class websockets_server(WebSocket):
+            def handle(self):
+                # echo message back to client
+                self.send_message(self.data)
+
+            def connected(self):
+                print(self.address, 'connected')
+
+            def handle_close(self):
+                print(self.address, 'closed')
+        print(f"INA219_srv: \"websockets_server\" started http://{HOST_NAME}:{PORT}")
+        server = WebSocketServer(HOST_NAME, PORT, websockets_server)
         server.serve_forever()
-    except KeyboardInterrupt:
-        server.server_close()
-        print("Server stopped successfully")
-        sys.exit(0)
+    else:
+        print("Invalid server selection.")
+

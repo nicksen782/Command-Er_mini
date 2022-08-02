@@ -635,6 +635,8 @@ let _MOD = {
 			});
 		},
 	},
+
+	// As WebSocket server.
 	WebSocket: {
 		// STATUS CODES
 		statusCodes: {
