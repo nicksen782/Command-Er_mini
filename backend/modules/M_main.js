@@ -47,6 +47,7 @@ let _APP = {
 			// _APP = parent;
 			
 			// Add routes.
+			_APP.consolelog("  addRoutes");
 			_APP.addRoutes(_APP.app, _APP.express);
 
 			resolve();
@@ -66,8 +67,13 @@ let _APP = {
 	// Add the _APP object to each required object.
 	module_inits: function(){
 		return new Promise(async function(resolve,reject){
+			_APP.consolelog("START: module_init: M_main :");        
 			_APP.timeIt("M_main", "s");   await _APP         .module_init(_APP); _APP.timeIt("M_main", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("M_main", "t").toFixed(3)}\n`);
+			
+			_APP.consolelog("START: module_init: m_config :");        
 			_APP.timeIt("m_config", "s"); await _APP.m_config.module_init(_APP); _APP.timeIt("m_config", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_config", "t").toFixed(3)}\n`);
 			
 			if(_APP.m_config.config.ws.active){
 				_APP.timeIt("WSServer", "s"); 
@@ -81,11 +87,30 @@ let _APP = {
 				_APP.timeIt("WSServer", "e");
 			}
 			
-			_APP.timeIt("m_gpio", "s");        await _APP.m_gpio       .module_init(_APP);_APP.timeIt("m_gpio", "e");
-			_APP.timeIt("m_battery", "s");     await _APP.m_battery    .module_init(_APP);_APP.timeIt("m_battery", "e");
-			_APP.timeIt("m_lcd", "s");         await _APP.m_lcd        .module_init(_APP);_APP.timeIt("m_lcd", "e");
-			_APP.timeIt("m_screenLogic", "s"); await _APP.m_screenLogic.module_init(_APP);_APP.timeIt("m_screenLogic", "e");
-			_APP.timeIt("m_s_timing", "s");    await _APP.m_s_timing   .module_init(_APP);_APP.timeIt("m_s_timing", "e");
+			_APP.consolelog("START: module_init: m_gpio :");        
+			_APP.timeIt("m_gpio", "s");        
+			await _APP.m_gpio       .module_init(_APP);_APP.timeIt("m_gpio", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_gpio", "t").toFixed(3)}\n`);
+
+			_APP.consolelog("START: module_init: m_battery :");     
+			_APP.timeIt("m_battery", "s");     
+			await _APP.m_battery    .module_init(_APP);_APP.timeIt("m_battery", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_battery", "t").toFixed(3)}\n`);
+
+			_APP.consolelog("START: module_init: m_lcd :");         
+			_APP.timeIt("m_lcd", "s");         
+			await _APP.m_lcd        .module_init(_APP);_APP.timeIt("m_lcd", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_lcd", "t").toFixed(3)}\n`);
+
+			_APP.consolelog("START: module_init: m_screenLogic :"); 
+			_APP.timeIt("m_screenLogic", "s"); 
+			await _APP.m_screenLogic.module_init(_APP);_APP.timeIt("m_screenLogic", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_screenLogic", "t").toFixed(3)}\n`);
+
+			_APP.consolelog("START: module_init: m_s_timing :");    
+			_APP.timeIt("m_s_timing", "s");    
+			await _APP.m_s_timing   .module_init(_APP);_APP.timeIt("m_s_timing", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_s_timing", "t").toFixed(3)}\n`);
 
 			resolve();
 		});
@@ -143,6 +168,13 @@ let _APP = {
 			args  : obj.args,
 			desc  : obj.desc,
 		});
+	},
+
+	consolelog: function(args){
+		if(!_APP.m_config.config.app.hide_APP_consolelog){
+			console.log("(LOG)", args);
+			// console.log("(LOG)", args);
+		}
 	},
 
 	// DEBUG: Used to measure how long something takes.
@@ -235,7 +267,7 @@ let _APP = {
 			newFPS = Math.floor(newFPS);
 
 			// If FPS is 60 (max) then there is no time between frames which will block anything that is outside of the main game loop such as debug.)
-			if(newFPS >= 60){ newFPS=59; }
+			// if(newFPS >= 60){ newFPS=59; }
 			
 			// Make sure at least 1 fps is set. 
 			if(newFPS <= 0){ newFPS=1; }
@@ -264,7 +296,7 @@ let _APP = {
 		let runLoop = _APP.stats.delta >= _APP.stats.interval ? true : false;
 	
 		// YES
-		if(runLoop){
+		if(runLoop && !_APP.m_lcd.canvas.updatingLCD){
 			_APP.timeIt("FULLLOOP", "s");
 			_APP.stats._then = _APP.stats.now - (_APP.stats.delta % _APP.stats.interval);
 			_APP.fps.tick();
@@ -286,16 +318,42 @@ let _APP = {
 			
 			// UPDATE DISPLAY(S)
 			_APP.timeIt("DISPLAYUPDATE", "s");
-			if(_APP.m_lcd.canvas.lcdUpdateNeeded && !_APP.m_lcd.canvas.updatingLCD){ 
-				await _APP.m_lcd.canvas.updateFrameBuffer();
+			if(_APP.m_lcd.canvas.lcdUpdateNeeded && !_APP.m_lcd.canvas.updatingLCD && !_APP.wait){ 
+				// _APP.timeIt("REDUCEVRAM", "s");
+				// _APP.m_lcd.canvas.draw.reduceVram();
+				// _APP.timeIt("REDUCEVRAM", "e");
+				
+				// _APP.timeIt("WS_DISPLAYUPDATE", "s");
+
+				// updateVram - Python.
+				// _APP.wait = true;
+				_APP.m_battery.wss.send(JSON.stringify({"mode":"updateVram", "data": _APP.m_lcd.canvas.draw._VRAM2}));
+				
+				// updateVram - Web Sockets - debug client.
+				// _APP.m_lcd.wss.send(JSON.stringify({"mode":"updateVram", "data": _APP.m_lcd.canvas.draw._VRAM2}));
+				// _APP.m_lcd.WebSocket.sendToAll(JSON.stringify({
+				// 	"mode":"GET_VRAM", msg:_APP.m_lcd.canvas.draw._VRAM2, curFrame: _APP.m_lcd.canvas.draw.curFrame
+				// }));
 			}
 			_APP.timeIt("DISPLAYUPDATE", "e");
 			
 			_APP.timeIt("FULLLOOP", "e");
 	
-			if(_APP.currentScreen == "drawingTest"){
-				// console.log(`FULLLOOP: ${_APP.currentScreen}: ${_APP.timeIt("FULLLOOP", "t").toFixed(2).padStart(10, " ")}`);
-			}
+			// if(_APP.currentScreen == "timings_test"){
+			// // if(_APP.currentScreen == "drawingTest"){
+			// 	// console.log(`FULLLOOP: ${_APP.currentScreen}: ${_APP.timeIt("FULLLOOP", "t").toFixed(2).padStart(10, " ")}`);
+			// 	// let y=3;
+			// 	for(let k in _APP.timeIt_timings_prev){ 
+			// 		if(k.indexOf("S2:") === 0 || k.indexOf("FULLLOOP") === 0 || k.indexOf("REDUCEVRAM") === 0){
+			// 			// _APP.m_lcd.canvas.fillTile("tile2"     , 0, y, ts.s._cols, 1); 
+			// 			let v = k.padEnd(14, " ") + _APP.timeIt_timings_prev[k].t.toFixed(1).padStart(7, " ");
+			// 			// _APP.m_lcd.canvas.print(`${k.padEnd(14, " ")}:${v}` , 0 , y); 
+			// 			// y++;
+			// 			console.log(v);
+			// 		}
+			// 	}
+			// 	console.log("");
+			// }
 
 			_APP.schedule_appLoop();
 		}

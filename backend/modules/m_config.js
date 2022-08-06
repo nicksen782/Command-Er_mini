@@ -17,11 +17,13 @@ let _MOD = {
 	
 			// Get and store the config file. 
 			if(!_MOD.configLoaded){
+				_APP.consolelog("  get_config");
 				await _MOD.get_config();
 				_MOD.configLoaded = true;
 			}
 
 			// Add routes.
+			_APP.consolelog("  addRoutes");
 			_MOD.addRoutes(_APP.app, _APP.express);
 
 			resolve();

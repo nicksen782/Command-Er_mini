@@ -1,10 +1,269 @@
 // GLOBALS
 
 let lcd = {
+	tileCache: [
+	],
+
+	// HARDCODED - TODO FIX
+	_tiles_ids:[],
+	_tiles_keys:{},
+	_byIndex:{},
+	_byCoord:[],
+
+	tileCoords:{},
+	populateTileCache: function(){
+		let tileWidth  = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s.tileWidth;
+		let tileHeight = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s.tileHeight;
+		let width  = lcd.lcdconfig.width;
+		let height = lcd.lcdconfig.height;
+		let canvas = document.createElement("canvas");
+		canvas.width = width;
+		canvas.height = height;
+		let ctx = canvas.getContext("2d");
+
+		let tilesetFile = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].file;
+		// let tilesetImage = await fetch(tilesetFile)
+		let tilesetImage = new Image();
+
+		tilesetImage.onload = function(){
+			tilesetImage.onload = null;
+			ctx.drawImage(tilesetImage, 0, 0);
+
+			// console.log(tilesetImage, tilesetImage.width, tilesetImage.height);
+			for(let key in lcd.tileCoords){
+				let canvas2 = document.createElement("canvas");
+				canvas2.classList.add("tileCanvas");
+				canvas2.width = tileWidth;
+				canvas2.height = tileHeight;
+				let ctx2 = canvas2.getContext("2d");
+				ctx2.drawImage(
+					// canvas, 
+					tilesetImage, 
+					lcd.tileCoords[key.toString()].L * tileWidth, 
+					lcd.tileCoords[key.toString()].T * tileHeight,
+					tileWidth,
+					tileHeight,
+					0,
+					0,
+					tileWidth,
+					tileHeight
+				);
+				lcd.tileCache.push(canvas2);
+			}
+		};
+
+		tilesetImage.src = tilesetFile;
+	},
+	createVramTable : function(){
+		// lcd.lcdconfig
+		let _cols      = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s._cols;
+		let _rows      = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s._rows;
+		let tileWidth  = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s.tileWidth;
+		let tileHeight = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s.tileHeight;
+
+		let table = document.createElement("table");
+		table.id = "vramtable";
+		let thead = document.createElement("thead");
+		let tbody = document.createElement("tbody");
+		let caption = document.createElement("caption");
+		caption.innerText = "VRAM VIEWER";
+		
+		let span = document.createElement("span");
+		span.id="fps2";
+		span.innerText=" (FPS: 0)";
+
+		let span2 = document.createElement("span");
+		span2.id="fps2_curFrame";
+		span2.innerText="";
+
+		caption.append(span,span2);
+
+		table.append(caption, thead, tbody);
+		for(let y=0; y<_rows; y+=1){
+			let tr = tbody.insertRow(-1);
+			for(let x=0; x<_cols; x+=1){
+				let td = tr.insertCell(-1);
+				td.classList.add("vram_smallfont")
+				td.setAttribute("y", y);
+				td.setAttribute("x", x);
+				td.setAttribute("coord", `${y}_${x}`);
+				td.setAttribute("title", `coord:${y}_${x}, y:${y}, x:${x}`);
+				for(let v=0; v<3; v+=1){
+					let canvas2 = document.createElement("canvas");
+					canvas2.classList.add("tileCanvas");
+					canvas2.width = tileWidth;
+					canvas2.height = tileHeight;
+					td.append(canvas2)
+				}
+			}
+		}
+		let debugOutput_VRAM = document.getElementById("debugOutput_VRAM");
+		debugOutput_VRAM.innerHTML = "";
+		debugOutput_VRAM.append(table);
+
+	},
+	populateVramTable: function(vram, curFrame){
+		if(lcd.currentlyDrawing2){console.log("skip");return;}
+		lcd.currentlyDrawing2 = true;
+		let _cols      = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s._cols;
+		let _rows      = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s._rows;
+		let tileWidth  = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s.tileWidth;
+		let tileHeight = lcd.lcdconfig.tilesets[lcd.lcdconfig.activeTileset].s.tileHeight;
+		
+		lcd.fps2.tick();
+
+		for(let index=0; index<vram.length; index+=3){
+			let x = lcd._byIndex[index][0];
+			let y = lcd._byIndex[index][1];
+			// console.log(index, lcd._byIndex[index]);
+
+			let td = document.querySelector(`[coord="${y}_${x}"]`);
+			// td.innerHTML = "";
+
+			let canvases = td.querySelectorAll("canvas");
+			// console.log(canvases);
+			for(let v=0; v<3; v+=1){
+				let canvas = canvases[v];
+				let ctx = canvas.getContext("2d");
+
+				// Hide all but the top layer.
+				if(v!=2) {
+					canvas.style.display="none";
+					continue;
+				}
+
+				ctx.clearRect(0,0, canvas.width,canvas.height);
+				let tileId = vram[index+v];
+				try{
+					ctx.drawImage(lcd.tileCache[tileId], 0, 0);
+				}
+				catch(e){
+					// console.log(e);
+				}
+			}
+		}
+
+		lcd.fps2.updateDisplay(curFrame);
+		lcd.currentlyDrawing2 = false;
+	},
 	canvas: null,
 	ctx   : null,
 	ws:null,
+	currentlyDrawing: false,
+	currentlyDrawing2: false, // VRAM UPDATES
 	
+	// Calculates the average frames per second.
+	fps : {
+		// colxi: https://stackoverflow.com/a/55644176/2731377
+		sampleSize : 60,    
+		value   : 0, // Value and average are the same value.
+		average : 0, // Value and average are the same value.
+		_sample_ : [],
+		_index_ : 0,
+		_lastTick_: false,
+		tick : function(){
+			// if is first tick, just set tick timestamp and return
+			if( !this._lastTick_ ){
+				this._lastTick_ = performance.now();
+				return 0;
+			}
+			// calculate necessary values to obtain current tick FPS
+			let now = performance.now();
+			let delta = (now - this._lastTick_)/1000;
+			let fps = 1/delta;
+			// add to fps samples, current tick fps value 
+			this._sample_[ this._index_ ] = Math.round(fps);
+			
+			// iterate samples to obtain the average
+			let average = 0;
+			for(i=0; i<this._sample_.length; i++) average += this._sample_[ i ];
+			average = Math.round( average / this._sample_.length);
+	
+			// set new FPS
+			this.value = average;
+			this.average = average;
+
+			// store current timestamp
+			this._lastTick_ = now;
+
+			// increase sample index counter, and reset it
+			// to 0 if exceded maximum sampleSize limit
+			this._index_++;
+			if( this._index_ === this.sampleSize) this._index_ = 0;
+			
+			return this.value;
+		},
+		init: function(){
+			// Set the values. 
+			this._sample_   = []   ;
+			this._index_    = 0    ;
+			this._lastTick_ = false;
+		},
+		clearDisplay: function(){
+			document.getElementById("fps").innerText = `(FPS: 0)`;
+		},
+		updateDisplay: function(){
+			document.getElementById("fps").innerText = `(FPS: ${lcd.fps.average})`;
+		},
+	},	
+	
+	// Calculates the average frames per second.
+	fps2 : {
+		// colxi: https://stackoverflow.com/a/55644176/2731377
+		sampleSize : 60,    
+		value   : 0, // Value and average are the same value.
+		average : 0, // Value and average are the same value.
+		_sample_ : [],
+		_index_ : 0,
+		_lastTick_: false,
+		tick : function(){
+			// if is first tick, just set tick timestamp and return
+			if( !this._lastTick_ ){
+				this._lastTick_ = performance.now();
+				return 0;
+			}
+			// calculate necessary values to obtain current tick FPS
+			let now = performance.now();
+			let delta = (now - this._lastTick_)/1000;
+			let fps = 1/delta;
+			// add to fps samples, current tick fps value 
+			this._sample_[ this._index_ ] = Math.round(fps);
+			
+			// iterate samples to obtain the average
+			let average = 0;
+			for(i=0; i<this._sample_.length; i++) average += this._sample_[ i ];
+			average = Math.round( average / this._sample_.length);
+	
+			// set new FPS
+			this.value = average;
+			this.average = average;
+
+			// store current timestamp
+			this._lastTick_ = now;
+
+			// increase sample index counter, and reset it
+			// to 0 if exceded maximum sampleSize limit
+			this._index_++;
+			if( this._index_ === this.sampleSize) this._index_ = 0;
+			
+			return this.value;
+		},
+		init: function(){
+			// Set the values. 
+			this._sample_   = []   ;
+			this._index_    = 0    ;
+			this._lastTick_ = false;
+		},
+		clearDisplay: function(){
+			document.getElementById("fps2").innerText = ` (FPS: 0)`;
+			document.getElementById("fps2_curFrame").innerText = ``;
+		},
+		updateDisplay: function(curFrame){
+			document.getElementById("fps2").innerText = ` (FPS: ${lcd.fps2.average})`;
+			document.getElementById("fps2_curFrame").innerText = ` (${curFrame}) `;
+		},
+	},	
+
 	// WEBSOCKET OBJECT.
 	WebSocket: {
 		uuid: null,
@@ -54,6 +313,7 @@ let lcd = {
 
 		// RUNS ON WEBSOCKET CLOSE.
 		onclose   : async function(e){ 
+			lcd.fps.clearDisplay();
 			// console.log(`onclose: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
 			// lcd.ws.close();
 			document.getElementById("container1").classList.add("disconnected");
@@ -72,6 +332,7 @@ let lcd = {
 
 		// RUNS ON WEBSOCKET ERROR.
 		onerror  : async function(e){ 
+			lcd.fps.clearDisplay();
 			// console.log(`onerror: statusCode: ${e.code}: ${lcd.WebSocket.statusCodes[e.code]}, readyState: (${e.currentTarget.readyState}) ${lcd.WebSocket.readyStates[e.currentTarget.readyState]}`); 
 			// lcd.ws.close();
 			document.getElementById("container1").classList.add("disconnected");
@@ -249,21 +510,27 @@ let lcd = {
 						break; 
 					}
 					case "SVG"                     : { 
+						if( ! lcd.WebSocket.tryToDraw() ) { return; }
+
 						console.log(`CLIENT: ${data.mode}:`, data.svg) ; 
 						var img = new Image();
 						img.onload = function(){
 							URL.revokeObjectURL(img.src);
 							lcd.ctx.drawImage(img, 0, 0);
+							lcd.WebSocket.itIsNotDrawing();
 						}
 						let blob = new Blob([data.svg], {type: 'image/svg+xml'});
 						img.src = URL.createObjectURL(blob);
 						break;
 					}
 					case "DATAURL"                 : { 
+						if( ! lcd.WebSocket.tryToDraw() ) { return; }
+						
 						// console.log(`CLIENT: ${data.mode}:`, data.dataurl) ; 
 						var img = new Image();
 						img.onload = function(){
 							lcd.ctx.drawImage(img, 0, 0);
+							lcd.WebSocket.itIsNotDrawing();
 						}
 						img.src = data.dataurl;
 						break;
@@ -276,6 +543,15 @@ let lcd = {
 						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
 						break; 
 					}
+					case "GET_VRAM": { 
+						// console.log(`CLIENT: ${data.mode}:`, data.msg) ; 
+						// let s = performance.now();
+						// Usually 80ms and up to 135ms commonly.
+						lcd.populateVramTable(data.msg, data.curFrame);
+						let e = performance.now();
+						// console.log(s-e);
+						break; 
+					}
 					case "ERROR"              : { console.log(`CLIENT: ${data.mode}:`, data.msg) ; break; }
 					default: { console.log("CLIENT:", { "mode":"ERROR", msg:"UNKNOWN MODE: " + data.mode, data:data }); break; }
 				}
@@ -284,15 +560,20 @@ let lcd = {
 				console.log("TEXT:", data);
 			}
 			else if(tests.isArrayBuffer){
+				if( ! lcd.WebSocket.tryToDraw() ) { return; }
+				// console.log("REQ");
+				// lcd.WebSocket.send({ "mode":"GET_VRAM", data:"" });
+
 				// Is this SVG?
 				let view8 = new Uint8Array(data);
 				let header = Array.prototype.slice.call(view8, 0, 14).toString();
 				if (header == "60,63,120,109,108,32,118,101,114,115,105,111,110,61") { // <?xml version=
 					var img = new Image();
 					img.onload = function(){
+						URL.revokeObjectURL(o_url);
 						lcd.ctx.clearRect(0,0, lcd.canvas.width, lcd.canvas.height);
 						lcd.ctx.drawImage(img, 0, 0, lcd.lcdconfig.width, lcd.lcdconfig.height);
-						URL.revokeObjectURL(o_url);
+						lcd.WebSocket.itIsNotDrawing();
 					}
 					let blob = new Blob([data], {type: 'image/svg+xml'});
 					let o_url = URL.createObjectURL(blob);
@@ -317,19 +598,45 @@ let lcd = {
 						pixels[i+3] = a;
 					}
 
-					const imageData = new ImageData(pixels, lcd.lcdconfig.width, lcd.lcdconfig.height);
-					lcd.ctx.putImageData(imageData, 0, 0);
+					let imageData;
+					try{ 
+						imageData = new ImageData(pixels, lcd.lcdconfig.width, lcd.lcdconfig.height); 
+						lcd.ctx.putImageData(imageData, 0, 0);
+						lcd.WebSocket.itIsNotDrawing();
+					}
+					catch(e){
+						console.log("DRAW FAILED:", e);
+						lcd.WebSocket.itIsNotDrawing();
+					}
 				}
 			}
 			else if(tests.isBlob){
+				if( ! lcd.WebSocket.tryToDraw() ) { return; }
+				
 				// console.log("BLOB:", data);
 				var img = new Image();
 				img.onload = function(){
 					URL.revokeObjectURL(img.src);
 					lcd.ctx.drawImage(img, 0, 0);
+					lcd.WebSocket.itIsNotDrawing();
 				}
 				img.src = URL.createObjectURL(data);
 			}
+		},
+		tryToDraw: function(){
+			if(lcd.currentlyDrawing) { 
+				console.log("You can NOT draw now."); 
+				return false; 
+			};
+			lcd.currentlyDrawing = true;
+			lcd.fps.tick();
+			return true;
+		},
+		itIsNotDrawing: function(){
+			// console.log("You can draw now.");
+			lcd.currentlyDrawing = false;
+
+			lcd.fps.updateDisplay();
 		},
 	},
 
@@ -355,6 +662,10 @@ let lcd = {
 			;
 			
 		// MAKE THE WEBSOCKET CONNECTION AND STORE IT FOR LATER USE.
+		lcd.WebSocket.itIsNotDrawing();
+		lcd.fps.init();
+		lcd.fps.updateDisplay();
+		
 		console.log("Creating WebSocket connection to:", locUrl);
 		lcd.ws = new WebSocket(locUrl);
 		lcd.ws.onopen   = lcd.WebSocket.onopen;
@@ -404,13 +715,34 @@ window.onload = async function(){
 	});
 
 	// Get the lcdconfig.
-	lcd.lcdconfig = await post('REQUEST_LCD_CONFIG', {});
+	await (async function(){
+		return new Promise(async function(resolve,reject){
+			let tmp = await post('REQUEST_LCD_CONFIG', {});
+			lcd.lcdconfig   = tmp.lcd;
+			lcd._tiles_ids  = tmp._tiles_ids;
+			lcd._tiles_keys = tmp._tiles_keys;
+			lcd._byCoord    = tmp._byCoord;
+			lcd._byIndex    = tmp._byIndex;
+			
+			// CANVAS - size according to the lcdconfig.
+			lcd.canvas = document.getElementById("CANVAS1");
+			lcd.canvas.width = lcd.lcdconfig.width;
+			lcd.canvas.height = lcd.lcdconfig.height;
+			lcd.ctx = lcd.canvas.getContext("2d");
 
-	// CANVAS - size according to the lcdconfig.
-	lcd.canvas = document.getElementById("CANVAS1");
-	lcd.canvas.width = lcd.lcdconfig.width;
-	lcd.canvas.height = lcd.lcdconfig.height;
-	lcd.ctx = lcd.canvas.getContext("2d");
+			let tileCoords = await (await fetch("tile_coords.json")).text();
+			// lcd.tileCoords = tileCoords;
+			// console.log(tileCoords);
+			// console.log(JSON.parse(tileCoords));
+			// lcd.tileCoords = JSON.parse(tileCoords);
+			// lcd.tileCoords = 
+			tileCoords = await (await fetch("tile_coords.json")).json();
+			lcd.tileCoords = tileCoords;
+			// console.log(tileCoords);
+
+			resolve();
+		});
+	})()
 
 	// BUTTONS: INPUT: Event listeners.
 	document.getElementById("KEY_UP_PIN")   .addEventListener("click", ()=>{ 
@@ -497,11 +829,17 @@ window.onload = async function(){
 		// Undim the output text area.
 		output.style.opacity = 1.0;
 	}, false);
-	
+
+	document.getElementById("debugOutput_VRAM").addEventListener("click", async ()=>{ 
+		// lcd.WebSocket.send({ "mode":"GET_VRAM", data:"" });
+	}, false);
+
 	// WEBSOCKET CONNECTIONS.
 	document.getElementById("ws_open")        .addEventListener("click", ()=>{ lcd.WebSocket.tryToConnect("ws_open"); }, false);
 	document.getElementById("ws_close")       .addEventListener("click", async function(){ 
 		if(lcd.ws){ 
+			autoReconnectWs.checked = false;
+			lcd.WebSocket.autoReconnectWs = false;
 			console.log("Closing WS connection...");
 			lcd.ws.close(); 
 			await new Promise(function(res,rej){
@@ -519,4 +857,7 @@ window.onload = async function(){
 	// }
 	// lcd.init();
 	
+	// VRAM DEBUG:
+	lcd.populateTileCache();
+	lcd.createVramTable();
 };

@@ -1,4 +1,7 @@
 {
+	"app": {
+		"hide_APP_consolelog": false
+	},
 	"server":{
 		"host": "0.0.0.0",
 		"port": 7777
@@ -11,7 +14,7 @@
 	},
 	"lcd":{
 		"active": true,
-		"fps":15,
+		"fps":5,
 		"width"       : 240,
 		"height"      : 240,
 		"activeTileset": "tileset_8x8",

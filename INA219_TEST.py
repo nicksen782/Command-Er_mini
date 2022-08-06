@@ -7,10 +7,13 @@ import time
 import sys
 import json
 import io
+import timeit
 # SHARED
 
 # GRAPHICS
-from PIL import Image
+from PIL import Image, ImageDraw
+import numpy as np
+
 with open('backend/config.json', 'r') as myfile:
     config = myfile.read()
     config = json.loads(config)
@@ -22,7 +25,27 @@ with open('backend/config.json', 'r') as myfile:
     tileHeight   = config['tilesets'][ config['activeTileset'] ]['s']['tileHeight']
     outputWidth  = config['width']
     outputHeight = config['height']
+
+    tilesetImage2 = Image.open("pic.png")
+    tileWidth2    = config['tilesets'][ config['activeTileset'] ]['s']['tileWidth']
+    tileHeight2   = config['tilesets'][ config['activeTileset'] ]['s']['tileHeight']
+    outputWidth2  = config['width']
+    outputHeight2 = config['height']
+
+    # Map the screen as Numpy array
+    # N.B. Numpy stores in format HEIGHT then WIDTH, not WIDTH then HEIGHT!
+    # c is the number of channels, 4 because BGRA
+    fb = np.memmap('/dev/fb0', dtype='uint8',mode='w+', shape=(config['height'],config['width'],4)) 
+
+    lcdImage = Image.new(mode="RGBA", size=(config['width'],config['height']))
     # print(tilesetImage.format, tilesetImage.size, tilesetImage.mode)
+    ImgCache = {}
+
+    # _VRAM = np.array(_VRAM)
+    cols=int(outputWidth/tileWidth)
+    rows=int(outputHeight/tileHeight)
+    internal_VRAM = np.zeros(shape = (rows, cols, 3), dtype = np.uint8)
+
 with open('backend/tile_coords.json', 'r') as myfile:
     tile_coords=myfile.read()
     tile_coords = json.loads(tile_coords)
@@ -253,7 +276,13 @@ def genLookupForNode():
         tileIds_node.update( {key : len(tileIds)} )
         tileIds.append( key )
 
-def getTileImage(key):
+def getTileImage(key, asType):
+    # tilesetImage
+    # tileWidth
+    # tileHeight
+    # outputWidth
+    # outputHeight
+
     # Make sure that the requested key exists.
     if tile_coords.get(key) == None:
         coords = tile_coords["nochar"]
@@ -268,23 +297,120 @@ def getTileImage(key):
 
     box          = (left, top, right, bottom)
     tileImage    = tilesetImage.crop(box)
-    img_byte_arr = io.BytesIO()
-    tileImage.save(img_byte_arr, format='PNG')
-    return tileImage
-    # img_byte_arr = img_byte_arr.getvalue()
-    # img_byte_arr = img_byte_arr.getbytes()
-    # return img_byte_arr
-    
-    # tilesetImage
-    # tileWidth
-    # tileHeight
-    # outputWidth
-    # outputHeight
 
-def updateVram():
-    return "NOT_READY"
+    # Return the data as the type that was requested.
+    if asType == "image":
+        return tileImage
+    elif asType == "nparray":
+        img_byte_arr = io.BytesIO()
+        tileImage.save(img_byte_arr, format='PNG')
+        return tileImage
+
+def test1():
+    im = tilesetImage
+    start1 = time.time()
+    pix = rgbaImgToBGRA(im)
+    end1 = time.time()
+    start2 = time.time()
+    fb[:] = pix
+    end2 = time.time()
+    print(f"rgbaImgToBGRA: {format( ((end1 - start1) * 1000), '.2f') } ms")
+    print(f"update lcd   : {format( ((end2 - start2) * 1000), '.2f') } ms")
+
+# def updateVram(_VRAM):
+def genBox(x, y):
+    # Generate the destination coords.
+    left   = x * tileWidth
+    top    = y * tileHeight
+    right  = left + (tileWidth)
+    bottom = top  + (tileHeight)
+    box = (left, top, right, bottom)
+
+    return box
+
+def drawTile(tileName, box, destImage):
+    # Generate the tile image if needed. Use the cached copy otherwise.
+    # if ImgCache.get(tileName) == None:
+    #     ImgCache[tileName] = getTileImage(tileName, "image")
+    
+    # # Get the tile image.
+    # tileImg = ImgCache[tileName] 
+    tileImg =  getTileImage(tileName, "image") 
+
+    # Paste the tile image to the lcdImage
+    destImage.paste(tileImg, (box[0], box[1]), tileImg)
+    # destImage.paste(tileImg, box, tileImg)
+
+def clearImage(image):
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([(0,0),image.size], fill = (0,0,0, 255) )
+
+def updateVram(_VRAM):
+    # _VRAM = np.array(_VRAM, dtype='uint8')
+    # f_VRAM = _VRAM.flatten()
+    clearImage(lcdImage)
+    
+    # Update the framebuffer.
+    # pix = rgbaImgToBGRA(tilesetImage2)
+    pix = rgbaImgToBGRA(lcdImage)
+    fb[:] = pix
+
+    # Return the pix for the framebuffer.
+    return pix
+
+def OLDupdateVram(_VRAM):
+    _VRAM = np.array(_VRAM)
+    clearImage(lcdImage)
+    for y in range(len(_VRAM)):
+        for x in range(len(_VRAM[y])):
+            box = genBox(x,y)
+            for v in range(len(_VRAM[y][x])):
+                tileId = _VRAM[y][x][v]
+                tileName = tileIds[tileId]
+                try:
+                    drawTile(tileName, box, lcdImage)
+                except Exception as ex:
+                    print(f"error2, ex: {ex}")
+    
+    # Update the framebuffer.
+    # pix = rgbaImgToBGRA(tilesetImage2)
+    pix = rgbaImgToBGRA(lcdImage)
+    fb[:] = pix
+
+    # Return the pix for the framebuffer.
+    return pix
+
+def rgbaImgToBGRA(img):
+    # rgbaToBGRA(n, pix)
+
+    # Get the dimensions of the image.
+    w, h = img.size
+
+    # Convert image to array.
+    src_n = np.array(img)
+
+    # Create and zero-out a new numpy array.
+    pix = np.zeros(shape = (h, w, 4), dtype = np.uint8)
+
+    # Convert.
+    pix[:,:, [2,1,0,3]] = src_n[:,:, [0,1,2,3]]
+
+    # Return.
+    return pix
+
+def is_json(myjson):
+    resp = False
+    try:
+        resp = json.loads(myjson)
+    except ValueError as e:
+        return False
+    return resp
 
 if __name__=='__main__':
+    # Fill the screen with a single color. 
+    fb[:] = [255,0,0,255]
+    time.sleep(0.1)
+
     use_web_server = 0
     use_websockets_server = 0
 
@@ -304,6 +430,10 @@ if __name__=='__main__':
 
     # print(f"argv: {str(sys.argv)}")
 
+    # TEST1
+    test1()
+    time.sleep(0.1)
+    
     genLookupForNode()
 
     HOST_NAME="0.0.0.0"   # Listen on all interfaces.
@@ -348,16 +478,9 @@ if __name__=='__main__':
                     self.end_headers()
 
                     print(f"{parsed_qs['tile'][0]}")
-                    img = getTileImage( parsed_qs['tile'][0] )
+                    img = getTileImage( parsed_qs['tile'][0], "image" )
+                    # img = getTileImage( parsed_qs['tile'][0], "nparray" )
                     self.wfile.write( img )
-
-                    # with open('backend/config.json', 'r') as myfile:
-                    #     data=myfile.read()
-                    # self.wfile.write(bytes(config, 'utf-8'))
-                    # self.wfile.write(bytes(tile_coords, 'utf-8'))
-                    # obj = json.loads(data)
-                    # self.wfile.write(bytes(json.dumps(config, ensure_ascii=False), 'utf-8'))
-                    # self.wfile.write(bytes(json.dumps(tile_coords, ensure_ascii=False), 'utf-8'))
 
                 else:
                     self.send_response(200, "OK")
@@ -376,76 +499,71 @@ if __name__=='__main__':
     elif use_websockets_server == 1:
         class websockets_server(WebSocket):
             def handle(self):
-                # Initial connectivity test.
-                if self.data == "ping":
-                    jsonObj = {}
-                    jsonObj['mode'] = "ping"
-                    jsonObj['data'] = "pong"
-                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+                # Check if the data is JSON and get it if it is.
+                jsonObj = is_json(self.data)
 
-                # Request battery data.
-                elif self.data == "getBatteryData":
-                    jsonObj = {}
-                    jsonObj['mode'] = "getBatteryData"
-                    jsonObj['data'] = getBatteryData()
-                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+                # JSON-based requests.
+                if jsonObj:
+                    if jsonObj['mode'] == "updateVram":
+                        _VRAM = jsonObj['data']
 
-                # Provided to node as a lookup to the tile ids used by Python.
-                elif self.data == "getTileIds":
-                    jsonObj = {}
-                    jsonObj['mode'] = "getTileIds"
-                    jsonObj['data'] = tileIds_node
-                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+                        # Pass the _VRAM, draw to screen, return framebuffer.
+                        start1 = time.time()
+                        try:
+                            resp = updateVram(_VRAM)
+                        except Exception as ex:
+                            print(f"Error in updateVram, ex:{ex}")
+                            resp = rgbaImgToBGRA(tilesetImage2)
+                            fb[:] = resp
+                        end1 = time.time()
+                        
+                        print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
+                        self.send_message(resp.tobytes())
 
-                # TODO Update the image with VRAM data from node.
-                elif self.data == "updateVram":
-                    print(f"got here")
-                    # resp = updateVram()
-                    resp = getTileImage( "tile_blue" )
-                    # jsonObj = {}
-                    # jsonObj['mode'] = "updateVram"
-                    # jsonObj['data'] = resp
-                    # print(resp)
-                    # print(resp.tobytes("xbm", rgb"))
-                    im1 = resp.tobytes("xbm", "rgb")
-                    img = Image.frombuffer("L", (10, 10), resp, 'raw', "L", 0, 1)
-                    l = list(img.getdata())
-                    print(l)
+                    # CATCH-ALL.
+                    else:
+                        jsonObj = {}
+                        jsonObj['mode'] = "UNKNOWN_REQUEST"
+                        jsonObj['data'] = self.data
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+                    
+                # TEXT-based requests.
+                else: 
+                    # Initial connectivity test.
+                    if self.data == "ping":
+                        jsonObj = {}
+                        jsonObj['mode'] = "ping"
+                        jsonObj['data'] = "pong"
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
-                    # NO CONVERSIONS. - NOT WORKING.
-                    # self.send_binary(resp)
-                    # self.send_message(resp)
+                    # Request battery data.
+                    elif self.data == "getBatteryData":
+                        jsonObj = {}
+                        jsonObj['mode'] = "getBatteryData"
+                        jsonObj['data'] = getBatteryData()
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
-                    # USING BYTES. - NOT WORKING.
-                    # self.send_binary(bytes(resp, ensure_ascii=False), binary=True)
-                    # self.send_message(bytes(resp, ensure_ascii=False), binary=True)
+                    # Provided to node as a lookup to the tile ids used by Python.
+                    elif self.data == "getTileIds":
+                        jsonObj = {}
+                        jsonObj['mode'] = "getTileIds"
+                        jsonObj['data'] = tileIds_node
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
-                    # self.send_binary("test", binary=True)
-                    # self.send(resp, opcode=ABNF.OPCODE_BINARY) 
-                    # self.send_message(bytes(resp, ensure_ascii=False), opcode=ABNF.OPCODE_BINARY) 
+                    # DEBUG.
+                    elif self.data == "getPythonTileIds":
+                        jsonObj = {}
+                        jsonObj['mode'] = "getPythonTileIds"
+                        jsonObj['data'] = tileIds
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
-                    # jsonObj['data'] = bytes(resp, ensure_ascii=False)
-                    # self.send_binary(jsonObj)
-                    # self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
-                    # ws.send_binary([100, 220, 130])
-                    # self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+                    # CATCH-ALL.
+                    else:
+                        jsonObj = {}
+                        jsonObj['mode'] = "UNKNOWN_REQUEST"
+                        jsonObj['data'] = self.data
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
-                    # self.send(bytes(resp.tobytes(), ensure_ascii=False), binary=True)
-                    # self.send(bytes(resp.tobytes()), binary=True)
-
-                # DEBUG.
-                elif self.data == "getPythonTileIds":
-                    jsonObj = {}
-                    jsonObj['mode'] = "getPythonTileIds"
-                    jsonObj['data'] = tileIds
-                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
-
-                # CATCH-ALL.
-                else:
-                    jsonObj = {}
-                    jsonObj['mode'] = "UNKNOWN_REQUEST"
-                    jsonObj['data'] = self.data
-                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
             def connected(self):
                 print(self.address, 'CONNECTED')
@@ -455,7 +573,7 @@ if __name__=='__main__':
                 self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
             def handle_close(self):
-                print(self.address, 'CLOSED')
+                print(self.address, 'CLOSED', self)
 
         print(f"INA219_srv: \"websockets_server\" started http://{HOST_NAME}:{PORT}")
         server = WebSocketServer(HOST_NAME, PORT, websockets_server)

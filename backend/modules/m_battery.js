@@ -1,6 +1,7 @@
 var cp = require('child_process');
 const fetch = require('node-fetch');
 const WSClient = require('ws').WebSocket;
+const {Blob} = require('buffer');
 
 let _APP = null;
 
@@ -11,10 +12,14 @@ let _MOD = {
 	TYPE         : null,
 	URL          : null,
 	PORT         : null,
+	// serverFile   : "INA219_srv.py",
+	serverFile   : "INA219_TEST.py",
 	wss          : null,
 	wssConnecting : false,
 	wssIsOpen     : false,
 	wssPinged     : false,
+	getTileIdsInit: false,
+	getTileIds    : false,
 
 	// INIT THIS MODULE.
 	module_init: async function(parent){
@@ -23,34 +28,32 @@ let _MOD = {
 			_APP = parent;
 	
 			// Save some configs locally.
-			// _MOD.URL  = _APP.m_config.config.server.host;
 			_MOD.TYPE = _APP.m_config.config.python.serverType;
-			_MOD.URL  = "http://127.0.0.1";
-
-			// Add routes.
-			_MOD.addRoutes(_APP.app, _APP.express);
 			
 			if(_MOD.TYPE == "http"){
+				_MOD.URL  = "http://127.0.0.1";
 				_MOD.PORT = _APP.m_config.config.python.http.port;
 				
-				// Remove the battery server if it is running. 
-				await _MOD.http.stopServer();
-
 				// Start the battery server.
+				_APP.consolelog("  startServer (http)"); 
 				_MOD.http.startServer();
 				
 				// Wait until the battery server is online (max 10 seconds.)
+				_APP.consolelog("  pingServer (http)"); 
 				await _MOD.http.pingServer();
 			}
 			else if(_MOD.TYPE == "ws"){
 				_MOD.PORT = _APP.m_config.config.python.ws.port;
 
-				// Remove the battery server if it is running. 
-				await _MOD.http.stopServer();
-
 				// Start the battery server.
+				_APP.consolelog("  startServer (ws)"); 
 				await _MOD.ws.startServer();
 			}
+
+			// Add routes.
+			_APP.consolelog("  addRoutes"); 
+			_MOD.addRoutes(_APP.app, _APP.express);
+
 			resolve();
 		});
 	},
@@ -99,21 +102,21 @@ let _MOD = {
 		else { batIcon = "batt4"; } // GREEN
 		
 		// CLEAR THE LINE AND THEN DISPLAY THE ICON AND THE STRING. 
-		_APP.m_lcd.canvas.fillTile(tile, x, y, str.length + 1, 1); 
-		_APP.m_lcd.canvas.setTile(batIcon  , x, y); 
+		_APP.m_lcd.canvas.draw.fillTile(tile, x, y, str.length + 1, 1); 
+		_APP.m_lcd.canvas.draw.setTile(batIcon  , x, y); 
 		if(Math.sign(json['A']) == 1){
 			if(_MOD.chargeFlag){
-				// _APP.m_lcd.canvas.setTile(tile  , x, y); 
-				_APP.m_lcd.canvas.setTile("battcharge1"  , x, y); 
+				// _APP.m_lcd.canvas.draw.setTile(tile  , x, y); 
+				_APP.m_lcd.canvas.draw.setTile("battcharge1"  , x, y); 
 			}
 			else{
-				// _APP.m_lcd.canvas.setTile(tile  , x, y); 
-				_APP.m_lcd.canvas.setTile("battcharge2"  , x, y); 
+				// _APP.m_lcd.canvas.draw.setTile(tile  , x, y); 
+				_APP.m_lcd.canvas.draw.setTile("battcharge2"  , x, y); 
 			}
 			_MOD.chargeFlag = !_MOD.chargeFlag;
 		}
 
-		_APP.m_lcd.canvas.print(str, x+1, y);
+		_APP.m_lcd.canvas.draw.print(str, x+1, y);
 	},
 
 	// As HTTP client.
@@ -138,10 +141,7 @@ let _MOD = {
 			});
 		},
 		startServer: async function(){
-			_MOD.cp_child = cp.exec(`python3 ${process.cwd()}/INA219_srv.py ${_MOD.TYPE} ${_MOD.PORT}`, { shell:"/bin/bash", cwd: `${process.cwd()}`, detatched: false }, function(){});
-		},
-		stopServer: async function(){
-			let resp = cp.execSync( `yes yes| ~/.local/bin/freeport ${_MOD.PORT}`, [], { shell:"bash" } );
+			_MOD.cp_child = cp.exec(`python3 ${process.cwd()}/${_MOD.serverFile} ${_MOD.TYPE} ${_MOD.PORT}`, { shell:"/bin/bash", cwd: `${process.cwd()}`, detatched: false }, function(){});
 		},
 		pingServer: async function(){
 			// Ping up to 10 times with 1000ms between pings. (10 seconds max.)
@@ -184,9 +184,9 @@ let _MOD = {
 			}
 		},
 		
-		x:0,
-		y:0,
-		tile:"tile1",
+		// x:0,
+		// y:0,
+		// tile:"tile1",
 
 		ws: null,
 		initWss   : function(app, express){
@@ -195,36 +195,91 @@ let _MOD = {
 		el_open   : function(ws){
 			_MOD.wssIsOpen = true;
 		},
-		el_message: function(event){
+		el_message: async function(event){
 			// Data is expected to be JSON.
-			let json = JSON.parse(event.data);
+			let json;
+			try{ 
+				json = JSON.parse(event.data); 
+				switch(json.mode){
+					case "CONNECT"         : { 
+						// console.log("WS MESSAGE:", json.mode, json.data);
+						break; 
+					}
+					case "ping"            : { 
+						_MOD.wssPinged = true; 
+						// console.log("WS MESSAGE:", json.mode, json.data);
+						break; 
+					}
+					case "getBatteryData"         : { 
+						// console.log("WS MESSAGE:", json.mode, json.data);
+						_MOD.drawBattery(_MOD.ws.x, _MOD.ws.y, _MOD.ws.tile, json.data);
+						break; 
+					}
+					case "getTileIds"         : { 
+						// console.log("WS MESSAGE:", json.mode, json.data);
+						_APP.m_lcd.canvas.draw._tiles_ids = json.data;
+						_APP.m_lcd.canvas.draw._tiles_keys = Object.keys(json.data);
+						_MOD.getTileIds=true;
+						// console.log("tiles_ids:", json.data);
+						break; 
+					}
+					// case "updateVram"       : { 
+					// 	console.log("WS MESSAGE:", json.mode, json.data);
+					// 	// _APP.m_lcd.canvas.updatingLCD=true;
+					// 	// await _APP.m_lcd.canvas.updateFrameBuffer(json.data);
+					// 	await _APP.m_lcd.canvas.updateFrameBuffer(null);
+					// 	_APP.timeIt("WS_DISPLAYUPDATE", "e");
+					// 	break; 
+					// }
+					
+					case ""                : { 
+						console.log("WS MESSAGE:", json.mode, json.data);
+						break; 
+					}
+					case "UNKNOWN_REQUEST" : { 
+						console.log("WS MESSAGE:", json.mode, json.data);
+						break; 
+					}
+					default : { break; }
+				};
+			}
+			catch(e){
+				let tests = { isJson: false, isText: false, isArrayBuffer: false, isBlob: false };
+				// console.log(" I shouldn't be here.");
+				// Get the data.
+				data = event.data;
 
-			switch(json.mode){
-				case "CONNECT"         : { 
-					_MOD.wssPinged = true; 
-					// console.log("WS MESSAGE:", json.mode, json.data);/
-					break; 
+				// ARRAYBUFFER
+				if(data instanceof ArrayBuffer){ tests.isArrayBuffer = true; }
+
+				// BLOB
+				if(data instanceof Blob){ tests.isBlob = true; }
+				
+				// TEXT
+				if(1){ tests.isText = true; 
 				}
-				case "ping"            : { 
-					_MOD.wssPinged = true; 
-					// console.log("WS MESSAGE:", json.mode, json.data);
-					break; 
+
+				// console.log("TEXT? BINARY?", event);
+				// console.log("TEXT? BINARY?", event.data);
+				// console.log("TEXT? BINARY?", event.data.length, event.data.toString());
+				// console.log("TEXT? BINARY?", event.data.length, tests);
+
+				if(_APP.m_config.config.ws.active && _APP.m_lcd.WebSocket.getClientCount()){
+					// _APP.m_lcd.canvas.draw.updateWsClients(event.data);
+					// _APP.m_lcd.WebSocket.sendToAll(JSON.stringify({ "mode":"GET_VRAM", msg:_APP.m_lcd.canvas.draw._VRAM }));
+					// _APP.m_lcd.WebSocket.sendToAll(JSON.stringify({ "mode":"GET_VRAM", msg:_APP.m_lcd.canvas.draw._VRAM2 }));
+					_APP.m_lcd.WebSocket.sendToAll(JSON.stringify({
+						"mode":"GET_VRAM", msg:_APP.m_lcd.canvas.draw._VRAM2, curFrame: _APP.m_lcd.canvas.draw.curFrame
+					}));
+					_APP.m_lcd.canvas.draw.curFrame += 1;
 				}
-				case "getBatteryData"         : { 
-					// console.log("WS MESSAGE:", json.mode, json.data);
-					_MOD.drawBattery(_MOD.ws.x, _MOD.ws.y, _MOD.ws.tile, json.data);
-					break; 
+				else{
+					_APP.m_lcd.canvas.draw.clearDrawingFlags();
 				}
-				case ""                : { 
-					console.log("WS MESSAGE:", json.mode, json.data);
-					break; 
-				}
-				case "UNKNOWN_REQUEST" : { 
-					console.log("WS MESSAGE:", json.mode, json.data);
-					break; 
-				}
-				default : { break; }
-			};
+				_APP.wait = false;
+				// _APP.timeIt("WS_DISPLAYUPDATE", "e");
+			}
+
 		},
 		el_close  : function(event){
 			if(_MOD.wssConnecting){ _MOD.wssIsOpen = false; _MOD.ws.removeHandlers(); return; }
@@ -232,6 +287,7 @@ let _MOD = {
 			if (event.code == 3001) { console.log("WS CLOSE:", event.data); _MOD.ws.removeHandlers(); } 
 			else { console.log("WS CLOSE/ERROR:", event.data); _MOD.ws.removeHandlers(); }
 			_MOD.wssIsOpen = false;
+			// process.exit();
 		},
 		el_error  : function(ws){
 			if(_MOD.wssConnecting){ _MOD.wssIsOpen = false; _MOD.ws.removeHandlers(); return; }
@@ -241,65 +297,141 @@ let _MOD = {
 		startServer : async function(){
 			return new Promise(async function(resolve,reject){
 				// Start the battery server. 
-				_MOD.cp_child = cp.exec(`python3 ${process.cwd()}/INA219_srv.py ${_MOD.TYPE} ${_MOD.PORT}`, { shell:"/bin/bash", cwd: `${process.cwd()}`, detatched: false }, function(){});
+				// _MOD.cp_child = cp.exec(`python3 ${process.cwd()}/${_MOD.serverFile} ${_MOD.TYPE} ${_MOD.PORT}`, { shell:"/bin/bash", cwd: `${process.cwd()}`, detatched: false }, function(){});
 
-				// Wait until the battery server is online (max 5 seconds.)
+				// Wait until the battery server is online (Timeout if this repeatedly fails.)
 				let attempts=0;
 				let ws_url = `ws://127.0.0.1:${_MOD.PORT}`;
 				_MOD.wssConnecting = true;
 				await new Promise((res, rej) => {
-					let tryToConnect = function(){
-						// console.log("tryToConnect");
-						_MOD.ws.removeHandlers();
-						_MOD.wss = new WSClient(ws_url); 
-						_MOD.ws.addHandlers();
+					let timings = {
+						"CONNECTING": { total:0, tries:0, lastTry:0 },
+						"PINGING"   : { total:0, tries:0, lastTry:0 },
+						"TILESINIT" : { total:0, tries:0, lastTry:0 },
 					};
-					let tryToPing = function(){
-						// console.log("tryToPing");
-						_MOD.wss.send("ping");
+					let timingsUpdater = function(key, display=false){
+						if(timings[key].tries == 0){ timings[key].lastTry = performance.now(); }
+						timings[key].total += (performance.now() - timings[key].lastTry);
+						timings[key].lastTry = performance.now();
+						timings[key].tries += 1;
+						if(display){
+							_APP.consolelog( `  ` +
+								`${key.padEnd(10, " ")} `+
+								`(Tries: ${timings[key].tries.toString().padStart(2, " ")}, ` +
+								`Time: ${(timings[key].total).toFixed(3).padStart(9, " ")} ms)`
+							);
+						}
 					};
-					let timed = async function(){
-						// Max attempts?
-						if(attempts >= 20){ console.log("FAILURE-"); res();  _MOD.ws.removeHandlers(); return; }
+					let timingsEnd = function(){
+						// console.log(`Battery Server:`, attempts);
+						let lines = [];
+						lines.push(`      Battery Server: timings:`);
+						let total = 0;
+						for(key in timings){
+							total += timings[key].total;
+							lines.push(
+								`  ` +
+								`    ${key.padEnd(10, " ")} `+
+								`    (Tries: ${timings[key].tries.toString().padStart(2, " ")}, ` +
+								`    Time: ${(timings[key].total).toFixed(3).padStart(9, " ")} ms)`
+							);
+						}
+						lines.push(
+							``+
+							`      ${"-".repeat(20)}\n` +
+							`      TOTAL: ${total.toFixed(3)} ms`
+						);
+						_APP.consolelog("\n" + lines.join("\n"));
+					}
+					let stage_open_flag          = 0;
+					let stage_ping_flag          = 0;
+					let stage_tilesInit_flag     = 0;
+					let timed = async function(connected=false){
+						let open          = _MOD.wssIsOpen      ? true : false;
+						let ping          = _MOD.wssPinged      ? true : false;
+						let tilesInit     = _MOD.getTileIdsInit ? true : false;
+						let tilesInitDone = _MOD.getTileIds     ? true : false;
+						let delayTime = 250;
 
-						// Done?
-						if(_MOD.wssIsOpen && _MOD.wssPinged){
-							// console.log(`Battery Server: READY. Tries: ${attempts}.`);
+						// CONNECT
+						if(!open){
+							if(!stage_open_flag){
+								_APP.consolelog("    CONNECTING");
+								stage_open_flag = 1;
+							}
+
+							if(timings["CONNECTING"].tries > 1){
+								timingsUpdater("CONNECTING", true);
+							}
+							else{
+								timingsUpdater("CONNECTING", false);
+							}
+							
+							// Allow the initial attempt's delay to be longer.
+							if(timings["CONNECTING"].tries == 1){ delayTime = 3500; }
+							else{ delayTime = 250; }
+
+							_MOD.ws.removeHandlers();
+							_MOD.wss = new WSClient(ws_url); 
+							_MOD.ws.addHandlers();
+						}
+
+						// PING
+						else if(open && !ping){
+							// timingsUpdater("PINGING", true);
+							timingsUpdater("PINGING", false);
+
+							if(!stage_ping_flag){
+								_APP.consolelog("    PINGING");
+								stage_ping_flag = 1;
+							}
+
+							delayTime = 1;
+							_MOD.wss.send("ping");
+						}
+
+						// TILES INIT
+						else if(open && ping && !tilesInit){
+							// timingsUpdater("TILESINIT", true);
+							timingsUpdater("TILESINIT", false);
+
+							if(!stage_tilesInit_flag){
+								_APP.consolelog("    TILESINIT");
+								stage_tilesInit_flag = 1;
+							}
+
+							delayTime = 1;
+							_MOD.getTileIdsInit = true;
+							_MOD.wss.send("getTileIds");
+						}
+
+						// TILES INIT DONE -- full ready.
+						else if(open && ping && tilesInit && tilesInitDone){
+							timingsEnd();
 							res();
 							_MOD.wssConnecting = false;
 							return;
 						}
 
-						else{
-							// Try to connect.
-							if(!_MOD.wssIsOpen){ tryToConnect(); }
+						// NOT READY
 
-							// Connected. Try to ping. 
-							if(_MOD.wssIsOpen && !_MOD.wssPinged){ tryToPing(); }
+						// Increment attempts.
+						attempts+=1;
 
-							// Increment attempts.
-							attempts+=1;
+						// Wait.
+						await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, delayTime); });
 
-							// console.log(`Battery Server: NOT READY. Tries: ${attempts}.`);
-							
-							// Wait.
-							await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 250); });
+						// Run the function again.
+						timed(); return;
 
-							// Run the function again.
-							timed();
-						}
+						// Max attempts?
+						if(attempts >= 20){ console.log("** FAILURE TO START PYTHON WS SERVER **"); res();  _MOD.ws.removeHandlers(); return; }
 					};
+
 					timed();
 				});
 				resolve();
 			});
-		},
-		stopServer  : function(){ 
-			let resp = cp.execSync( `yes yes| ~/.local/bin/freeport ${_MOD.PORT}`, [], { shell:"bash" } );
-			_MOD.wss.close(); 
-		},
-
-		func: function(x=17, y=28, tile="tile1"){
 		},
 	},
 };

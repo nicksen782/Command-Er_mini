@@ -113,3 +113,52 @@ body {
 }
 
 .tableType1 th {}
+
+#vramtable{
+    border: 3px solid dodgerblue;
+    /* width: 250px; */
+    background-color: black;
+    border-collapse: collapse;
+}
+#vramtable td{
+    border: 1px solid;
+    border-color: blue;
+    padding: 0px;
+    margin: 0px;
+    /* white-space: pre-wrap; */
+    background-color: #1c1a1a;
+    width: 0px;
+    height: 0px;
+    border-spacing: 0px;
+    text-indent: 0px;
+    white-space: pre;
+}
+#vramtable th{}
+#vramtable caption {
+	background-color: #c1c1c1;
+	font-weight: bold;
+	text-decoration: underline;
+	border: 2px solid black;
+	border-bottom: 1px solid black;
+	border-radius: 5px 5px 0px 0px;
+	padding: 4px
+}
+.vram_smallfont{
+	/* font-family:
+	monospace; */
+	/* font-size: 5px; */
+}
+.tileCanvas{
+	background-color:
+	black;
+	/* border:1px solid white; */
+	/* display: inline-block; */
+	margin: 1px;
+	width: 8px;
+	height: 8px;
+}
+#fps2_curFrame{
+	color: darkblue;
+	font-size: 10px;
+	background-color: darkgoldenrod;
+}

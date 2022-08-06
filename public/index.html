@@ -68,7 +68,7 @@
 
 		<div id="canvasDisplay" class="inline-block">
 			<table class="tableType1">
-				<caption>DISPLAY</caption>
+				<caption>DISPLAY <span id="fps">(FPS: 0)</span></caption>
 				<tr>
 					<td>
 						<canvas width="240" height="240" id="CANVAS1"></canvas>
@@ -80,6 +80,10 @@
 	</div>
 
 	<br><br>
+	
+	<div id="debugOutput_VRAM" class=""></div>
+
+	<br>
 
 	<div id="debugControls" class="disconnected inline-block">
 		<table class="tableType1">
@@ -105,6 +109,8 @@
 			</tr>
 		</table>
 	</div>
+
+	<br><br>
 
 </body>
 </html>

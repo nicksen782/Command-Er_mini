@@ -30,13 +30,15 @@ let _MOD = {
 	
 			// Init the buttons.
 			if( _APP.m_config.config.gpio.active ){ 
+				_APP.consolelog("  buttons_init");
 				await _MOD.buttons_init();
 			}
 			else{
-				console.log("m_gpio: module_init: GPIO DISABLED IN CONFIG");
+				_APP.consolelog("m_gpio: module_init: GPIO DISABLED IN CONFIG");
 			}
 
 			// Add routes.
+			_APP.consolelog("  addRoutes");
 			_MOD.addRoutes(_APP.app, _APP.express);
 
 			resolve();
