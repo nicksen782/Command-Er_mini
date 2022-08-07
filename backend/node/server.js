@@ -1,4 +1,4 @@
-console.log("...LOADING...");
+console.log("...LOADING...\n");
 
 // OS/Filesystem requires. 
 const os       = require('os');
@@ -7,9 +7,9 @@ const path     = require('path');
 // const logbuffer = require('console-buffer')(100);
 
 // Express/WS requires. 
-const server   = require('http').createServer();
 const express  = require('express');
 const app      = express();
+const server   = require('http').createServer(app);
 
 // Compression in Express.
 const zlib = require('zlib');
@@ -29,24 +29,25 @@ const compressionObj = {
 	threshold : 0,
 	windowBits: zlib.constants.Z_DEFAULT_WINDOWBITS,
 };
-app.use( compression(compressionObj) );
 
 // Modules (routes are added per module via their module_init method.)
-
-// /home/pi/MINI/NEW
-// backend/node/M_main.js
-// /home/pi/MINI/NEW/backend/node/M_main.js
 const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
-// const _APP   = require('/home/pi/MINI/NEW/backend/node/M_main.js')(app, express, server);
-
 
 // START THE SERVER.
 (async function startServer(){
+	_APP.timeIt("_STARTUP_", "s");
+
 	// Load the config.
+	_APP.consolelog("START: get_configs:");        
+	_APP.timeIt("get_configs", "s");   
 	await _APP.m_config.get_configs();
 	_APP.m_config.configLoaded = true;
+	_APP.timeIt("get_configs", "e");   
+	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("get_configs", "t").toFixed(3).padStart(9, " ")} ms\n`);
 	
 	// Remove any lingering processes that use these ports:
+	_APP.timeIt("removeProcessByPort", "s");   
+	_APP.consolelog("START: removeProcessByPort:");        
 	await _APP.removeProcessByPort(
 		[
 			_APP.m_config.config.node.http.port, 
@@ -54,8 +55,10 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 			_APP.m_config.config.python.http.port 
 		], true
 	);
-	console.log("");
-
+	_APP.timeIt("removeProcessByPort", "e");
+	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("removeProcessByPort", "t").toFixed(3).padStart(9, " ")} ms\n`);
+	// console.log("");
+	
 	let printRoutes = function(){
 		let routes = _APP.getRoutePaths("manual", app).manual;
 		
@@ -143,11 +146,28 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 
 	await _APP.module_inits();
 
-	server.listen(
-		{
-			host: _APP.m_config.config.node.http.host, 
-			port: _APP.m_config.config.node.http.port
-		}, async function () {
+	let conf = {
+		host: _APP.m_config.config.node.http.host, 
+		port: _APP.m_config.config.node.http.port
+	};
+
+	// server.on('connection', function(req, socket, head){
+	// 	// console.log("Client connected: req   : ", req);
+	// 	// console.log("Client connected: socket: ", socket);
+	// 	// console.log("Client connected: head  : ", head);
+	// });
+	// server.on('error', function(e) {
+	// 	console.log("Server connection error: " + e);
+	// });
+	
+	(async function startServer(){
+		server.listen(conf, async function () {
+			app.use( compression(compressionObj) );
+
+			// Default routes:
+			app.use('/'    , express.static(path.join(process.cwd(), './public')));
+			app.use('/libs', express.static(path.join(process.cwd(), './node_modules')));
+
 			let appTitle = "Command-Er_Mini";
 			process.title = appTitle;
 			// console.log("");
@@ -157,12 +177,6 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 			console.log(`SERVER  : ${_APP.m_config.config.node.http.host}:${_APP.m_config.config.node.http.port}`);
 			console.log("*".repeat(45));
 			console.log("");
-
-			// Default routes:
-			app.use('/'    , express.static(path.join(process.cwd(), './public')));
-			app.use('/libs', express.static(path.join(process.cwd(), './node_modules')));
-			// app.use('/tileset_8x8.png', express.static(path.join(process.cwd(), './tileset_8x8.png')));
-			// app.use('/tile_coords.json', express.static(path.join(process.cwd(), './backend/tile_coords.json')));
 
 			// console.log(`ROUTES:`);
 			printRoutes(); 
@@ -176,10 +190,13 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 			// printModuleLoadTimes(); 
 			// console.log("");
 
-			console.log("*".repeat(45));
-			console.log("READY");
+			_APP.timeIt("_STARTUP_", "e");
+
+			console.log("-".repeat(45));
+			console.log(`READY (STARTUP TIME: ${_APP.timeIt("_STARTUP_", "t").toFixed(3).padStart(9, " ")} ms)` );
+			console.log("-".repeat(45));
 			console.log("");
-		}
-	);
+		});
+	})();
 
 })()

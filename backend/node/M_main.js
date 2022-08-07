@@ -116,27 +116,27 @@ let _APP = {
 		return new Promise(async function(resolve,reject){
 			_APP.consolelog("START: module_init: M_main :");        
 			_APP.timeIt("M_main", "s");   await _APP         .module_init(_APP); _APP.timeIt("M_main", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("M_main", "t").toFixed(3)}\n`);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("M_main", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
 			_APP.consolelog("START: module_init: m_config :");        
 			_APP.timeIt("m_config", "s"); await _APP.m_config.module_init(_APP); _APP.timeIt("m_config", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_config", "t").toFixed(3)}\n`);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_config", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
 			_APP.consolelog("START: module_init: draw :");        
 			_APP.timeIt("m_draw", "s"); await _APP.m_draw.module_init(_APP); _APP.timeIt("m_draw", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_draw", "t").toFixed(3)}\n`);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_draw", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
 			_APP.consolelog("START: module_init: websocket_node :");        
 			_APP.timeIt("m_websocket_node", "s"); await _APP.m_websocket_node.module_init(_APP); _APP.timeIt("m_websocket_node", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_node", "t").toFixed(3)}\n`);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_node", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
 			_APP.consolelog("START: module_init: websocket_python :");        
 			_APP.timeIt("m_websocket_python", "s"); await _APP.m_websocket_python.module_init(_APP); _APP.timeIt("m_websocket_python", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_python", "t").toFixed(3)}\n`);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_python", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
 			_APP.consolelog("START: module_init: gpio :");        
 			_APP.timeIt("m_gpio", "s"); await _APP.m_gpio.module_init(_APP); _APP.timeIt("m_gpio", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_gpio", "t").toFixed(3)}\n`);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_gpio", "t").toFixed(3).padStart(9, " ")} ms\n`);
 
 			resolve();
 		});
@@ -172,35 +172,74 @@ let _APP = {
 		}
 	},
 
-	removeProcessByPort : async function(ports, display=false){
+	removeProcessByPort : function(ports, display=false){
 		// Remove any potential duplicates in the ports list. 
 		ports = [...new Set(ports)] ;
 	
-		_APP.consolelog("Removing any old processes using ports: ", ports);
+		_APP.consolelog(`  Removing processes using ports: ${ports}`);
 	
 		//
-		await async function(portNumbers){ 
-			return new Promise(async function(resolve,reject){
-				let resp; 
-				for(let i=0; i<portNumbers.length; i+=1){
-					let port = portNumbers[i];
-					try{ resp = await _APP.rpbp(port).catch( (e)=>{throw e;}) } 
-					catch(e){ resp = e; } 
-	
-					// Normal run? 
-					if(resp.text){ if(display){ _APP.consolelog(`  RemoveProcessByPort: ${resp.text}`); } }
-					
-					// Error.
-					else{ _APP.consolelog(`  RemoveProcessByPort: ${resp}`); }
-				}
-				resolve();
-			});
-		}(ports);
+		let closed = [];
+		return new Promise(async function(resolve,reject){
+			// Add promises for each removal.
+			let proms = [];
+			for(let i=0; i<ports.length; i+=1){
+				proms.push(
+					new Promise(function(res,rej){
+						let resp; 
+						let port = ports[i];
+						try{ 
+							resp = _APP.rpbp(port).catch( (e)=>{throw e;}) 
+							resp.then(function(data){
+								// Add to the removed ports.
+								if(data.removed){ closed.push(port); }
+
+								// Normal run? 
+								if(data.success){
+									if(data.removed){ 
+										if(closed.length){
+											if(display){ _APP.consolelog(`    ${data.text}`); } 
+										}
+									}
+								}
+								
+								// Error.
+								else{ _APP.consolelog(`    ERROR: ${data}`); }
+								res(data);
+							});
+						} 
+						catch(e){ 
+							resp = e; 
+							console.log("   ERROR:", e);
+							rej(resp);
+						} 
+					})
+				);
+			}
+
+			// Wait for all promises to resolve.
+			await Promise.all(proms);
+
+			// Output the results. 
+			if(closed.length){
+				_APP.consolelog(`  Processes were removed on these ports: ${closed}`);
+			}
+			else{
+				_APP.consolelog(`  No matching processes were found.`);
+			}
+
+			resolve();
+		})
 	},
 
 	consolelog: function(args){
-		if(!_APP.m_config.config.toggles.hide_APP_consolelog){
-			console.log("(LOG)", args);
+		try{
+			if(!_APP.m_config.config.toggles.hide_APP_consolelog){
+				console.log("(LOG)", args);
+			}
+		}
+		catch(e){
+			console.log("{LOG}", args);
 		}
 	},
 };

@@ -30,8 +30,8 @@ let _MOD = {
 			_APP = parent;
 	
 			// Get and store the config file. 
+			_APP.consolelog("  get_config");
 			if(!_MOD.configLoaded){
-				_APP.consolelog("  get_config");
 				await _MOD.get_configs();
 				_MOD.configLoaded = true;
 			}

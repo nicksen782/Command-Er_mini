@@ -2,3 +2,4 @@ node_modules
 .git
 OLD
 PROGRESS.TXT
+backend/python/__pycache__

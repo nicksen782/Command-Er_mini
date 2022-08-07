@@ -1,16 +1,22 @@
 {
   "name": "commander_mini",
   "version": "1.0.0",
-  "description": "",
+  "description": "Designed with this hardware in mind:  * [Raspberry Pi Zero WH Package F, with UPS Module and 1.3inch LCD](https://www.waveshare.com/raspberry-pi-zero-wh-package-f.htm)  Designed to interact with this software: * [Command-Er (currently private)](https://github.com/nicksen782/Command-Er)",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicksen782/Command-Er_mini.git"
+  },
+  "author": "Nickolas Andersen",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nicksen782/Command-Er_mini/issues"
+  },
+  "homepage": "https://github.com/nicksen782/Command-Er_mini#readme",
   "dependencies": {
-    "canvas": "^2.9.3",
     "compression": "^1.7.4",
     "express": "^4.17.3",
     "node-fetch": "^2.6.1",
