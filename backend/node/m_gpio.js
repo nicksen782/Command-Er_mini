@@ -29,7 +29,7 @@ let _MOD = {
 			_APP = parent;
 	
 			// Init the buttons.
-			if( _APP.m_config.config.gpio.active ){ 
+			if( _APP.m_config.config.toggles.isActive_gpio ){ 
 				_APP.consolelog("  buttons_init");
 				await _MOD.buttons_init();
 			}
@@ -73,10 +73,10 @@ let _MOD = {
 	// Intended for the backlight.
 	toggle_pin: async function(buttonKey){
 		return new Promise(async function(resolve,reject){
-			if( _APP.m_config.config.gpio.active ){
-				let currentState = _APP.m_gpio.outputs[buttonKey].readSync() ? 1 : 0;
+			if( _APP.m_config.config.toggles.isActive_gpio ){
+				let currentState = _MOD.outputs[buttonKey].readSync() ? 1 : 0;
 				let newState     = currentState ? 0 : 1;
-				_APP.m_gpio.outputs[buttonKey].writeSync(newState);
+				_MOD.outputs[buttonKey].writeSync(newState);
 				resolve(`toggle_pin: ${buttonKey} to: ${newState}`);
 			}
 			else{
@@ -90,12 +90,12 @@ let _MOD = {
 	pressAndRelease_button: async function(buttonKey){
 		return new Promise(async function(resolve,reject){
 			if(!buttonKey){ resolve("buttonKey was NOT specified."); return; }
-			_APP.m_gpio.buttonHandler(buttonKey, 1);
+			_MOD.buttonHandler(buttonKey, 1);
 
 			// Wait a number of frames before "releasing" the button.
 			await new Promise(function(res,rej){
 				setTimeout(function(){
-					_APP.m_gpio.buttonHandler(buttonKey, 0);
+					_MOD.buttonHandler(buttonKey, 0);
 					resolve(`pressAndRelease_button: ${buttonKey}`);
 				}, _APP.fps.interval*3);
 			});
@@ -199,9 +199,9 @@ let _MOD = {
 	buttonHandler: async function(key, state){
 		// console.log("key, state:", key, state);
 		switch(_APP.currentScreen){
-			case "main"         : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
-			case "timings_test" : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
-			case "drawingTest"  : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
+			// case "main"         : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
+			// case "timings_test" : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
+			// case "drawingTest"  : { _APP.m_screenLogic.screens[_APP.currentScreen].buttons(key, state); break; }
 			default: { console.log("buttonHandler: unknown currentScreen:", _APP.currentScreen, key, state ? true : false); break; }
 		}
 	},
@@ -212,25 +212,17 @@ let _MOD = {
 			// Setup the GPIO buttons. 
 
 			// INPUTS
-			_APP.m_gpio.inputs.KEY_UP_PIN    = new Gpio( 6 , 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY_DOWN_PIN  = new Gpio( 19, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY_LEFT_PIN  = new Gpio( 5 , 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY_RIGHT_PIN = new Gpio( 26, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY_PRESS_PIN = new Gpio( 13, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY1_PIN      = new Gpio( 21, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY2_PIN      = new Gpio( 20, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
-			_APP.m_gpio.inputs.KEY3_PIN      = new Gpio( 16, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY_UP_PIN    = new Gpio( 6 , 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY_DOWN_PIN  = new Gpio( 19, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY_LEFT_PIN  = new Gpio( 5 , 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY_RIGHT_PIN = new Gpio( 26, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY_PRESS_PIN = new Gpio( 13, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY1_PIN      = new Gpio( 21, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY2_PIN      = new Gpio( 20, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
+			_MOD.inputs.KEY3_PIN      = new Gpio( 16, 'in', 'rising', {activeLow:true, debounceTimeout: 10} ); 
 			
 			// OUTPUTS
-			_APP.m_gpio.outputs.BL_PIN  = new Gpio( 24, 'high' ); // Output, default to high.
-
-			// Add the button handler to each button. 
-			// for(let key in _APP.m_gpio.inputs){
-			// 	_APP.m_gpio.inputs[key].watch((err, value) => {
-			// 		if(err){ console.log("err:", err); return; }
-			// 		_APP.m_gpio.buttonHandler(key, value);
-			// 	});
-			// }
+			_MOD.outputs.BL_PIN  = new Gpio( 24, 'high' ); // Output, default to high.
 
 			resolve();
 		});

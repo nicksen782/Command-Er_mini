@@ -1,15 +1,4 @@
 node_modules
 .git
-
-public/OLD
-/OLD
-configs/BACKUP
-
-# These should be created by the user and NOT be added to the git repo.
-!backend/commands/.gitKeep
-backend/commands/*
-config_cmds.json
-configs/config_cmds.text.json
-configs/config_srv_extra.json
-configs/config_srv.json
-configs/config_terms.json
+OLD
+PROGRESS.TXT

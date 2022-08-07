@@ -8,4 +8,4 @@ catch (err) {
 	process.exit(1);
 }
 
-require('./backend/server.js'); 
+require('./backend/node/server.js'); 

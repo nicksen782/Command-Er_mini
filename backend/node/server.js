@@ -1,4 +1,5 @@
 console.log("...LOADING...");
+
 // OS/Filesystem requires. 
 const os       = require('os');
 const fs       = require('fs');
@@ -19,73 +20,41 @@ const shouldCompress = (req, res) => {
 	}
 	return compression.filter(req, res);
 }
-
-// Modules (includes routes.)
-const _APP   = require('./modules/M_main.js')(app, express, server);
-
-// Remove old instances by port.
-let clearOldInstancesByPort = async function(display=false){
-	// Remove old processes if they are still there. 
-	let ports = [
-		_APP.m_config.config.server.port,
-		// _APP.m_config.config.python.ws.port,
-		// _APP.m_config.config.python.http.port,
-	];
-
-	// Remove any potential duplicates in the ports list. 
-	ports = [...new Set(ports)] ;
-
-	console.log("Removing any old processes using ports: ", ports);
-
-	//
-	await async function(portNumbers){ 
-		return new Promise(async function(resolve,reject){
-			let rpbp = require('../RemoveProcessByPort/removeprocess.js').run;
-			let resp; 
-			for(let i=0; i<portNumbers.length; i+=1){
-				let port = portNumbers[i];
-				try{ resp = await rpbp(port).catch( (e)=>{throw e;}) } 
-				catch(e){ resp = e; } 
-
-				// Normal run? 
-				if(resp.text){ 
-					if(display){
-						console.log("RemoveProcessByPort:", resp.text); 
-					}
-				}
-				// Error.
-				else{ console.log("RemoveProcessByPort:", resp);  }
-			}
-			resolve();
-		});
-	}(ports);
+const compressionObj = {
+	filter    : shouldCompress,
+	memLevel  : zlib.constants.Z_DEFAULT_MEMLEVEL,
+	level     : zlib.constants.Z_DEFAULT_COMPRESSION,
+	chunkSize : zlib.constants.Z_DEFAULT_CHUNK,
+	strategy  : zlib.constants.Z_DEFAULT_STRATEGY,
+	threshold : 0,
+	windowBits: zlib.constants.Z_DEFAULT_WINDOWBITS,
 };
+app.use( compression(compressionObj) );
+
+// Modules (routes are added per module via their module_init method.)
+
+// /home/pi/MINI/NEW
+// backend/node/M_main.js
+// /home/pi/MINI/NEW/backend/node/M_main.js
+const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
+// const _APP   = require('/home/pi/MINI/NEW/backend/node/M_main.js')(app, express, server);
+
 
 // START THE SERVER.
 (async function startServer(){
-	const compressionObj = {
-		filter    : shouldCompress,
-		memLevel  : zlib.constants.Z_DEFAULT_MEMLEVEL,
-		level     : zlib.constants.Z_DEFAULT_COMPRESSION,
-		chunkSize : zlib.constants.Z_DEFAULT_CHUNK,
-		strategy  : zlib.constants.Z_DEFAULT_STRATEGY,
-		threshold : 0,
-		windowBits: zlib.constants.Z_DEFAULT_WINDOWBITS,
-	};
-	app.use( compression(compressionObj) );
-	
-	// Load the config first.
-	await _APP.m_config.get_config();
+	// Load the config.
+	await _APP.m_config.get_configs();
 	_APP.m_config.configLoaded = true;
-
-	// Remove old processes.
-	await clearOldInstancesByPort(false);
-	// await clearOldInstancesByPort(true);
 	
-	let conf = {
-		host       : _APP.m_config.config.server.host, 
-		port       : _APP.m_config.config.server.port, 
-	};
+	// Remove any lingering processes that use these ports:
+	await _APP.removeProcessByPort(
+		[
+			_APP.m_config.config.node.http.port, 
+			_APP.m_config.config.python.ws.port, 
+			_APP.m_config.config.python.http.port 
+		], true
+	);
+	console.log("");
 
 	let printRoutes = function(){
 		let routes = _APP.getRoutePaths("manual", app).manual;
@@ -117,6 +86,7 @@ let clearOldInstancesByPort = async function(display=false){
 		};
 
 		// WS routes.
+		console.log("");
 		console.log(`ROUTES: (WEBSOCKET)`);
 		maxes = { "filename" : 0, "method" : 0, "path" : 0, "args": 0 };
 		for(filename in routes){ { if(maxes.filename < filename.length){ maxes.filename = filename.length; } } }
@@ -171,51 +141,45 @@ let clearOldInstancesByPort = async function(display=false){
 		console.log(`  ${totalTime.toFixed(3).padEnd(maxKeyLen, " ")}: ${"TOTAL".padStart(8, " ")}`);
 	};
 
-	server.listen(conf, async function () {
-		app.use(compression({ filter: shouldCompress }));
+	await _APP.module_inits();
 
-		app.use('/'    , express.static(path.join(process.cwd(), './public')));
-		app.use('/libs', express.static(path.join(process.cwd(), './node_modules')));
-		app.use('/tileset_8x8.png', express.static(path.join(process.cwd(), './tileset_8x8.png')));
-		app.use('/tile_coords.json', express.static(path.join(process.cwd(), './backend/tile_coords.json')));
-		
-		let appTitle = "Command-Er_Mini";
-		process.title = appTitle;
-		console.log();
-		console.log("*".repeat(45));
-		console.log(`NAME    : ${appTitle}`);
-		console.log(`STARTDIR: ${process.cwd()}`);
-		console.log(`SERVER  : ${_APP.m_config.config.server.host}:${_APP.m_config.config.server.port}`);
-		console.log("*".repeat(45));
-		console.log();
+	server.listen(
+		{
+			host: _APP.m_config.config.node.http.host, 
+			port: _APP.m_config.config.node.http.port
+		}, async function () {
+			let appTitle = "Command-Er_Mini";
+			process.title = appTitle;
+			// console.log("");
+			console.log("*".repeat(45));
+			console.log(`NAME    : ${appTitle}`);
+			console.log(`STARTDIR: ${process.cwd()}`);
+			console.log(`SERVER  : ${_APP.m_config.config.node.http.host}:${_APP.m_config.config.node.http.port}`);
+			console.log("*".repeat(45));
+			console.log("");
 
-		await _APP.module_inits();
+			// Default routes:
+			app.use('/'    , express.static(path.join(process.cwd(), './public')));
+			app.use('/libs', express.static(path.join(process.cwd(), './node_modules')));
+			// app.use('/tileset_8x8.png', express.static(path.join(process.cwd(), './tileset_8x8.png')));
+			// app.use('/tile_coords.json', express.static(path.join(process.cwd(), './backend/tile_coords.json')));
 
-		// console.log(`ROUTES:`);
-		// printRoutes(); 
-		
-		// console.log(`CONFIG:`);
-		// console.log(_APP.m_config.config);
-		
-		// console.log(`MODULE LOAD TIMES:`);
-		// printModuleLoadTimes(); 
+			// console.log(`ROUTES:`);
+			printRoutes(); 
+			console.log("");
+			
+			// console.log(`CONFIG:`);
+			// console.log(_APP.m_config.config);
+			// console.log("");
+			
+			// console.log(`MODULE LOAD TIMES:`);
+			// printModuleLoadTimes(); 
+			// console.log("");
 
-		// console.log("");
-		console.log("*".repeat(45));
-		console.log("READY");
-		console.log("");
+			console.log("*".repeat(45));
+			console.log("READY");
+			console.log("");
+		}
+	);
 
-		// Init the canvas
-		_APP.fps.init();
-		_APP.stats.setFps( _APP.m_config.config.lcd.fps );
-		await _APP.m_lcd.canvas.init();
-
-		// SET AN LCD DRAW TO BE NEEDED.
-		_APP.m_lcd.canvas.lcdUpdateNeeded = true;
-		// await _APP.m_lcd.canvas.updateFrameBuffer();
-		
-		// Start the _APP.appLoop.
-		_APP.schedule_appLoop();
-	});
-
-})();
+})()

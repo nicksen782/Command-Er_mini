@@ -1,0 +1,39 @@
+{
+	"toggles":{
+		"show_APP_consolelog"       : true,
+		"isActive_gpio"             : true,
+		"isActive_nodeWsServer"     : true,
+		"isActive_pythonWsServer"   : true,
+		"isActive_pythonHttpServer" : true,
+		"isActive_lcd"              : true
+	},
+	"node":{
+		"http":{
+			"host" : "0.0.0.0",
+			"port" : 7777
+		},
+		"fps"  : 5
+	},
+	"python":{
+		"ws":{
+			"host"  : "0.0.0.0",
+			"port"  : 7778
+		},
+		"http":{
+			"host"  : "0.0.0.0",
+			"port"  : 7779
+		}
+	},
+	"lcd":{
+		"width"      : 240,
+		"height"     : 240,
+		"tileset": {
+			"file"      : "tileset_8x8.png",
+			"rows"      : 30, 
+			"cols"      : 30, 
+			"tileWidth" : 8, 
+			"tileHeight": 8,
+			"tilesInCol": 3
+		}
+	}
+}
