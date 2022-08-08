@@ -6,7 +6,8 @@ let _APP = null;
 
 let _MOD = {
 	//
-	_VRAM           : []  , // (FLAT). Holds the tile ids for each tile of the screen.
+	_VRAM           : [], // ArrayBuffer for VRAM.
+	_VRAM_view      : [], // Uint8 view of _VRAM ArrayBuffer.
 	_VRAM_inited    : false, 
 	buff_abgr       : null, // Raw BGRA data (framebuffer).
 	curFrame        : 0,
@@ -32,6 +33,16 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
+		_APP.addToRouteList({ path: "/GET_VRAM", method: "post", args: [], file: __filename, desc: "" });
+		app.post('/GET_VRAM'    ,express.json(), async (req, res) => {
+			try{ 
+				// res.json(_MOD._VRAM);
+				res.json(_MOD._VRAM_view);
+			}
+			catch(e){
+				res.json(e);
+			}
+		});
 	},
 
 	// ***************
@@ -45,8 +56,13 @@ let _MOD = {
 			let conf = _APP.m_config.config.lcd;
 			let ts = conf.tileset;
 			let numIndexes = ( ts.rows*ts.cols) * ts.tilesInCol;
-			_MOD._VRAM = Array(numIndexes);
+
+			_MOD._VRAM = new ArrayBuffer(numIndexes);
+			_MOD._VRAM_view = new Uint8Array(_MOD._VRAM);
 			_MOD._VRAM_inited = true;
+
+			// _MOD._VRAM = Array(numIndexes);
+			// _MOD._VRAM_inited = true;
 		}
 	},
 
@@ -64,16 +80,16 @@ let _MOD = {
 		// console.log(`tileName:${tileName}, x:${x}, y:${y}, index:${index}, coords:${coords}`);
 		
 		// Get the values of the tiles. 
-		let tile2  = _MOD._VRAM[index+1];
-		let tile3  = _MOD._VRAM[index+2];
+		let tile2  = _MOD._VRAM_view[index+1];
+		let tile3  = _MOD._VRAM_view[index+2];
 		let tileId = _APP.m_config.tileIdsByTilename[tileName];
 
 		// Don't update and shift if the same tile is being drawn again.
 		if(tileId != tile3){
 			// Set the tiles.
-			_MOD._VRAM[index+0] = tile2;
-			_MOD._VRAM[index+1] = tile3;
-			_MOD._VRAM[index+2] = tileId;
+			_MOD._VRAM_view[index+0] = tile2;
+			_MOD._VRAM_view[index+1] = tile3;
+			_MOD._VRAM_view[index+2] = tileId;
 
 			// Set the lcdUpdateNeeded flag.
 			_MOD.lcdUpdateNeeded = true;
@@ -100,11 +116,18 @@ let _MOD = {
 		}
 
 		// Check for the tile. If not found then use 'nochar'.
-		if(_APP.m_config.tileIdsByTilename.indexOf(tileName) == -1){ 
-			// console.log("setTile: Tile not found:", tileName); 
+		try{
+			if(_APP.m_config.tilenamesByIndex.indexOf(tileName) == -1){ 
+				console.log("setTile: Tile not found:", tileName); 
+				tileName = 'nochar'; 
+			};
+		}
+		catch(e){
+			// console.log("ERROR: setTile : ", tileName, e);
+			// console.log("_APP.m_config.tilenamesByIndex:", _APP.m_config.tilenamesByIndex);
+			console.log("ERROR: setTile : ", tileName);
 			tileName = 'nochar'; 
-		};
-
+		}
 		
 		// "Draw" the tile to VRAM.
 		_MOD._updateVramTile_flat(tileName, x, y);
@@ -134,7 +157,7 @@ let _MOD = {
 		let tileId = _APP.m_config.tileIdsByTilename[tile];
 		
 		// Fill _VRAM with one tile.
-		_MOD._VRAM.fill(tileId);
+		_MOD._VRAM_view.fill(tileId);
 
 		_MOD.lcdUpdateNeeded = true;
 	},
@@ -153,6 +176,10 @@ let _MOD = {
 
 			// CLEAR THE SCREEN.
 			_MOD.clearScreen("tile3");
+			
+			_MOD.print("THIS IS A TEST", 0, 5);
+			_MOD.print(" 0123456789", 0, 6);
+			_MOD.print("ABCEFGHIJKLMNOPQRSTUVWXYZ", 0, 7);
 
 			resolve(); return; 
 		});

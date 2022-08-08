@@ -196,6 +196,10 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 			console.log(`READY (STARTUP TIME: ${_APP.timeIt("_STARTUP_", "t").toFixed(3).padStart(9, " ")} ms)` );
 			console.log("-".repeat(45));
 			console.log("");
+
+			_APP.fps.init();
+			_APP.stats.setFps( _APP.m_config.config.node.fps );
+			_APP.schedule_appLoop();
 		});
 	})();
 
