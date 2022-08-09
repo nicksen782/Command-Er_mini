@@ -68,8 +68,22 @@ let _MOD = {
 				res.json(e);
 			}
 		});
+
+		_APP.addToRouteList({ path: "/toggle_button", method: "post", args: [], file: __filename, desc: "toggle_button" });
+		app.post('/toggle_button'    ,express.json(), async (req, res) => {
+			try{ 
+				let result = await _MOD.toggle_button(req.body.button); 
+				res.json(result);
+			}
+			catch(e){
+				res.json(e);
+			}
+		});
 	},
 
+	toggle_button: async function(buttonKey){
+	},
+	
 	// Intended for the backlight.
 	toggle_pin: async function(buttonKey){
 		return new Promise(async function(resolve,reject){

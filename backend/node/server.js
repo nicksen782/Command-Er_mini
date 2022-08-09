@@ -4,12 +4,12 @@ console.log("...LOADING...\n");
 const os       = require('os');
 const fs       = require('fs');
 const path     = require('path');
-// const logbuffer = require('console-buffer')(100);
 
 // Express/WS requires. 
 const express  = require('express');
 const app      = express();
-const server   = require('http').createServer(app);
+const server   = require('http').createServer();
+server.on('request', app); 
 
 // Compression in Express.
 const zlib = require('zlib');

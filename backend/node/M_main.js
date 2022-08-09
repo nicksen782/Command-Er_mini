@@ -130,7 +130,7 @@ let _APP = {
 			_APP.timeIt("m_websocket_node", "s"); await _APP.m_websocket_node.module_init(_APP); _APP.timeIt("m_websocket_node", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_node", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
-			_APP.consolelog("START: module_init: websocket_python :");        
+			_APP.consolelog("START: module_init: websocket_python :");
 			_APP.timeIt("m_websocket_python", "s"); await _APP.m_websocket_python.module_init(_APP); _APP.timeIt("m_websocket_python", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_python", "t").toFixed(3).padStart(9, " ")} ms\n`);
 			
@@ -339,6 +339,11 @@ let _APP = {
 		interval : 0,
 	
 		setFps: function(newFPS){
+			if(!newFPS){ 
+				console.log("setFps: Invalid newFPS. Assigning it to 1");
+				newFPS = 1; 
+			}
+
 			// Ensure only integers will be used.
 			newFPS = Math.floor(newFPS);
 
@@ -403,7 +408,7 @@ let _APP = {
 				// _APP.wait = true;
 				// _APP.m_battery.wss.send(JSON.stringify({"mode":"updateVram", "data": _APP.m_lcd.canvas.draw._VRAM2}));
 				
-				// Update the web clients. 
+				// Update the web clients. (ArrayBuffer)
 				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
 					_APP.m_websocket_node.ws_utilities.sendToAll(_APP.m_draw._VRAM);
 				}

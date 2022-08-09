@@ -37,12 +37,13 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
+		_APP.addToRouteList({ path: "GET_VRAM"  , method: "ws", args: [], file: __filename, desc: "(JSON): Return _VRAM buffer" });
+		_APP.addToRouteList({ path: "CHANGE_FPS", method: "ws", args: [], file: __filename, desc: "(JSON): Change FPS" });
 	},
 
 	// **********
 	createWebSocketsServer: function(){
 		_MOD.ws = new WSServer({ server: _APP.server }); 
-		// _APP.server.on('request', _APP.app); 
 	},
 
 	ws_statusCodes:{
@@ -76,10 +77,13 @@ let _MOD = {
 	ws_event_handlers:{
 		JSON:{
 			// Expected origin: Web client by request. Sends the VRAM array.
-			GET_VRAM:    async function(ws, event){
-				// ws.send(JSON.stringify({ "mode":"GET_VRAM", msg:_APP.m_draw._VRAM }));
-				// ws.send(JSON.stringify({ "mode":"GET_VRAM", msg:new Uint8Array(_APP.m_draw._VRAM).buffer }));
+			GET_VRAM:    async function(ws, data){
 				ws.send(new Uint8Array(_APP.m_draw._VRAM).buffer);
+			},
+			// Expected origin: Web client by request.
+			CHANGE_FPS:    async function(ws, data){
+				_APP.fps.init();
+				_APP.stats.setFps( data.data );
 			},
 		},
 		TEXT:{},
@@ -142,7 +146,7 @@ let _MOD = {
 
 			if(tests.isJson){
 				if(_MOD.ws_event_handlers.JSON[data.mode]){
-					_MOD.ws_event_handlers.JSON[data.mode](ws, event);
+					_MOD.ws_event_handlers.JSON[data.mode](ws, data);
 				}
 				else{
 					ws.send(JSON.stringify({"mode":"ERROR", "data":"UNKNOWN MODE: " + data.mode}));
@@ -205,12 +209,3 @@ let _MOD = {
 };
 
 module.exports = _MOD;
-
-// WEBSOCKET: Send framebuffer.
-// updateWsClients: function(fb_data){
-	// _APP.timeIt("ws_buff_send", "s");
-	// _MOD.draw.buff_abgr = fb_data;
-	// _APP.m_lcd.WebSocket.sendToAll(_APP.m_draw.draw.buff_abgr);
-	// _APP.timeIt("ws_buff_send", "e");
-	// _MOD.draw.clearDrawingFlags();
-// },
