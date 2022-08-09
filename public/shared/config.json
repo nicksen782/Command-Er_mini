@@ -15,6 +15,8 @@
 		"fps"  : 5
 	},
 	"python":{
+		"file":"backend/python/server.py",
+		"initString": "##!!PYTHON_SERVER_READY!!##",
 		"ws":{
 			"host"  : "0.0.0.0",
 			"port"  : 7778

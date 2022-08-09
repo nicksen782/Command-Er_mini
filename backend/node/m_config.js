@@ -30,14 +30,14 @@ let _MOD = {
 			_APP = parent;
 	
 			// Get and store the config file. 
-			_APP.consolelog("  get_config");
+			_APP.consolelog("get_config", 2);
 			if(!_MOD.configLoaded){
 				await _MOD.get_configs();
 				_MOD.configLoaded = true;
 			}
 
 			// Add routes.
-			_APP.consolelog("  addRoutes");
+			_APP.consolelog("addRoutes", 2);
 			_MOD.addRoutes(_APP.app, _APP.express);
 
 			resolve();

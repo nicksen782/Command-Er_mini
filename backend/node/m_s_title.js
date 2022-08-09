@@ -14,11 +14,11 @@ let _MOD = {
 			// Save reference to the parent module.
 			_APP = parent;
 	
-			_APP.consolelog("  add screen: screen_title");
+			_APP.consolelog("add screen: screen_title", 2);
 			_APP.screenLogic.screens.screen_title = screen_title;
 
 			// Add routes.
-			_APP.consolelog("  addRoutes");
+			_APP.consolelog("addRoutes", 2);
 			_MOD.addRoutes(_APP.app, _APP.express);
 
 			resolve();

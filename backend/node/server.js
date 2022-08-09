@@ -38,25 +38,22 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 	_APP.timeIt("_STARTUP_", "s");
 
 	// Load the config.
-	_APP.consolelog("START: get_configs:");        
-	_APP.timeIt("get_configs", "s");   
-	await _APP.m_config.get_configs();
-	_APP.m_config.configLoaded = true;
-	_APP.timeIt("get_configs", "e");   
-	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("get_configs", "t").toFixed(3).padStart(9, " ")} ms\n`);
-	
+	_APP.consolelog("START: module_init: m_config :", 0);        
+	_APP.timeIt("m_config", "s"); await _APP.m_config.module_init(_APP); _APP.timeIt("m_config", "e");
+	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_config", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+
 	// Remove any lingering processes that use these ports:
 	_APP.timeIt("removeProcessByPort", "s");   
-	_APP.consolelog("START: removeProcessByPort:");        
+	_APP.consolelog("START: removeProcessByPort:", 0);        
 	await _APP.removeProcessByPort(
 		[
 			_APP.m_config.config.node.http.port, 
-			_APP.m_config.config.python.ws.port, 
-			_APP.m_config.config.python.http.port 
+			// _APP.m_config.config.python.ws.port, 
+			// _APP.m_config.config.python.http.port 
 		], true
 	);
 	_APP.timeIt("removeProcessByPort", "e");
-	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("removeProcessByPort", "t").toFixed(3).padStart(9, " ")} ms\n`);
+	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("removeProcessByPort", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 	// console.log("");
 	
 	let printRoutes = function(){

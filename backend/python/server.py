@@ -21,7 +21,7 @@ class Server:
     config=False
     def __init__(self):
         print(f"SERVER START")
-		
+        
         # Get the config.
         with open('public/shared/config.json', 'r') as myfile:
             self.config = json.load( myfile )
@@ -34,9 +34,24 @@ class Server:
 
         # Start servers/services. (The rest of the program is just responses from services.)
         if self.config['toggles']['isActive_pythonWsServer']:
+            # Start the server.
             self.c_websocketserver.startServer()
+            
+            # Send the init string.
+            print(self.config['python']['initString'], flush=True)
+
+            # Serve forever.
+            self.c_websocketserver.serverInstance.serve_forever()
+
         elif self.config['toggles']['isActive_pythonHttpServer']:
+            # Start the server.
             self.c_webserver.startServer()
+            
+            # Send the init string.
+            print(self.config['python']['initString'], flush=True)
+
+            # Serve forever.
+            self.c_webserver.serverInstance.serve_forever()
 
 # Start
 server = Server()

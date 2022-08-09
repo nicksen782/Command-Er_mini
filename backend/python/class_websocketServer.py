@@ -69,10 +69,10 @@ class C_WebSocketServer:
                 # TEXT-based requests.
                 else: 
                     # Initial connectivity test.
-                    if self.data == "ping":
+                    if self.data == "PING":
                         jsonObj = {}
-                        jsonObj['mode'] = "ping"
-                        jsonObj['data'] = "pong"
+                        jsonObj['mode'] = "PING"
+                        jsonObj['data'] = "PONG"
                         self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                     # Request battery data.
@@ -107,4 +107,4 @@ class C_WebSocketServer:
         self.handler.parent = self.parent
         self.serverInstance = WebSocketServer( conf['host'], conf['port'], self.handler)
         # print(f"\"websockets_server\" started http://{HOST_NAME}:{PORT}")
-        self.serverInstance.serve_forever()
+        # self.serverInstance.serve_forever()

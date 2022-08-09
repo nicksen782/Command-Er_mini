@@ -60,4 +60,4 @@ class C_WebServer:
         self.handler.parent = self.parent
         self.serverInstance = HTTPServer( (conf['host'], conf['port']), self.handler)
         # print(f"\"web_server\" started http://{HOST_NAME}:{PORT}")
-        self.serverInstance.serve_forever()
+        # self.serverInstance.serve_forever()

@@ -21,7 +21,7 @@ let _MOD = {
 			_APP = parent;
 	
 			// Add routes.
-			_APP.consolelog("  addRoutes");
+			_APP.consolelog("addRoutes", 2);
 			_MOD.addRoutes(_APP.app, _APP.express);
 
 			//

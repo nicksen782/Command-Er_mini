@@ -15,19 +15,19 @@ let _MOD = {
 			_APP = parent;
 	
 			// Add routes.
-			_APP.consolelog("  addRoutes");
+			_APP.consolelog("addRoutes", 2);
 			_MOD.addRoutes(_APP.app, _APP.express);
 			
-			_APP.consolelog("  Node WebSockets Server");
+			_APP.consolelog("Node WebSockets Server", 2);
 			if(_APP.m_config.config.toggles.isActive_nodeWsServer){
-				_APP.consolelog("    Create Server");
+				_APP.consolelog("Create Server", 4);
 				_MOD.createWebSocketsServer();
 
-				_APP.consolelog("    Init Server");
+				_APP.consolelog("Init Server", 4);
 				_MOD.initWss();
 			}
 			else{
-				_APP.consolelog("  DISABLED IN CONFIG");
+				_APP.consolelog("DISABLED IN CONFIG", 2);
 				_MOD.ws = null;
 			}
 

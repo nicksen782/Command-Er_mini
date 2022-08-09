@@ -74,8 +74,9 @@ let websocket = {
 			let data;
 			let tests = { isJson: false, isText: false, isArrayBuffer: false, isBlob: false };
 
-			// Is event.data populated?
-			if(event.data == null){ return; }
+			// Is event.data populated? (OPEN triggers message with no event data.)
+			try{ if(event.data == null){ return; } }
+			catch(e){ return; }
 
 			// First, assume the data is JSON (verify this.)
 			try{ data = JSON.parse(event.data); tests.isJson = true; }
