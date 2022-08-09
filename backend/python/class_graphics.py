@@ -26,15 +26,23 @@ with open('public/shared/coordsByIndex.json', 'r') as myfile:
 with open('public/shared/indexByCoords.json', 'r') as myfile:
     indexByCoords = json.loads(myfile.read())
 
+with open('public/shared/tileCoords.json', 'r') as myfile:
+    tileCoords = json.loads(myfile.read())
+
+with open('public/shared/tilenamesByIndex.json', 'r') as myfile:
+    tilenamesByIndex = json.loads(myfile.read())
+
 class C_Graphics:
     parent=False
     tilesetImage=False
+    tileImageCache=False
     tileWidth=False
     tileHeight=False
     rows=False
     cols=False
     outputWidth=False
     outputHeight=False
+    tilesInCol=False
     fb=False
     lcdImage=False
     _VRAM=False
@@ -54,6 +62,7 @@ class C_Graphics:
         self.cols         = config['lcd']['tileset']['cols']
         self.outputWidth  = config['lcd']['width']
         self.outputHeight = config['lcd']['height']
+        self.tilesInCol   = config['lcd']['tileset']['tilesInCol']
 
         # self.progressImage("color", 4)
         # # Map the screen as Numpy array
@@ -70,12 +79,19 @@ class C_Graphics:
         # time.sleep(0.2)
         # self.progressImage("color", 3)
         # time.sleep(0.2)
-        # self.progressImage("color", 4)
+        self.progressImage("color", 4)
         # time.sleep(0.2)
 
         # VRAM (internal)
         # self._VRAM = np.array(_VRAM)
         self._VRAM = np.zeros(shape = (self.rows, self.cols, 3), dtype = np.uint8)
+
+        self.tileImageCache = [0]* len(tileCoords)
+        i=0
+        for key in tileCoords:
+            self.tileImageCache[i] = self.getTileImage(key, "image") 
+            i+=1
+        print(self.tileImageCache[0])
 
     def progressImage(self, type, which):
         if type == "color":
@@ -115,8 +131,6 @@ class C_Graphics:
         self.fb[:] = pix
 
     def rgbaImgToBGRA(self, img):
-        # rgbaToBGRA(n, pix)
-
         # Get the dimensions of the image.
         w, h = img.size
 
@@ -131,11 +145,12 @@ class C_Graphics:
 
         # Return.
         return pix
+    
+    def clearImage(self, image):
+        draw = ImageDraw.Draw(image)
+        draw.rectangle([(0,0),image.size], fill = (0,0,0, 255) )
 
-
-
-
-    def getTileImage(key, asType):
+    def getTileImage(self, key, asType):
         # tilesetImage
         # tileWidth
         # tileHeight
@@ -143,19 +158,19 @@ class C_Graphics:
         # outputHeight
 
         # Make sure that the requested key exists.
-        if tile_coords.get(key) == None:
-            coords = tile_coords["nochar"]
+        if tileCoords.get(key) == None:
+            coords = tileCoords["nochar"]
         else:
-            coords = tile_coords[key]
+            coords = tileCoords[key]
         
         # Generate the coords.
-        left   = coords['L']*tileWidth
-        top    = coords['T']*tileHeight
-        right  = left+tileWidth
-        bottom = top+tileHeight
+        left   = coords['L'] * self.tileWidth
+        top    = coords['T'] * self.tileHeight
+        right  = left + self.tileWidth
+        bottom = top  + self.tileHeight
 
         box          = (left, top, right, bottom)
-        tileImage    = tilesetImage.crop(box)
+        tileImage    = self.tilesetImage.crop(box)
 
         # Return the data as the type that was requested.
         if asType == "image":
@@ -164,6 +179,46 @@ class C_Graphics:
             img_byte_arr = io.BytesIO()
             tileImage.save(img_byte_arr, format='PNG')
             return tileImage
+
+    def updateVram(self, _VRAM_bytearray):
+        _VRAM = np.frombuffer(_VRAM_bytearray, dtype="uint8") 
+        # _VRAM = np.array(_VRAM_bytearray, dtype="uint8") 
+
+        self.clearImage(self.lcdImage)
+        
+        for yrow in range(self.rows):
+            for xcol in range(self.cols):
+                # Get the VRAM index for this y,x coord.
+                _VRAM_index=indexByCoords[yrow][xcol]
+
+                # Create the left and top box.
+                box = (xcol * self.tileWidth, yrow * self.tileHeight)
+
+                for v in range(self.tilesInCol):
+                    # Get the tile id.
+                    tile_id = _VRAM[_VRAM_index+v]
+                    
+                    # Draw the tile image.
+                    self.lcdImage.paste(self.tileImageCache[tile_id], (box[0], box[1]), self.tileImageCache[tile_id])
+
+        # Update the framebuffer.
+        start1 = time.time()
+        pix = self.rgbaImgToBGRA(self.lcdImage)
+        end1 = time.time()
+        print(f"updateVram (rgbaImgToBGRA): {format( ((end1 - start1) * 1000), '.2f') } ms")
+
+        start1 = time.time()
+        self.fb[:] = pix
+        end1 = time.time()
+        print(f"updateVram (fb)           : {format( ((end1 - start1) * 1000), '.2f') } ms")
+
+        # Return the pix for the framebuffer.
+        # return pix
+
+
+
+
+
 
     def test1():
         im = tilesetImage
@@ -177,34 +232,8 @@ class C_Graphics:
         print(f"update lcd   : {format( ((end2 - start2) * 1000), '.2f') } ms")
 
     # def updateVram(_VRAM):
-    def genBox(x, y):
-        # Generate the destination coords.
-        left   = x * tileWidth
-        top    = y * tileHeight
-        right  = left + (tileWidth)
-        bottom = top  + (tileHeight)
-        box = (left, top, right, bottom)
 
-        return box
-
-    def drawTile(tileName, box, destImage):
-        # Generate the tile image if needed. Use the cached copy otherwise.
-        # if ImgCache.get(tileName) == None:
-        #     ImgCache[tileName] = getTileImage(tileName, "image")
-        
-        # # Get the tile image.
-        # tileImg = ImgCache[tileName] 
-        tileImg =  getTileImage(tileName, "image") 
-
-        # Paste the tile image to the lcdImage
-        destImage.paste(tileImg, (box[0], box[1]), tileImg)
-        # destImage.paste(tileImg, box, tileImg)
-
-    def clearImage(image):
-        draw = ImageDraw.Draw(image)
-        draw.rectangle([(0,0),image.size], fill = (0,0,0, 255) )
-
-    def updateVram(self, _VRAM):
+    def OLDOLDupdateVram(self, _VRAM):
         # _VRAM = np.array(_VRAM, dtype='uint8')
         # f_VRAM = _VRAM.flatten()
         clearImage(lcdImage)

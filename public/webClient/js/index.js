@@ -499,7 +499,7 @@ let buttons = {
 		select.append(frag);
 
 	},
-	changeFps: function(ws, newFps){
+	changeFps: function(type, newFps){
 		if(type=="ws"){
 			if(websocket.activeWs){
 				websocket.activeWs.send(JSON.stringify({"mode":"CHANGE_FPS", "data":parseInt(newFps,10)}));

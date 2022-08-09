@@ -24,6 +24,7 @@ class C_WebSocketServer:
         try:
             resp = json.loads(myjson)
         except ValueError as e:
+            # print(f"Error in is_json: {e}")
             return False
         return resp
     
@@ -32,32 +33,52 @@ class C_WebSocketServer:
 
         def handle(self):
             try:
-                # Check if the data is JSON and get it if it is.
-                # jsonObj = C_WebSocketServer.is_json(self.data)
-                jsonObj = self.parent.c_websocketserver.is_json(self.data)
+                # Determine the type of data that was sent.
+                type=""
+                try:
+                    if isinstance(self.data, bytearray):
+                        type="binary"
+                    elif isinstance(self.data, str):
+                        jsonObj = self.parent.c_websocketserver.is_json(self.data)
+                        if jsonObj:
+                            type="json"
+                        else:
+                            type="text"
+                except Exception as ex:
+                    print(f"ex -->>: {ex}")
+                    return
+
+                # BINARY-based requests.
+                if type == "binary":
+                    try:
+                        start1 = time.time()
+                        self.parent.c_gfx.updateVram(self.data)
+                        end1 = time.time()
+                        print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
+                    except Exception as ex:
+                        print(f"ex BINARY -->> : {ex}")
+
+                    # # # Pass the _VRAM, draw to screen, return framebuffer.
+                    # # start1 = time.time()
+                    # # try:
+                    # #     resp = self.parent.c_gfx.updateVram(_VRAM)
+                    # # except Exception as ex:
+                    # #     print(f"Error in updateVram, ex:{ex}")
+                    # #     resp = rgbaImgToBGRA(tilesetImage2)
+                    # #     fb[:] = resp
+                    # # end1 = time.time()
+                    
+                    # # print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
+                    
+                    jsonObj = {}
+                    jsonObj['mode'] = "LCD_UPDATE_DONE"
+                    jsonObj['data'] = "DONE"
+                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                 # JSON-based requests.
-                if jsonObj:
+                elif type == "json": 
                     if jsonObj['mode'] == "updateVram":
-                        jsonObj = {}
-                        jsonObj['mode'] = "updateVram"
-                        jsonObj['data'] = "TEST"
-                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
-
-                        # _VRAM = jsonObj['data']
-
-                        # # Pass the _VRAM, draw to screen, return framebuffer.
-                        # start1 = time.time()
-                        # try:
-                        #     resp = self.parent.c_gfx.updateVram(_VRAM)
-                        # except Exception as ex:
-                        #     print(f"Error in updateVram, ex:{ex}")
-                        #     resp = rgbaImgToBGRA(tilesetImage2)
-                        #     fb[:] = resp
-                        # end1 = time.time()
-                        
-                        # print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
-                        # self.send_message(resp.tobytes())
+                        print("updateVram")
 
                     # CATCH-ALL.
                     else:
@@ -65,9 +86,9 @@ class C_WebSocketServer:
                         jsonObj['mode'] = "UNKNOWN_REQUEST"
                         jsonObj['data'] = self.data
                         self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
-                    
+
                 # TEXT-based requests.
-                else: 
+                elif type == "text": 
                     # Initial connectivity test.
                     if self.data == "PING":
                         jsonObj = {}
@@ -88,6 +109,14 @@ class C_WebSocketServer:
                         jsonObj['mode'] = "UNKNOWN_REQUEST"
                         jsonObj['data'] = self.data
                         self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+
+                # CATCH-ALL.
+                else:
+                    jsonObj = {}
+                    jsonObj['mode'] = "UNKNOWN_REQUEST"
+                    jsonObj['data'] = self.data
+                    self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
+
             except Exception as ex:
                 print(f"Error in ... , ex:{ex}")
 

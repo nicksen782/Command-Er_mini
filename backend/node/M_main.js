@@ -395,39 +395,22 @@ let _APP = {
 			_APP.timeIt("LOGIC", "e");
 			
 			// UPDATE DISPLAY(S)
-			_APP.timeIt("DISPLAYUPDATE", "s");
 			if(_APP.m_draw.lcdUpdateNeeded && !_APP.m_draw.updatingLCD){ 
-				_APP.m_draw.lcdUpdateNeeded = false;
-				_APP.m_draw.updatingLCD = false;
-				// _APP.timeIt("WS_DISPLAYUPDATE", "s");
-
-				// updateVram - Python.
-				// _APP.wait = true;
-				// _APP.m_battery.wss.send(JSON.stringify({"mode":"updateVram", "data": _APP.m_lcd.canvas.draw._VRAM2}));
+				// Start the timeIt.
+				_APP.timeIt("WS_DISPLAYUPDATE", "s");
 				
 				// Update the web clients. (ArrayBuffer)
 				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
 					_APP.m_websocket_node.ws_utilities.sendToAll(_APP.m_draw._VRAM);
 				}
-
-				// Update the Python server.
-				if(0){
-				}
-
-				// _APP.m_websocket_node.ws_utilities.sendToAll(JSON.stringify({
-				// 	"mode":"GET_VRAM", 
-				// 	"data": _APP.m_draw._VRAM,
-				// 	"curFrame": _APP.m_lcd.canvas.draw.curFrame,
-				// }));
+				
+				// Update the Python server. (ArrayBuffer)
+				_APP.m_websocket_python.wsClient.send(_APP.m_draw._VRAM);
 			}
-			_APP.timeIt("DISPLAYUPDATE", "e");
 			
-			// _APP.stats._then = _APP.stats.now - (_APP.stats.delta % _APP.stats.interval);
-			// _APP.stats._then = performance.now(); // _APP.stats.now - (_APP.stats.delta % _APP.stats.interval);
-
 			_APP.timeIt("FULLLOOP", "e");
 	
-			_APP.schedule_appLoop();
+			// _APP.schedule_appLoop();
 		}
 		// NO
 		else{

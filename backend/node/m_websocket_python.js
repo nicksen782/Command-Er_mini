@@ -41,7 +41,7 @@ let _MOD = {
 			_MOD.startServer();
 			
 			await new Promise(async function(res,rej){
-				let maxAttempts = 20;
+				let maxAttempts = 5;
 				for(let attempts=0; attempts<maxAttempts; attempts+=1){
 					// Successful ping?
 					if(_MOD.pinged){
@@ -144,12 +144,23 @@ let _MOD = {
 					// console.log(`mode: ${data.mode}, data: ${data.data}`);
 					_MOD.pinged = true;
 				},
+				LCD_UPDATE_DONE: function(ws, data){
+					// Reset the draw flags.
+					_APP.m_draw.lcdUpdateNeeded = false;
+					_APP.m_draw.updatingLCD = false;
+	
+					// End the timeIt.
+					_APP.timeIt("WS_DISPLAYUPDATE", "e");
+	
+					console.log( _APP.timeIt("WS_DISPLAYUPDATE", "t") );
+					
+					// Schedule the next appLoop.
+					_APP.schedule_appLoop();
+				},
 			},
 			TEXT  : {
-		
 			},
 			BINARY: {
-		
 			},
 		},
 		ws_utilities: {

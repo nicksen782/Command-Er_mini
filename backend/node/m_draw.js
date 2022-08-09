@@ -56,7 +56,7 @@ let _MOD = {
 			let conf = _APP.m_config.config.lcd;
 			let ts = conf.tileset;
 			let numIndexes = ( ts.rows*ts.cols) * ts.tilesInCol;
-
+			
 			_MOD._VRAM = new ArrayBuffer(numIndexes);
 			_MOD._VRAM_view = new Uint8Array(_MOD._VRAM);
 			_MOD._VRAM_inited = true;
