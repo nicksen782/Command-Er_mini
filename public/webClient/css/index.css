@@ -7,7 +7,7 @@ body {
 	width: 960px;
 	background-color: cadetblue;
 	text-align: center;
-	margin: auto;
+	/* margin: auto; */
 	margin-top: 5px;
 }
 
@@ -143,6 +143,8 @@ div#controls_right {
 	display: none;
 }
 
+table td, table th{ vertical-align: top; }
+#info_VRAM_UPDATESTATS{font-family: monospace;white-space: pre;font-size: 12px;}
 #controls_bottom table{
 	width:530px;
 }

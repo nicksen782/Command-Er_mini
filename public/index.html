@@ -79,6 +79,21 @@
 							<button id="info_changeFpsBtn">SET</button>
 						</td>
 					</tr>
+					<tr>
+						<td>CLEARLAYER</td>
+						<td>
+							<button id="info_clearLayer0">0</button>
+							<button id="info_clearLayer1">1</button>
+							<button id="info_clearLayer2">2</button>
+							<button id="info_clearLayerAll">ALL</button>
+						</td>
+					</tr>
+					<tr>
+						<td>UPDATESTATS</td>
+						<td>
+							<div id="info_VRAM_UPDATESTATS"></div>
+						</td>
+					</tr>
 				</table>
 			</div>
 		</div>
@@ -115,16 +130,16 @@
 
 	<div id="vram_div_layers" class="hide">
 		<div class="inlineBlock">
-			<span class="title">DISPLAY LAYER: 3</span>
-			<canvas class="vramCanvas" id="vram_l3" width="240" height="240"></canvas>
+			<div class="title">DISPLAY LAYER: 0 (fillTile)</div>
+			<canvas class="vramCanvas" id="vram_l1" width="240" height="240"></canvas>
 		</div>
 		<div class="inlineBlock">
-			<div class="title">DISPLAY LAYER: 2</div>
+			<div class="title">DISPLAY LAYER: 1 (setTile L1)</div>
 			<canvas class="vramCanvas" id="vram_l2" width="240" height="240"></canvas>
 		</div>
 		<div class="inlineBlock">
-			<div class="title">DISPLAY LAYER: 1</div>
-			<canvas class="vramCanvas" id="vram_l1" width="240" height="240"></canvas>
+			<span class="title">DISPLAY LAYER: 2 (setTile L2/print)</span>
+			<canvas class="vramCanvas" id="vram_l3" width="240" height="240"></canvas>
 		</div>
 	</div>
 

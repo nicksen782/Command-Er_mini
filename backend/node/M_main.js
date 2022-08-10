@@ -172,6 +172,88 @@ let _APP = {
 				}
 				// console.log(`NEXT: ${index+1}/${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`, _APP.screens);
 			},
+			displayTime: function(x=0, y=29, tile="tile1"){
+				// _APP.screenLogic.shared.displayTime(0, 28, "tile1");
+				var d = new Date(); // for now
+				let h = d.getHours();
+				let ampm="AM";
+				if (h > 12) { h -= 12; ampm="PM";} 
+				else if (h === 0) { h = 12; }
+				h=h.toString().padStart(2, " ");
+		
+				let m = d.getMinutes().toString().padStart(2, "0");
+				let s = d.getSeconds().toString().padStart(2, "0");
+				let str2 = `${h}:${m}:${s}${ampm}`;
+		
+				_APP.m_draw.fillTile(tile, x, y, 11, 1); 
+				_APP.m_draw.setTile("clock1", x, y);
+				_APP.m_draw.print(str2, x+1, y);
+			},
+			chargeFlag:false,
+			lastBattery:{},
+			displayBattery: function(x=17, y=28, tile="tile1"){
+				// EXAMPLE DATA:
+				//{
+				//	V: 4.0760000000000005,
+				//	A: 0.001,
+				//	W: 0,
+				//	'%': 89.66666666666671,
+				//	PV: 4.07601,
+				//	SV: 0.00001
+				//}
+
+				// console.log(json);
+				// json['%'] = 25.0;
+				// json['%'] = 50.0;
+				// json['%'] = 75.0;
+				// json['%'] = 100.0;
+				let json = _APP.screenLogic.shared.lastBattery;
+				firstLoad=false;
+				if(!json['%']){
+					firstLoad=true;
+					console.log("Battery data has not been populated yet.");
+					// return; 
+				}
+		
+				// CREATE THE STRING. 
+				let str;
+				let batIcon;
+				if(!firstLoad){
+					str = (json['%'].toFixed(1)+"%").padStart(7, " ");
+
+					// DETERMINE WHICH BATTERY ICON TO DISPLAY.
+					if     (json['%'] <=25){ batIcon = "batt1"; } // RED
+					else if(json['%'] <=50){ batIcon = "batt2"; } // ORANGE
+					else if(json['%'] <=80){ batIcon = "batt3"; } // YELLOW
+					else { batIcon = "batt4"; } // GREEN
+				}
+				else{
+					str = "LOADING";
+				}
+		
+				// Clear the area for the battery text. (str.length should be 7.)
+				_APP.m_draw.fillTile(tile, x+0, y, str.length + 1, 1); 
+				
+				if(!firstLoad){
+					// Set the tile for the battery icon and charge indicator.
+					_APP.m_draw.setTile(batIcon, x, y, 0); 
+
+					if(Math.sign(json['A']) == 1){
+						if(_APP.screenLogic.shared.chargeFlag){
+							_APP.m_draw.setTile("battcharge1", x, y, 1); 
+						}
+						else{
+							_APP.m_draw.setTile("battcharge2", x, y, 1); 
+						}
+						_APP.screenLogic.shared.chargeFlag = !_APP.screenLogic.shared.chargeFlag;
+					}
+					else{
+						_APP.m_draw.setTile(" ", x, y, 1); 
+					}
+				}
+				_APP.m_draw.print(str, x+1, y);
+		
+			},
 		},
 		screens: {},
 	},
@@ -395,13 +477,18 @@ let _APP = {
 			_APP.timeIt("LOGIC", "e");
 			
 			// UPDATE DISPLAY(S)
-			if(_APP.m_draw.lcdUpdateNeeded && !_APP.m_draw.updatingLCD){ 
+			if(_APP.m_draw.lcdUpdateNeeded){ 
+				_APP.m_draw.updatingLCD=true;
 				// Start the timeIt.
 				_APP.timeIt("WS_DISPLAYUPDATE", "s");
 				
 				// Update the web clients. (ArrayBuffer)
 				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
+					// VRAM
 					_APP.m_websocket_node.ws_utilities.sendToAll(_APP.m_draw._VRAM);
+					
+					// VRAM update stats.
+					_APP.m_websocket_node.ws_utilities.sendToAll(JSON.stringify({mode:"_VRAM_UPDATESTATS", data:_APP.m_draw._VRAM_updateStats}));
 				}
 				
 				// Update the Python server. (ArrayBuffer)

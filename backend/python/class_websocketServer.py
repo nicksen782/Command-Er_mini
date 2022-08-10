@@ -52,27 +52,35 @@ class C_WebSocketServer:
                 if type == "binary":
                     try:
                         start1 = time.time()
-                        self.parent.c_gfx.updateVram(self.data)
+                        
+                        # Use PIL?
+                        resp="SKIPPED"
+                        if self.parent.config['python']['gfx'] == "PIL":
+                            if self.parent.c_gfx.currentlyDrawing==False:
+                                self.parent.c_gfx.currentlyDrawing=True
+                                self.parent.c_gfx.PIL_updateVram(self.data)	
+                                self.parent.c_gfx.currentlyDrawing=False
+                                resp="DONE"
+
+                        # Use OCV?
+                        elif self.parent.config['python']['gfx'] == "OCV":
+                            if self.parent.c_gfx.currentlyDrawing==False:
+                                self.parent.c_gfx.currentlyDrawing=True
+                                self.parent.c_gfx.OCV_updateVram(self.data)
+                                self.parent.c_gfx.currentlyDrawing=False
+                                resp="DONE"
+                        
                         end1 = time.time()
                         print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
-                    except Exception as ex:
-                        print(f"ex BINARY -->> : {ex}")
 
-                    # # # Pass the _VRAM, draw to screen, return framebuffer.
-                    # # start1 = time.time()
-                    # # try:
-                    # #     resp = self.parent.c_gfx.updateVram(_VRAM)
-                    # # except Exception as ex:
-                    # #     print(f"Error in updateVram, ex:{ex}")
-                    # #     resp = rgbaImgToBGRA(tilesetImage2)
-                    # #     fb[:] = resp
-                    # # end1 = time.time()
-                    
-                    # # print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
-                    
+                    except Exception as ex:
+                        print(f"ex BINARY -->> :", ex)
+                        self.parent.c_gfx.currentlyDrawing=False
+
+                    # Let the client know that we are done with the lcd update.
                     jsonObj = {}
                     jsonObj['mode'] = "LCD_UPDATE_DONE"
-                    jsonObj['data'] = "DONE"
+                    jsonObj['data'] = resp
                     self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                 # JSON-based requests.
@@ -97,9 +105,9 @@ class C_WebSocketServer:
                         self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                     # Request battery data.
-                    elif self.data == "getBatteryData":
+                    elif self.data == "GET_BATTERY":
                         jsonObj = {}
-                        jsonObj['mode'] = "getBatteryData"
+                        jsonObj['mode'] = "GET_BATTERY"
                         jsonObj['data'] =  self.parent.c_battery.getBatteryData()
                         self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 

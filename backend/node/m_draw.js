@@ -6,13 +6,14 @@ let _APP = null;
 
 let _MOD = {
 	//
-	_VRAM           : [], // ArrayBuffer for VRAM.
-	_VRAM_view      : [], // Uint8 view of _VRAM ArrayBuffer.
-	_VRAM_inited    : false, 
-	buff_abgr       : null, // Raw BGRA data (framebuffer).
-	curFrame        : 0,
-	updatingLCD     : false,
-	lcdUpdateNeeded : false,
+	_VRAM            : [], // ArrayBuffer for VRAM.
+	_VRAM_view       : [], // Uint8 view of _VRAM ArrayBuffer.
+	_VRAM_inited     : false, 
+	_VRAM_updateStats: {}, 
+	buff_abgr        : null, // Raw BGRA data (framebuffer).
+	curFrame         : 0,
+	updatingLCD      : false,
+	lcdUpdateNeeded  : false,
 
 	// Init this module.
 	module_init: async function(parent){
@@ -23,8 +24,9 @@ let _MOD = {
 			// Add routes.
 			_APP.consolelog("addRoutes", 2);
 			_MOD.addRoutes(_APP.app, _APP.express);
-
-			//
+			
+			// VRAM init.
+			_APP.consolelog("LCD VRAM init", 2);
 			await _MOD.init();
 
 			resolve();
@@ -57,50 +59,88 @@ let _MOD = {
 			let ts = conf.tileset;
 			let numIndexes = ( ts.rows*ts.cols) * ts.tilesInCol;
 			
+			// Create the _VRAM arraybuffer.
 			_MOD._VRAM = new ArrayBuffer(numIndexes);
+
+			// Create the _VRAM dataview.
 			_MOD._VRAM_view = new Uint8Array(_MOD._VRAM);
+
+			// Fill the _VRAM with the "space" tile (fully transparent and blank.)
+			_MOD._VRAM_view.fill( _APP.m_config.tileIdsByTilename[" "] );
+
+			// Set the inited flag.
 			_MOD._VRAM_inited = true;
 
-			// _MOD._VRAM = Array(numIndexes);
-			// _MOD._VRAM_inited = true;
+			// Init _MOD._VRAM_updateStats
+			for(let i=0; i<ts.tilesInCol; i+=1){
+				_MOD._VRAM_updateStats[i] = { "layer": i, "updates": 0 }
+			}
+
+			// Set the lcdUpdateNeeded flag.
+			// _MOD.lcdUpdateNeeded = true;
 		}
 	},
 
+	// Clear one VRAM layer with a tile. (Used by the Web Client... only??)
+	clearLayer: function(tile=" ", xcolLayer=null){
+		// Get the LCD config.
+		let conf = _APP.m_config.config.lcd;
+		let ts = conf.tileset;
+
+		// Fill _VRAM with one tile.
+		_MOD.fillTile(tile, 0, 0, ts.cols, ts.rows, xcolLayer);
+
+		// Set the lcdUpdateNeeded flag.
+		_MOD.lcdUpdateNeeded = true;
+	},
+
+	// Clear all VRAM layers. Can specify the layer 0 tile.
+	clearLayers: function(tile=" "){
+		// Get the LCD config.
+		let conf = _APP.m_config.config.lcd;
+		let ts = conf.tileset;
+
+		// Fill layer 0 with the specified tile.
+		_MOD.fillTile(tile, 0, 0, ts.cols, ts.rows, 0);
+		
+		// Fill the other layers _VRAM with the "space" tile (fully transparent and blank.)
+		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 1);
+		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 2);
+
+		// Set the lcdUpdateNeeded flag.
+		_MOD.lcdUpdateNeeded = true;
+	},
+
 	// Update one tile in _VRAM.
-	_updateVramTile_flat: function(tileName, x, y){
+	_updateVramTile_flat: function(tileName, x, y, xcolLayer=null){
+		// Get the LCD config.
+		let conf = _APP.m_config.config.lcd;
+		let ts = conf.tileset;
+
+		// Ensure that the tileName is a string.
 		tileName = tileName.toString();
 
-		// Get the lookups.
-		let _byCoord = _APP.m_config.indexByCoords;
-
-		let index = _byCoord[y][x];
+		// Get the index via the x,y coords.
+		let index = _APP.m_config.indexByCoords[y][x];
 		
-		// DEBUG
-		// let coords = _byIndex[index] 
-		// console.log(`tileName:${tileName}, x:${x}, y:${y}, index:${index}, coords:${coords}`);
-		
-		// Get the values of the tiles. 
-		let tile2  = _MOD._VRAM_view[index+1];
-		let tile3  = _MOD._VRAM_view[index+2];
-		let tileId = _APP.m_config.tileIdsByTilename[tileName];
+		// Don't update a tile with the same tile. 
+		let tile_old = _MOD._VRAM_view[index+xcolLayer];
+		let tile_new = _APP.m_config.tileIdsByTilename[tileName];
+		if(tile_old != tile_new){
+			// Update the vram entry.
+			_MOD._VRAM_view[index+xcolLayer] = tile_new;
 
-		// Don't update and shift if the same tile is being drawn again.
-		if(tileId != tile3){
-			// Set the tiles.
-			_MOD._VRAM_view[index+0] = tile2;
-			_MOD._VRAM_view[index+1] = tile3;
-			_MOD._VRAM_view[index+2] = tileId;
+			// Update stats.
+			// if(!_MOD._VRAM_updateStats[xcolLayer]
+			_MOD._VRAM_updateStats[xcolLayer].updates += 1;
 
 			// Set the lcdUpdateNeeded flag.
 			_MOD.lcdUpdateNeeded = true;
 		}
-		else{
-			// console.log("WARN: Same tile drawn over same tile.", tileName, tileId, tile3, `x:$x}, y:${y}`);
-		}
 	},
 
 	// DRAW ONE TILE TO THE CANVAS.
-	setTile    : function(tileName, x, y){
+	setTile    : function(tileName, x, y, xcolLayer=1){
 		// Get the LCD config.
 		let conf = _APP.m_config.config.lcd;
 		let ts = conf.tileset;
@@ -108,9 +148,10 @@ let _MOD = {
 		// Bounds-checking. (Ignore further chars on x if oob. Ignore oob on y too.)
 		let oob_x = x >= ts.cols ? true : false;
 		let oob_y = y >= ts.rows ? true : false;
-		if(oob_x){ console.log("oob_x"); return; }
-		if(oob_y){ console.log("oob_y"); return; }
+		if(oob_x){ console.log(`oob_x:${x} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); return; }
+		if(oob_y){ console.log(`oob_y:${y} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); return; }
 
+		// Numbers and spaces cannot be used as JSON keys. This is the fix.
 		if(tileName.length == 1 && tileName.match(/[0-9\s]/g)){
 			tileName = `n${tileName}`;
 		}
@@ -130,42 +171,39 @@ let _MOD = {
 		}
 		
 		// "Draw" the tile to VRAM.
-		_MOD._updateVramTile_flat(tileName, x, y);
+		_MOD._updateVramTile_flat(tileName, x, y, xcolLayer);
+	},
+
+	// DRAW TEXT TO THE CANVAS. 
+	print      : function(str, x, y, xcolLayer=1){
+		let chars = str.split("");
+		for(let i=0; i<chars.length; i+=1){
+			let tileName = chars[i].toString().toUpperCase();
+			_MOD.setTile(tileName, x++, y, xcolLayer);
+		}
 	},
 
 	// DRAW TILES TO CANVAS IN A RECTANGLE REGION.
-	fillTile   : function(tileName, x, y, w, h){
+	fillTile   : function(tileName, x, y, w, h, xcolLayer=0){
 		for(let dy=0; dy<h; dy+=1){
 			for(let dx=0; dx<w; dx+=1){
-				_MOD.setTile(tileName, x+dx, y+dy);
+				_MOD.setTile(tileName, x+dx, y+dy, xcolLayer);
 			}
 		}
 	},
 
-	// DRAW TEXT TO THE CANVAS. 
-	print      : function(str, x, y){
-		let chars = str.split("");
-		for(let i=0; i<chars.length; i+=1){
-			let tileName = chars[i].toString().toUpperCase();
-			_MOD.setTile(tileName, x, y);
-			x+=1;
-		}
-	},
-
-	// Fill all VRAM with a tile. 
-	clearScreen: function(tile="tile4"){
-		let tileId = _APP.m_config.tileIdsByTilename[tile];
-		
-		// Fill _VRAM with one tile.
-		_MOD._VRAM_view.fill(tileId);
-
-		_MOD.lcdUpdateNeeded = true;
-	},
-
 	// Clear the drawing flags. 
 	clearDrawingFlags: function(){
+		// Get the LCD config.
+		let conf = _APP.m_config.config.lcd;
+		let ts = conf.tileset;
+
 		_MOD.updatingLCD=false;
 		_MOD.lcdUpdateNeeded = false;
+
+		for(let i=0; i<ts.tilesInCol; i+=1){
+			_MOD._VRAM_updateStats[i].updates = 0;
+		}
 	},
 
 	//
@@ -174,13 +212,10 @@ let _MOD = {
 			// Init the _VRAM array.
 			_MOD._initVram();
 
-			// CLEAR THE SCREEN.
-			_MOD.clearScreen("tile3");
+			// CLEAR THE LAYERS.
+			// _MOD.clearLayers();
+			// _MOD.clearLayers("tile4");
 			
-			_MOD.print("THIS IS A TEST", 0, 5);
-			_MOD.print(" 0123456789", 0, 6);
-			_MOD.print("ABCEFGHIJKLMNOPQRSTUVWXYZ", 0, 7);
-
 			resolve(); return; 
 		});
 	},

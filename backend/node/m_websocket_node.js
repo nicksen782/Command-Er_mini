@@ -85,6 +85,16 @@ let _MOD = {
 				_APP.fps.init();
 				_APP.stats.setFps( data.data );
 			},
+			// Expected origin: Web client by request.
+			CLEAR_LAYER:    async function(ws, data){
+				console.log("CLEAR_LAYER:", data, data.data);
+				if(data.data == "ALL"){
+					_APP.m_draw.clearLayers(); // tile=" "
+				}
+				else{
+					_APP.m_draw.clearLayer(null, data.data ); // tile=" ", xcolLayer=null
+				}
+			},
 		},
 		TEXT:{},
 	},

@@ -41,7 +41,7 @@ let _MOD = {
 			_MOD.startServer();
 			
 			await new Promise(async function(res,rej){
-				let maxAttempts = 5;
+				let maxAttempts = 10;
 				for(let attempts=0; attempts<maxAttempts; attempts+=1){
 					// Successful ping?
 					if(_MOD.pinged){
@@ -51,12 +51,15 @@ let _MOD = {
 					}
 					//.Wait.
 					else{
-						if(attempts > 2){
+						if(attempts > 4){
 							_APP.consolelog(`Server not ready. Attempts: ${attempts+1}/${maxAttempts}`, 4);
 						}
 						await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 2000); });
 					}
 				}
+				console.log("ERROR: SERVER NOT READY");
+				console.log("EXITING");
+				process.exit(1);
 			});
 
 			_MOD.inited=true;
@@ -144,18 +147,31 @@ let _MOD = {
 					// console.log(`mode: ${data.mode}, data: ${data.data}`);
 					_MOD.pinged = true;
 				},
+				GET_BATTERY: function(ws, data){
+					// console.log(`mode: ${data.mode}, data: ${data.data}`);
+					_APP.screenLogic.shared.lastBattery = data.data;
+				},
 				LCD_UPDATE_DONE: function(ws, data){
-					// Reset the draw flags.
-					_APP.m_draw.lcdUpdateNeeded = false;
-					_APP.m_draw.updatingLCD = false;
-	
+					
 					// End the timeIt.
 					_APP.timeIt("WS_DISPLAYUPDATE", "e");
-	
-					console.log( _APP.timeIt("WS_DISPLAYUPDATE", "t") );
+					
+					if(data.data == "DONE"){
+						// console.log( _APP.timeIt("WS_DISPLAYUPDATE", "t") );
+						
+						// Reset the draw flags.
+						_APP.m_draw.clearDrawingFlags();
+					}
+					else if(data.data == "SKIPPED"){
+						console.log( _APP.timeIt("WS_DISPLAYUPDATE", "t"), "********", data.data );
+
+						// Reset the draw flags.
+						// _APP.m_draw.clearDrawingFlags();
+					}
 					
 					// Schedule the next appLoop.
-					_APP.schedule_appLoop();
+					// _APP.schedule_appLoop();
+					_APP.appLoop(  performance.now() );
 				},
 			},
 			TEXT  : {
@@ -245,6 +261,7 @@ let _MOD = {
 		// Start the server.
 		_MOD.cp_child = child_process.spawn(
 			"python3", ["-u", _MOD.serverFile]
+			// "python3", [_MOD.serverFile]
 		);
 
 		// Add event handlers.

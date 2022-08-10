@@ -54,6 +54,15 @@ let websocket = {
 			WELCOMEMESSAGE: function(ws, data){
 				// console.log(`mode: ${data.mode}, data: ${data.data}`);
 			},
+			_VRAM_UPDATESTATS: function(ws, data){
+				// console.log(`mode: ${data.mode}, data: ${data.data}`);
+				let outputText = "";
+				for(let key in data.data){
+					let rec = data.data[key];
+					outputText += `Layer:${rec.layer}, Updates:${rec.updates}\n`;
+				}
+				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
+			},
 		},
 		TEXT  : {
 	
@@ -508,6 +517,15 @@ let buttons = {
 		else if(type=="post"){
 		}
 	},
+	clearLayer: function(type, layer){
+		if(type=="ws"){
+			if(websocket.activeWs){
+				websocket.activeWs.send(JSON.stringify({"mode":"CLEAR_LAYER", "data":layer}));
+			}
+		}
+		else if(type=="post"){
+		}
+	},
 };
 
 window.onload = async function(){
@@ -546,6 +564,16 @@ window.onload = async function(){
 	draw.DOM.info_skippedDraws = document.getElementById("info_skippedDraws");
 	draw.DOM.info_lastDraw     = document.getElementById("info_lastDraw");
 	draw.DOM.info_changeFps    = document.getElementById("info_changeFps");
+	
+	draw.DOM.info_clearLayer0    = document.getElementById("info_clearLayer0");
+	draw.DOM.info_clearLayer1    = document.getElementById("info_clearLayer1");
+	draw.DOM.info_clearLayer2    = document.getElementById("info_clearLayer2");
+	draw.DOM.info_clearLayerAll    = document.getElementById("info_clearLayerAll");
+	draw.DOM.info_clearLayer0.addEventListener("click", function(){ buttons.clearLayer("ws", 0); }, false);
+	draw.DOM.info_clearLayer1.addEventListener("click", function(){ buttons.clearLayer("ws", 1); }, false);
+	draw.DOM.info_clearLayer2.addEventListener("click", function(){ buttons.clearLayer("ws", 2); }, false);
+	draw.DOM.info_clearLayerAll.addEventListener("click", function(){ buttons.clearLayer("ws", "ALL"); }, false);
+	draw.DOM.info_VRAM_UPDATESTATS    = document.getElementById("info_VRAM_UPDATESTATS");
 
 	window.addEventListener("unload", function () {
 		console.log("unload: Closing websockets.");

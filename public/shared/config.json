@@ -12,17 +12,19 @@
 			"host" : "0.0.0.0",
 			"port" : 7777
 		},
-		"fps"  : 5
+		"fps"  : 10
 	},
 	"python":{
 		"file":"backend/python/server.py",
 		"initString": "##!!PYTHON_SERVER_READY!!##",
+		"gfx":"OCV",
+		"gfx2":"PIL",
 		"ws":{
-			"host"  : "0.0.0.0",
+			"host"  : "127.0.0.1",
 			"port"  : 7778
 		},
 		"http":{
-			"host"  : "0.0.0.0",
+			"host"  : "127.0.0.1",
 			"port"  : 7779
 		}
 	},

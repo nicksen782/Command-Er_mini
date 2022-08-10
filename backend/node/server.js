@@ -48,8 +48,8 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 	await _APP.removeProcessByPort(
 		[
 			_APP.m_config.config.node.http.port, 
-			// _APP.m_config.config.python.ws.port, 
-			// _APP.m_config.config.python.http.port 
+			_APP.m_config.config.python.ws.port, 
+			_APP.m_config.config.python.http.port 
 		], true
 	);
 	_APP.timeIt("removeProcessByPort", "e");
