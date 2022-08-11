@@ -8,8 +8,7 @@ let _MOD = {
 	//
 	_VRAM            : [], // ArrayBuffer for VRAM.
 	_VRAM_view       : [], // Uint8 view of _VRAM ArrayBuffer.
-	_VRAM2            : [], // ArrayBuffer for VRAM2.
-	_VRAM2_view       : [], // Uint8 view of _VRAM2 ArrayBuffer.
+	_VRAM_changes    : [], // Tracks changes per LCD screen update. (Arrays containing objects.)
 	_VRAM_inited     : false, 
 	_VRAM_updateStats: {}, 
 	buff_abgr        : null, // Raw BGRA data (framebuffer).
@@ -70,6 +69,12 @@ let _MOD = {
 			// Fill the _VRAM with the "space" tile (fully transparent and blank.)
 			_MOD._VRAM_view.fill( _APP.m_config.tileIdsByTilename[" "] );
 
+			// Init the _VRAM_changes array.
+			for(let i=0; i<ts.tilesInCol; i+=1){
+				_MOD._VRAM_changes.push( [] );
+			}
+			_MOD.clear_VRAM_changes();
+
 			// Set the inited flag.
 			_MOD._VRAM_inited = true;
 
@@ -79,8 +84,27 @@ let _MOD = {
 			}
 
 			// Set the lcdUpdateNeeded flag.
-			// _MOD.lcdUpdateNeeded = true;
+			_MOD.lcdUpdateNeeded = true;
 		}
+	},
+
+	// Clear _VRAM_changes.
+	clear_VRAM_changes: function(){
+		// Get the LCD config.
+		let conf = _APP.m_config.config.lcd;
+		let ts = conf.tileset;
+		
+		// Clear the rows of the _VRAM_changes array.
+		for(let i=0; i<ts.tilesInCol; i+=1){
+			_MOD._VRAM_changes[i] = {};
+		}
+	},
+
+	// Add to _VRAM_changes.
+	addTo_VRAM_changes: function(layer, x, y, tileId){
+		// Add to a layer of _VRAM_changes.
+		let key = `Y${y}_X${x}`;
+		_MOD._VRAM_changes[layer][key] = {y:y, x:x, t:tileId };
 	},
 
 	// Clear one VRAM layer with a tile. (Used by the Web Client... only??)
@@ -133,8 +157,10 @@ let _MOD = {
 			_MOD._VRAM_view[index+xcolLayer] = tile_new;
 
 			// Update stats.
-			// if(!_MOD._VRAM_updateStats[xcolLayer]
 			_MOD._VRAM_updateStats[xcolLayer].updates += 1;
+
+			// Add to changes.
+			_MOD.addTo_VRAM_changes(xcolLayer, x, y, tile_new);
 
 			// Set the lcdUpdateNeeded flag.
 			_MOD.lcdUpdateNeeded = true;
@@ -203,20 +229,20 @@ let _MOD = {
 		_MOD.updatingLCD = false;
 		_MOD.lcdUpdateNeeded = false;
 
+		// Clear the update stats.
 		for(let i=0; i<ts.tilesInCol; i+=1){
 			_MOD._VRAM_updateStats[i].updates = 0;
 		}
+
+		// Clear the changes.
+		_MOD.clear_VRAM_changes();
 	},
 
 	//
 	init: async function(){
 		return new Promise(async function(resolve,reject){
-			// Init the _VRAM array.
+			// Init the _VRAM array. (Also clears it.)
 			_MOD._initVram();
-
-			// CLEAR THE LAYERS.
-			// _MOD.clearLayers();
-			// _MOD.clearLayers("tile4");
 			
 			resolve(); return; 
 		});

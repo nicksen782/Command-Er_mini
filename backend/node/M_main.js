@@ -9,6 +9,7 @@ const m_websocket_node   = require('./m_websocket_node.js');
 const m_websocket_python = require('./m_websocket_python.js');
 const m_gpio             = require('./m_gpio.js');
 const m_s_title          = require('./m_s_title.js');
+const m_canvas           = require('./m_canvas.js');
 // const m_battery     = require('./m_battery.js');
 // const m_s_timing    = require('./m_s_timing.js');
 
@@ -32,6 +33,7 @@ let _APP = {
 	m_websocket_python: m_websocket_python ,
 	m_gpio            : m_gpio ,
 	m_s_title         : m_s_title ,
+	m_canvas          : m_canvas ,
 	// m_battery     : m_battery ,
 	// m_s_timing    : m_s_timing ,
 	rpbp         : rpbp ,
@@ -118,23 +120,27 @@ let _APP = {
 			_APP.timeIt("M_main", "s");   await _APP         .module_init(_APP); _APP.timeIt("M_main", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("M_main", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
-			_APP.consolelog("START: module_init: draw :", 0);        
+			_APP.consolelog("START: module_init: m_canvas :", 0);        
+			_APP.timeIt("m_canvas", "s"); await _APP.m_canvas.module_init(_APP); _APP.timeIt("m_canvas", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_canvas", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+			
+			_APP.consolelog("START: module_init: m_draw :", 0);        
 			_APP.timeIt("m_draw", "s"); await _APP.m_draw.module_init(_APP); _APP.timeIt("m_draw", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_draw", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
-			_APP.consolelog("START: module_init: websocket_node :", 0);        
+			_APP.consolelog("START: module_init: m_websocket_node :", 0);        
 			_APP.timeIt("m_websocket_node", "s"); await _APP.m_websocket_node.module_init(_APP); _APP.timeIt("m_websocket_node", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_node", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
-			_APP.consolelog("START: module_init: websocket_python :", 0);
+			_APP.consolelog("START: module_init: m_websocket_python :", 0);
 			_APP.timeIt("m_websocket_python", "s"); await _APP.m_websocket_python.module_init(_APP); _APP.timeIt("m_websocket_python", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_python", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
-			_APP.consolelog("START: module_init: gpio :", 0);        
+			_APP.consolelog("START: module_init: m_gpio :", 0);        
 			_APP.timeIt("m_gpio", "s"); await _APP.m_gpio.module_init(_APP); _APP.timeIt("m_gpio", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_gpio", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
-			_APP.consolelog("START: module_init: s_title :", 0);        
+			_APP.consolelog("START: module_init: m_s_title :", 0);        
 			_APP.timeIt("m_s_title", "s"); await _APP.m_s_title.module_init(_APP); _APP.timeIt("m_s_title", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_s_title", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 
@@ -492,7 +498,10 @@ let _APP = {
 				}
 				
 				// Update the Python server. (ArrayBuffer)
-				_APP.m_websocket_python.wsClient.send(_APP.m_draw._VRAM);
+				// _APP.m_websocket_python.wsClient.send(_APP.m_draw._VRAM);
+
+				// Updates via m_canvas.
+				_APP.m_canvas.drawLayersUpdateFramebuffer();
 			}
 			
 			_APP.timeIt("FULLLOOP", "e");

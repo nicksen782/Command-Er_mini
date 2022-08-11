@@ -9,8 +9,8 @@ os.chdir("../..")
 
 # CLASSES
 from class_battery          import C_Battery
-from class_graphics         import C_Graphics
-from class_webServer        import C_WebServer
+# from class_graphics         import C_Graphics
+# from class_webServer        import C_WebServer
 from class_websocketServer  import C_WebSocketServer
 # CLASSES
 
@@ -28,8 +28,8 @@ class Server:
 
         # Instantiate classes.
         self.c_battery         = C_Battery(self)
-        self.c_gfx             = C_Graphics(self)
-        self.c_webserver       = C_WebServer(self)
+        # self.c_gfx             = C_Graphics(self)
+        # self.c_webserver       = C_WebServer(self)
         self.c_websocketserver = C_WebSocketServer(self)
 
         # Start servers/services. (The rest of the program is just responses from services.)
@@ -43,15 +43,15 @@ class Server:
             # Serve forever.
             self.c_websocketserver.serverInstance.serve_forever()
 
-        elif self.config['toggles']['isActive_pythonHttpServer']:
-            # Start the server.
-            self.c_webserver.startServer()
+        # elif self.config['toggles']['isActive_pythonHttpServer']:
+        #     # Start the server.
+        #     self.c_webserver.startServer()
             
-            # Send the init string.
-            print(self.config['python']['initString'], flush=True)
+        #     # Send the init string.
+        #     print(self.config['python']['initString'], flush=True)
 
-            # Serve forever.
-            self.c_webserver.serverInstance.serve_forever()
+        #     # Serve forever.
+        #     self.c_webserver.serverInstance.serve_forever()
 
 # Start
 server = Server()

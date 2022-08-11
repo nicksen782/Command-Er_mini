@@ -49,7 +49,7 @@ class C_WebSocketServer:
                     return
 
                 # BINARY-based requests.
-                if type == "binary":
+                if type == "binary" and False:
                     try:
                         start1 = time.time()
                         

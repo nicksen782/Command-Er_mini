@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/nicksen782/Command-Er_mini#readme",
   "dependencies": {
+    "canvas": "^2.9.3",
     "compression": "^1.7.4",
     "express": "^4.17.3",
     "node-fetch": "^2.6.1",

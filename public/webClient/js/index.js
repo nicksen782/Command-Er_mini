@@ -346,7 +346,11 @@ let draw = {
 			// console.log((e-s).toFixed(3));
 
 			draw.isDrawing=false;
-			draw.DOM.info_lastDraw.innerText = draw.getTime();;
+			let oldTime = draw.DOM.info_lastDraw.innerText;
+			let newTime = draw.getTime();
+			if(oldTime!= newTime){
+				draw.DOM.info_lastDraw.innerText = newTime;
+			}
 			draw.DOM.info_skippedDraws.innerText = draw.skippedDraws;
 			draw.DOM.info_draws.innerText = draw.draws;
 		});

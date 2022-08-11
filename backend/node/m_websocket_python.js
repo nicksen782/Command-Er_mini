@@ -170,8 +170,8 @@ let _MOD = {
 					}
 					
 					// Schedule the next appLoop.
-					// _APP.schedule_appLoop();
-					_APP.appLoop(  performance.now() );
+					_APP.schedule_appLoop();
+					// _APP.appLoop(  performance.now() );
 				},
 			},
 			TEXT  : {
