@@ -113,16 +113,19 @@ let screen_title = {
 			thisScreen.flag2 = !thisScreen.flag2;
 			
 			let y=8;
-			if(thisScreen.flag2){ _APP.m_draw.fillTile("tile2"  , 0, y, longest, len); }
-			else{                 _APP.m_draw.fillTile("tile4"  , 0, y, longest, len); }
+			// if(thisScreen.flag2){ _APP.m_draw.fillTile("tile2"  , 0, y, longest, len); }
+			// else{                 _APP.m_draw.fillTile("tile4"  , 0, y, longest, len); }
 			try{ thisScreen.lines2.push(`${"*".repeat(29)}`); } catch(e){}
 			try{ thisScreen.lines2.push(`GFX SETTING     : ${_APP.m_config.config.python.gfx.padStart(11, " ")}`); } catch(e){}
 			try{ thisScreen.lines2.push(`FPS             : ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(11, " ")}`); } catch(e){}
 			try{ thisScreen.lines2.push(`SET MS/FRAME    : ${_APP.stats.interval.toFixed(2).padStart(11, " ")}`); } catch(e){}
 			try{ thisScreen.lines2.push(`DELTA           : ${_APP.stats.delta   .toFixed(2).padStart(11, " ")}`); } catch(e){}
+			try{ thisScreen.lines2.push(`${"*".repeat(29)}`); } catch(e){}
+			try{ thisScreen.lines2.push(`GPIO            : ${_APP.timeIt_timings_prev["GPIO"].t.toFixed(2).padStart(11, " ")}`); } catch(e){}
+			try{ thisScreen.lines2.push(`GPIO_ACTIONS    : ${_APP.timeIt_timings_prev["GPIO_ACTIONS"].t.toFixed(2).padStart(11, " ")}`); } catch(e){}
+			try{ thisScreen.lines2.push(`LOGIC           : ${_APP.timeIt_timings_prev["LOGIC"].t.toFixed(2).padStart(11, " ")}`); } catch(e){}
+			try{ thisScreen.lines2.push(`FULLLOOP        : ${_APP.timeIt_timings_prev["FULLLOOP"].t.toFixed(2).padStart(11, " ")}`); } catch(e){}
 			try{ thisScreen.lines2.push(`WS_DISPLAYUPDATE: ${_APP.timeIt_timings_prev["WS_DISPLAYUPDATE"].t.toFixed(2).padStart(11, " ")}`); } catch(e){}
-			// try{ thisScreen.lines2.push(`CURFRAME  : ${_APP.m_draw.curFrame   .toFixed(2).padStart(11, " ")}`); } catch(e){}
-			
 			try{ thisScreen.lines2.push(`${"*".repeat(29)}`); } catch(e){}
 
 			for(let v of thisScreen.lines2){ _APP.m_draw.print(v , 0 , y++); }

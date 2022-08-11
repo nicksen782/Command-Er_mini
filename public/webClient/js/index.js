@@ -1,3 +1,4 @@
+// HTTP REQUESTS USING POST.
 let http = {
 	post: async function(url, body){
 		let resp = await( await fetch(url, {
@@ -7,9 +8,8 @@ let http = {
 		// console.log(resp);
 		return resp;
 	},
-	ws: {
-	},
 };
+// WEBSOCKET
 let websocket = {
 	activeUuid:null,
 	activeWs:null,
@@ -45,41 +45,113 @@ let websocket = {
 		"CLOSING"   :2,
 		"CLOSED"    :3,
 	},
+	// HANDLERS TO SPECIFIC TYPES OF EVENTS.
 	ws_event_handlers:{
 		JSON  : {
-			NEWCONNECTION: function(ws, data){
-				// console.log(`mode: ${data.mode}, data: ${data.data}`);
+			// OPENING A NEW CONNECTION.
+			NEWCONNECTION: function(data){
+				// console.log(`mode: ${data.mode}, data:`,data.data);
 				websocket.activeUuid = data.data;
 			},
-			WELCOMEMESSAGE: function(ws, data){
-				// console.log(`mode: ${data.mode}, data: ${data.data}`);
+			WELCOMEMESSAGE: function(data){
+				// console.log(`mode: ${data.mode}, data:`,data.data);
 			},
-			_VRAM_UPDATESTATS: function(ws, data){
-				// console.log(`mode: ${data.mode}, data: ${data.data}`);
+
+			// SUBSCRIPTIONS
+			GET_SUBSCRIPTIONS: function(data){
+				// console.log(`mode: ${data.mode}, data:`,data.data);
+				buttons.updateSubscriptionList(data.data);
+			},
+			SUBSCRIBE: function(data){
+				// console.log(`mode: ${data.mode}, data:`,data.data);
+				buttons.updateSubscriptionList(data.data);
+			},
+			UNSUBSCRIBE: function(data){
+				// console.log(`mode: ${data.mode}, data:`,data.data);
+				buttons.updateSubscriptionList(data.data);
+			},
+
+			// VRAM UPDATES
+			_VRAM_UPDATESTATS: function(data){
+				// console.log(`mode: ${data.mode}, data:`,data.data);
 				let outputText = "";
 				for(let key in data.data){
 					let rec = data.data[key];
-					outputText += `Layer:${rec.layer}, Updates:${rec.updates}\n`;
+					outputText += `L:${rec.layer}, Updates:${rec.updates}\n`;
 				}
 				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
 			},
 		},
 		TEXT  : {
-	
 		},
 		BINARY: {
-	
 		},
 	},
+	// UTILITIES
 	ws_utilities: {
-	},
-	ws_events:{
-		el_open:function(ws, event){
-			// console.log("Web WebSockets Client: OPEN:", event); 
-			buttons.DOM["ws_status"].innerText = "(OPENED)";
-			draw.fps.updateDisplay();
+		// Start the WebSocket connection.
+		initWss: function(){
+			// GENERATE THE WEBSOCKET URL.
+			let locUrl = `` +
+				`${window.location.protocol == "https:" ? "wss" : "ws"}://` +
+				`${location.hostname}` + 
+				`${location.port ? ':'+location.port : ''}` +
+				`${location.pathname != "/" ? ''+location.pathname : '/'}` +
+				`LCD`
+			;
+
+			// Close any existing connections. 
+			websocket.ws_utilities.wsCloseAll();
+
+			// Set the connection indicator.
+			buttons.DOM["ws_status"].innerHTML = "&#128997;";
+
+			// Create new. 
+			let ws = new WebSocket(locUrl);
+			ws.onopen   = websocket.ws_events.el_open   ;
+			ws.onmessage= websocket.ws_events.el_message;
+			ws.onclose  = websocket.ws_events.el_close  ;
+			ws.onerror  = websocket.ws_events.el_error  ;
+			// ws.addEventListener('open'   , (event)=> websocket.ws_events.el_open   (ws, event) );
+			// ws.addEventListener('message', (event)=> websocket.ws_events.el_message(ws, event) );
+			// ws.addEventListener('close'  , (event)=> websocket.ws_events.el_close  (ws, event) );
+			// ws.addEventListener('error'  , (event)=> websocket.ws_events.el_error  (ws, event) );
+			ws.binaryType = 'arraybuffer';
+			websocket.activeWs = ws;
+
+			// Add new to array of ws.
+			websocket.wsArr.push(ws);
 		},
-		el_message:function(ws, event){
+		// Close all WebSocket connections. 
+		wsCloseAll: function(){
+			// Close existing. 
+			if(websocket.activeWs){
+				websocket.activeWs.close();
+			}
+
+			// Close/reclose previous ws connections. 
+			for(let i=0; i<websocket.wsArr.length; i+=1){
+				if(websocket.wsArr[i]){
+					websocket.wsArr[i].close();
+				}
+			}
+		},
+	},
+	// EVENT HANDLERS.
+	ws_events:{
+		el_open:function(event){
+			// console.log("Web WebSockets Client: OPEN:", event); 
+
+			// Green icon.
+			buttons.DOM["ws_status"].innerHTML = "&#129001;";
+
+			draw.fps.updateDisplay();
+
+			// Remove disconnected, add connected.
+			let wsElems = document.querySelectorAll(".ws");
+			wsElems.forEach(function(d){ d.classList.add("connected"); d.classList.remove("disconnected"); });
+		},
+		el_message:function(event){
 			let data;
 			let tests = { isJson: false, isText: false, isArrayBuffer: false, isBlob: false };
 
@@ -106,15 +178,16 @@ let websocket = {
 			}
 
 			if(tests.isJson){
-				if(websocket.ws_event_handlers.JSON[data.mode]){ websocket.ws_event_handlers.JSON[data.mode](ws, data); return; }
-				else{ console.log("JSON: Unknown handler for:", data.mode); return;  }
+				if(websocket.ws_event_handlers.JSON[data.mode]){ websocket.ws_event_handlers.JSON[data.mode](data); return; }
+				else{ console.log("JSON: Unknown handler for:", data.mode, event); return;  }
 			}
 
 			else if(tests.isText){
-				if(websocket.ws_event_handlers.TEXT[data]){ websocket.ws_event_handlers.TEXT[data](ws, data); }
-				else{ console.log("TEXT: Unknown handler for:", data); return; }
+				if(websocket.ws_event_handlers.TEXT[data]){ websocket.ws_event_handlers.TEXT[data](data); }
+				else{ console.log("TEXT: Unknown handler for:", data, event); return; }
 			}
-
+			
+			// Expects VRAM in event.data.
 			else if(tests.isArrayBuffer){
 				// Draw _VRAM again.
 				if(!draw.isDrawing){
@@ -132,68 +205,48 @@ let websocket = {
 
 			// Catch-all.
 			else{
-				console.log("Unknown data for event.data.", event.data);
+				console.log("Unknown data for event.data.", event.data, event);
 				return;
 			}
 		},
-		el_close:function(ws, event){
+		el_close:function(event){
 			// console.log("Web WebSockets Client: CLOSE:", event); 
-			buttons.DOM["ws_status"].innerText = "(CLOSED)";
-			ws.close(); 
+
+			// Yellow icon.
+			buttons.DOM["ws_status"].innerHTML = "&#129000;";
+
+			websocket.activeUuid = null;
+			event.currentTarget.close(); 
+
+			// Remove connected, add disconnected.
+			let wsElems = document.querySelectorAll(".ws");
+			wsElems.forEach(function(d){ d.classList.add("disconnected"); d.classList.remove("connected"); });
+
 			setTimeout(function(){
-				ws=null; 
+				buttons.DOM["ws_status"].innerHTML = "";
+				websocket.activeWs=null; 
 			}, 1000);
 			draw.fps.updateDisplay();
 		},
+		// Connection closed unexpectedly. 
 		el_error:function(ws, event){
 			console.log("Web WebSockets Client: ERROR:", event); 
-			buttons.DOM["ws_status"].innerText = "(ERROR)";
-			ws.close(); 
-			setTimeout(function(){
-				ws=null; 
-			}, 1000);
+			
+			// If not CLOSING or CLOSED.
+			if(ws.readyState != 2 || ws.readyState != 3){
+				// Red icon.
+				buttons.DOM["ws_status"].innerHTML = "&#128997;";
+			}
+			// Close on error if not already closing or closed.
+			else{
+				ws.close();
+			}
+
 			draw.fps.updateDisplay();
 		},
 	},
-
-	wsCloseAll: function(){
-		// Close existing. 
-		if(websocket.activeWs){
-			websocket.activeWs.close();
-		}
-		// Close/reclose previous ws connections. 
-		for(let i=0; i<websocket.wsArr.length; i+=1){
-			if(websocket.wsArr[i]){
-				websocket.wsArr[i].close();
-			}
-		}
-	},
-	initWss: function(){
-		// GENERATE THE WEBSOCKET URL.
-		let locUrl = `` +
-			`${window.location.protocol == "https:" ? "wss" : "ws"}://` +
-			`${location.hostname}` + 
-			`${location.port ? ':'+location.port : ''}` +
-			`${location.pathname != "/" ? ''+location.pathname : '/'}` +
-			`LCD`
-		;
-
-		// Close any existing connections. 
-		websocket.wsCloseAll();
-
-		// Create new. 
-		let ws = new WebSocket(locUrl);
-		ws.addEventListener('open'   , (event)=> websocket.ws_events.el_open   (ws, event) );
-		ws.addEventListener('message', (event)=> websocket.ws_events.el_message(ws, event) );
-		ws.addEventListener('close'  , (event)=> websocket.ws_events.el_close  (ws, event) );
-		ws.addEventListener('error'  , (event)=> websocket.ws_events.el_error  (ws, event) );
-		ws.binaryType = 'arraybuffer';
-		websocket.activeWs = ws;
-
-		// Add new to array of ws.
-		websocket.wsArr.push(ws);
-	},
 };
+// VRAM DRAWING
 let draw = {
 	DOM: {},
 	configs: {},
@@ -210,12 +263,10 @@ let draw = {
 	draws:0,
 	skippedDraws:0,
 	drawIndividualLayers: true,
-	showIndividualLayers: function(){
-		// draw.showIndividualLayers
+	showVramLayers: function(){
 		draw.DOM.vram_div_layers.classList.remove("hide");
 	},
-	hideIndividualLayers: function(){
-		// draw.hideIndividualLayers
+	hideVramLayers: function(){
 		draw.DOM.vram_div_layers.classList.add("hide");
 
 	},
@@ -295,10 +346,23 @@ let draw = {
 			// console.log((e-s).toFixed(3));
 
 			draw.isDrawing=false;
-			draw.DOM.info_lastDraw.innerText = new Date().getTime();
+			draw.DOM.info_lastDraw.innerText = draw.getTime();;
 			draw.DOM.info_skippedDraws.innerText = draw.skippedDraws;
 			draw.DOM.info_draws.innerText = draw.draws;
 		});
+	},
+	getTime: function(){
+		var d = new Date(); // for now
+		let h = d.getHours();
+		let ampm="AM";
+		if (h > 12) { h -= 12; ampm="PM";} 
+		else if (h === 0) { h = 12; }
+		h = h.toString().padStart(2, " ");
+		
+		let m = d.getMinutes().toString().padStart(2, "0");
+		let s = d.getSeconds().toString().padStart(2, "0");
+		let str2 = `${h}:${m}:${s}${ampm}`;
+		return str2;
 	},
 	// Calculates the average frames per second.
 	fps : {
@@ -426,6 +490,7 @@ let draw = {
 		}
 	},	
 };
+// BUTTON INPUT
 let buttons = {
 	DOM:{},
 	setup: function(){
@@ -444,20 +509,12 @@ let buttons = {
 		buttons.DOM["ws_b3"]                = document.getElementById("ws_b3");
 		buttons.DOM["ws_requestVramDraw"]   = document.getElementById("ws_requestVramDraw");
 
-		buttons.DOM["post_up"]              = document.getElementById("post_up");
-		buttons.DOM["post_down"]            = document.getElementById("post_down");
-		buttons.DOM["post_left"]            = document.getElementById("post_left");
-		buttons.DOM["post_right"]           = document.getElementById("post_right");
-		buttons.DOM["post_press"]           = document.getElementById("post_press");
-		buttons.DOM["post_b1"]              = document.getElementById("post_b1");
-		buttons.DOM["post_b2"]              = document.getElementById("post_b2");
-		buttons.DOM["post_b3"]              = document.getElementById("post_b3");
 		buttons.DOM["post_requestVramDraw"] = document.getElementById("post_requestVramDraw");
 
 		// Add listeners for each button.
 		// buttons.DOM["ws_status"];
-		buttons.DOM["ws_connect"]   .addEventListener("click", ()=>{ websocket.initWss(); }, false);
-		buttons.DOM["ws_disconnect"].addEventListener("click", ()=>{ websocket.wsCloseAll(); }, false);
+		buttons.DOM["ws_connect"]   .addEventListener("click", ()=>{ websocket.ws_utilities.initWss(); }, false);
+		buttons.DOM["ws_disconnect"].addEventListener("click", ()=>{ websocket.ws_utilities.wsCloseAll(); }, false);
 
 		buttons.DOM["ws_up"]   .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_UP_PIN");}, false);
 		buttons.DOM["ws_down"] .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_DOWN_PIN");}, false);
@@ -469,27 +526,13 @@ let buttons = {
 		buttons.DOM["ws_b3"]   .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY3_PIN");}, false);
 		buttons.DOM["ws_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('ws');}, false);
 
-		buttons.DOM["post_up"]   .addEventListener("click", ()=>{buttons.toggle_button("post", "KEY_UP_PIN");}, false);
-		buttons.DOM["post_down"] .addEventListener("click", ()=>{buttons.toggle_button("post", "KEY_DOWN_PIN");}, false);
-		buttons.DOM["post_left"] .addEventListener("click", ()=>{buttons.toggle_button("post", "KEY_LEFT_PIN");}, false);
-		buttons.DOM["post_right"].addEventListener("click", ()=>{buttons.toggle_button("post", "KEY_RIGHT_PIN");}, false);
-		buttons.DOM["post_press"].addEventListener("click", ()=>{buttons.toggle_button("post", "KEY_PRESS_PIN");}, false);
-		buttons.DOM["post_b1"]   .addEventListener("click", ()=>{buttons.toggle_button("post", "KEY1_PIN");}, false);
-		buttons.DOM["post_b2"]   .addEventListener("click", ()=>{buttons.toggle_button("post", "KEY2_PIN");}, false);
-		buttons.DOM["post_b3"]   .addEventListener("click", ()=>{buttons.toggle_button("post", "KEY3_PIN");}, false);
 		buttons.DOM["post_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('post');}, false);
 	},
 
 	// REQUESTS
 	toggle_button: function(type, buttonKey){
-		console.log("toggle_button:", type, buttonKey);
-		if(type=="ws"){
-			if(websocket.activeWs){
-				// websocket.activeWs.send(JSON.stringify({"mode":"GET_VRAM", "data":""}));
-			}
-		}
-		else if(type=="post"){
-			// draw._VRAM = await http.post("GET_VRAM", {});
+		if(websocket.activeWs){
+			// websocket.activeWs.send(JSON.stringify({"mode":"GET_VRAM", "data":""}));
 		}
 	},
 	populateFpsValues: function(){
@@ -526,8 +569,32 @@ let buttons = {
 		else if(type=="post"){
 		}
 	},
+
+	// SUBSCRIPTIONS
+	// draw.addSubscription('VRAM');
+	updateSubscriptionList: function(list){
+		let outputText = "";
+		for(let i=0; i<list.length; i+=1){
+			outputText += `${list[i]}`;
+			if(i+1 != list.length){
+				outputText += `, `;
+			}
+		}
+
+		draw.DOM.info_SUBSCRIPTIONS.innerText = outputText;
+	},
+	getSubscriptions  : function()   { 
+		if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
+	},
+	addSubscription   : function(key){ 
+		if(websocket.activeWs){ websocket.activeWs.send(JSON.stringify({mode:"SUBSCRIBE", data:key})); }
+	},
+	removeSubscription: function(key){ 
+		if(websocket.activeWs){ websocket.activeWs.send(JSON.stringify({mode:"UNSUBSCRIBE", data:key})); }
+	},
 };
 
+// APP INIT
 window.onload = async function(){
 	window.onload = null;
 	
@@ -544,8 +611,8 @@ window.onload = async function(){
 	draw.DOM.vram_div_layersChk = document.getElementById("vram_div_layersChk");
 	draw.DOM.vram_div_layersChk.addEventListener("click", function(){
 		draw.drawIndividualLayers = this.checked; 
-		if(this.checked){ draw.showIndividualLayers(); }
-		else{ draw.hideIndividualLayers(); }
+		if(this.checked){ draw.showVramLayers(); }
+		else{ draw.hideVramLayers(); }
 	}, false)
 
 	// FPS changes.
@@ -573,15 +640,19 @@ window.onload = async function(){
 	draw.DOM.info_clearLayer1.addEventListener("click", function(){ buttons.clearLayer("ws", 1); }, false);
 	draw.DOM.info_clearLayer2.addEventListener("click", function(){ buttons.clearLayer("ws", 2); }, false);
 	draw.DOM.info_clearLayerAll.addEventListener("click", function(){ buttons.clearLayer("ws", "ALL"); }, false);
+	
 	draw.DOM.info_VRAM_UPDATESTATS    = document.getElementById("info_VRAM_UPDATESTATS");
+	draw.DOM.info_VRAM_UPDATESTATS.innerText = "\n\n\n";
+
+	draw.DOM.info_SUBSCRIPTIONS    = document.getElementById("info_SUBSCRIPTIONS");
 
 	window.addEventListener("unload", function () {
 		console.log("unload: Closing websockets.");
-		websocket.wsCloseAll();
+		websocket.ws_utilities.wsCloseAll();
 	});
 	window.addEventListener("beforeunload", function () {
 		console.log("beforeunload: Closing websockets.");
-		websocket.wsCloseAll();
+		websocket.ws_utilities.wsCloseAll();
 	});
 
 	buttons.setup();

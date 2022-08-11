@@ -8,6 +8,8 @@ let _MOD = {
 	//
 	_VRAM            : [], // ArrayBuffer for VRAM.
 	_VRAM_view       : [], // Uint8 view of _VRAM ArrayBuffer.
+	_VRAM2            : [], // ArrayBuffer for VRAM2.
+	_VRAM2_view       : [], // Uint8 view of _VRAM2 ArrayBuffer.
 	_VRAM_inited     : false, 
 	_VRAM_updateStats: {}, 
 	buff_abgr        : null, // Raw BGRA data (framebuffer).
@@ -91,7 +93,7 @@ let _MOD = {
 		_MOD.fillTile(tile, 0, 0, ts.cols, ts.rows, xcolLayer);
 
 		// Set the lcdUpdateNeeded flag.
-		_MOD.lcdUpdateNeeded = true;
+		// _MOD.lcdUpdateNeeded = true;
 	},
 
 	// Clear all VRAM layers. Can specify the layer 0 tile.
@@ -108,7 +110,7 @@ let _MOD = {
 		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 2);
 
 		// Set the lcdUpdateNeeded flag.
-		_MOD.lcdUpdateNeeded = true;
+		// _MOD.lcdUpdateNeeded = true;
 	},
 
 	// Update one tile in _VRAM.
@@ -140,7 +142,7 @@ let _MOD = {
 	},
 
 	// DRAW ONE TILE TO THE CANVAS.
-	setTile    : function(tileName, x, y, xcolLayer=1){
+	setTile    : function(tileName=" ", x, y, xcolLayer=1){
 		// Get the LCD config.
 		let conf = _APP.m_config.config.lcd;
 		let ts = conf.tileset;
@@ -175,7 +177,7 @@ let _MOD = {
 	},
 
 	// DRAW TEXT TO THE CANVAS. 
-	print      : function(str, x, y, xcolLayer=1){
+	print      : function(str="", x, y, xcolLayer=1){
 		let chars = str.split("");
 		for(let i=0; i<chars.length; i+=1){
 			let tileName = chars[i].toString().toUpperCase();
@@ -184,7 +186,7 @@ let _MOD = {
 	},
 
 	// DRAW TILES TO CANVAS IN A RECTANGLE REGION.
-	fillTile   : function(tileName, x, y, w, h, xcolLayer=0){
+	fillTile   : function(tileName=" ", x, y, w, h, xcolLayer=0){
 		for(let dy=0; dy<h; dy+=1){
 			for(let dx=0; dx<w; dx+=1){
 				_MOD.setTile(tileName, x+dx, y+dy, xcolLayer);
@@ -198,7 +200,7 @@ let _MOD = {
 		let conf = _APP.m_config.config.lcd;
 		let ts = conf.tileset;
 
-		_MOD.updatingLCD=false;
+		_MOD.updatingLCD = false;
 		_MOD.lcdUpdateNeeded = false;
 
 		for(let i=0; i<ts.tilesInCol; i+=1){

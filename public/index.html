@@ -24,16 +24,16 @@
 	<div id="controls_cont">
 		<div class="inlineBlock">
 			<div id="controls_top">
-				<div class="title">WebSocket Connect <span id="ws_status">(CLOSED)</span> </div>
-				<div>
-					<button id="ws_connect" class="button" onclick="">WebSockets: CONNECT</button>
+				<div class="title">WebSocket Connect <span id="ws_status"></span> </div>
+				<div class="">
+					<button id="ws_connect" class="button" onclick="">CONNECT</button>
+					<button id="ws_disconnect" class="button" onclick="">CLOSE</button>
 					<br>
-					<button id="ws_disconnect" class="button" onclick="">WebSockets: CLOSE</button>
 				</div>
 				<br>
 
 				<div class="title">Via WebSocket</div>
-				<div>
+				<div class="ws disconnected">
 					<button id="ws_up" class="button icon" onclick="">&#9650;</button>
 					<button id="ws_down" class="button icon" onclick="">&#9660;</button>
 					<button id="ws_left" class="button icon" onclick="">&#9664;</button>
@@ -50,37 +50,28 @@
 
 				<div class="title">Via POST</div>
 				<div>
-					<button id="post_up" class="button icon">&#9650;</button>
-					<button id="post_down" class="button icon">&#9660;</button>
-					<button id="post_left" class="button icon">&#9664;</button>
-					<button id="post_right" class="button icon">&#9654;</button>
-					<br>
-					<button id="post_press" class="button icon">&#128307;</button>
-					<button id="post_b1" class="button icon">&#9461;</button>
-					<button id="post_b2" class="button icon">&#9462;</button>
-					<button id="post_b3" class="button icon">&#9463;</button>
-					<br>
 					<button id="post_requestVramDraw" class="button">(POST) Request _VRAM/DRAW</button>
 				</div>
 				<br>
 			</div>
 		</div>
+
 		<div class="inlineBlock">
 			<div id="controls_right">
-				<table>
+				<table class="ws disconnected">
 					<tr>
-						<td>Show VRAM layers</td>
+						<td class="title">VRAM Layers</td>
 						<td><input type="checkbox" id="vram_div_layersChk"></td>
 					</tr>
 					<tr>
-						<td>Change FPS (server)</td>
+						<td class="title">Server FPS</td>
 						<td>
 							<select id="info_changeFps"></select>
 							<button id="info_changeFpsBtn">SET</button>
 						</td>
 					</tr>
 					<tr>
-						<td>CLEARLAYER</td>
+						<td class="title">CLEARLAYER</td>
 						<td>
 							<button id="info_clearLayer0">0</button>
 							<button id="info_clearLayer1">1</button>
@@ -89,7 +80,13 @@
 						</td>
 					</tr>
 					<tr>
-						<td>UPDATESTATS</td>
+						<td class="title">SUBSCRIPTIONS</td>
+						<td>
+							<div id="info_SUBSCRIPTIONS"></div>
+						</td>
+					</tr>
+					<tr>
+						<td class="title">UPDATESTATS</td>
 						<td>
 							<div id="info_VRAM_UPDATESTATS"></div>
 						</td>
@@ -97,31 +94,67 @@
 				</table>
 			</div>
 		</div>
-		<br>
-		<div id="controls_bottom">
-			<table>
+		<!-- <br> -->
+
+		<div id="controls_bottom1">
+			<table class="ws disconnected">
 				<tr>
-					<th>L:FPS</th>
+					<th class="title"> </th>
+					<th class="title">VRAM</th>
+					<th class="title">STATS1</th>
+					<th class="title">*****</th>
+					<th class="title">*****</th>
+					<th class="title">*****</th>
+					<th class="title">*****</th>
+				</tr>
+
+				<tr>
+					<th class="title">SUBSCRIBE</th>
+					<td><button onclick="buttons.addSubscription('VRAM');" class="button" onclick="">ADD</button></td>
+					<td><button onclick="buttons.addSubscription('STATS1');" class="button" onclick="">ADD</button></td>
+					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
+					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
+					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
+					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
+				</tr>
+
+				<tr>
+					<th class="title">UNSUBSCRIBE</th>
+					<td><button onclick="buttons.removeSubscription('VRAM');" class="button" onclick="">REMOVE</button></td>
+					<td><button onclick="buttons.removeSubscription('STATS1');" class="button" onclick="">REMOVE</button></td>
+					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
+					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
+					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
+					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
+				</tr>
+			</table>
+		</div>
+		<!-- <br> -->
+
+		<div id="controls_bottom2">
+			<table class="ws disconnected">
+				<tr>
+					<th class="title">L:FPS</th>
 					<td> <span id="info_fps">0 f/s</span> </td>
-					<th>L:skipped</th>
+					<th class="title">L:skipped</th>
 					<td> <span id="info_skippedDraws">0</span> </td>
-					<th>L:draws</th>
+					<th class="title">L:draws</th>
 					<td> <span id="info_draws">0</span> </td>
 				</tr>
 				<tr>
-					<th>S:FPS</th>
+					<th class="title">S:FPS</th>
 					<td> <span>0</span> </td>
-					<th>S:lastDraw</th>
+					<th class="title">S:lastDraw</th>
 					<td> <span>0</span> </td>
-					<th>S:curFrame</th>
+					<th class="title">S:curFrame</th>
 					<td> <span id="info_curFrame">0</span> </td>
 				</tr>
 				<tr>
-					<th>L:lastDraw</th>
+					<th class="title">L:lastDraw</th>
 					<td> <span id="info_lastDraw">0</span> </td>
-					<th>*</th>
+					<th class="title">*</th>
 					<td> <span>0</span> </td>
-					<th>*</th>
+					<th class="title">*</th>
 					<td> <span>0</span> </td>
 				</tr>
 			</table>
@@ -133,10 +166,12 @@
 			<div class="title">DISPLAY LAYER: 0 (fillTile)</div>
 			<canvas class="vramCanvas" id="vram_l1" width="240" height="240"></canvas>
 		</div>
+
 		<div class="inlineBlock">
 			<div class="title">DISPLAY LAYER: 1 (setTile L1)</div>
 			<canvas class="vramCanvas" id="vram_l2" width="240" height="240"></canvas>
 		</div>
+
 		<div class="inlineBlock">
 			<span class="title">DISPLAY LAYER: 2 (setTile L2/print)</span>
 			<canvas class="vramCanvas" id="vram_l3" width="240" height="240"></canvas>

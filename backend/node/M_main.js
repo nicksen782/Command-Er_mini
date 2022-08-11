@@ -485,7 +485,7 @@ let _APP = {
 				// Update the web clients. (ArrayBuffer)
 				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
 					// VRAM
-					_APP.m_websocket_node.ws_utilities.sendToAll(_APP.m_draw._VRAM);
+					_APP.m_websocket_node.ws_utilities.sendToAll(_APP.m_draw._VRAM, ["VRAM_UPDATES"]);
 					
 					// VRAM update stats.
 					_APP.m_websocket_node.ws_utilities.sendToAll(JSON.stringify({mode:"_VRAM_UPDATESTATS", data:_APP.m_draw._VRAM_updateStats}));

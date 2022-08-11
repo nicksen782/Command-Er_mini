@@ -7,6 +7,10 @@ let _APP = null;
 
 let _MOD = {
 	ws:null,
+	subscriptionKeys: [
+		"VRAM",
+		"STATS1",
+	],
 
 	// Init this module.
 	module_init: async function(parent){
@@ -87,16 +91,30 @@ let _MOD = {
 			},
 			// Expected origin: Web client by request.
 			CLEAR_LAYER:    async function(ws, data){
-				console.log("CLEAR_LAYER:", data, data.data);
+				console.log(data.mode, data.data);
+				console.log(data.data);
 				if(data.data == "ALL"){
-					_APP.m_draw.clearLayers(); // tile=" "
+					_APP.m_draw.clearLayers();
 				}
 				else{
-					_APP.m_draw.clearLayer(null, data.data ); // tile=" ", xcolLayer=null
+					_APP.m_draw.clearLayer(" ", data.data );
 				}
 			},
+			SUBSCRIBE:      async function(ws, data){
+				_MOD.ws_utilities.addSubscription(ws, data.data);
+			},
+			UNSUBSCRIBE:      async function(ws, data){
+				_MOD.ws_utilities.removeSubscription(ws, data.data);
+			},
 		},
-		TEXT:{},
+		TEXT:{
+			GET_SUBSCRIPTIONS:      async function(ws, key){
+				// console.log(`${key}:`, ws.subscriptions);
+
+				// Send the client's current subscription list. 
+				ws.send(JSON.stringify({"mode":"GET_SUBSCRIPTIONS", "data":ws.subscriptions}));
+			}
+		},
 	},
 	ws_utilities: {
 		// Generate and return a uuid v4.
@@ -132,15 +150,57 @@ let _MOD = {
 			});
 			return arr;
 		},
+		
+		// sendToOne: function(data, uuid){
+		// 	_MOD.ws.clients.forEach(function each(ws) { 
+		// 		if (ws.readyState === _MOD.ws_readyStates.OPEN && ws.id == uuid) {
+		// 			ws.send(data); 
+		// 		}
+		// 	});
+		// },
 
 		// Sends the specified data to ALL connected clients. 
-		sendToAll: function(data){
+		sendToAll: function(data, conditions=[]){
 			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
 			_MOD.ws.clients.forEach(function each(ws) { 
 				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
 					ws.send(data); 
 				}
 			});
+		},
+
+		getSubscriptions  : function(ws)   { 
+			// if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
+		},
+		addSubscription   : function(ws, key){ 
+			// Only accept valid keys.
+			if(_MOD.subscriptionKeys.indexOf(key) != -1){
+				// Add the key if it doesn't exist.
+				if(ws.subscriptions.indexOf(key) == -1){
+					ws.subscriptions.push(key);
+				}
+
+				// Send the client's current subscription list. 
+				ws.send(JSON.stringify({"mode":"SUBSCRIBE", "data":ws.subscriptions}));
+			}
+			else{
+				console.log("Invalid subscription key provided:", key);
+			}
+		},
+		removeSubscription: function(ws, key){ 
+			// Only accept valid keys.
+			if(_MOD.subscriptionKeys.indexOf(key) != -1){
+				// Remove the key if it exists.
+				if(ws.subscriptions.indexOf(key) != -1){
+					ws.subscriptions = ws.subscriptions.filter(d=>d!=key);
+				}
+
+				// Send the client's current subscription list. 
+				ws.send(JSON.stringify({"mode":"UNSUBSCRIBE", "data":ws.subscriptions}));
+			}
+			else{
+				console.log("Invalid subscription key provided:", key);
+			}
 		},
 	},
 	ws_events:{
@@ -164,8 +224,8 @@ let _MOD = {
 				}
 			}
 			else if(tests.isText){
-				if(_MOD.ws_event_handlers.TEXT[data.mode]){
-					_MOD.ws_event_handlers.TEXT[data.mode](ws);
+				if(_MOD.ws_event_handlers.TEXT[data]){
+					_MOD.ws_event_handlers.TEXT[data](ws);
 				}
 				else{
 					ws.send(JSON.stringify({"mode":"ERROR", "data":"UNKNOWN MODE: " + data}));
@@ -200,16 +260,21 @@ let _MOD = {
 
 			// GENERATE A UNIQUE ID FOR THIS CONNECTION. 
 			clientWs.id = _MOD.ws_utilities.uuidv4();
+			
+			// Add subscriptions array to this connection. 
+			clientWs.subscriptions = [];
+			_MOD.ws_utilities.addSubscription(clientWs, "VRAM");
+			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
 
-			// // SEND THE UUID.
+			// SEND THE UUID.
 			clientWs.send(JSON.stringify( {"mode":"NEWCONNECTION", data:clientWs.id } ));
 			
-			// // SEND THE NEW CONNECTION MESSAGE.
+			// SEND THE NEW CONNECTION MESSAGE.
 			clientWs.send(JSON.stringify( {"mode":"WELCOMEMESSAGE", data:`WELCOME TO COMMAND-ER MINI.`} ));
 
-			// // ADD LISTENERS.
+			// ADD LISTENERS.
 			clientWs.addEventListener('message', (event)=>_MOD.ws_events.el_message(clientWs, event) );
 			clientWs.addEventListener('close'  , (event)=>_MOD.ws_events.el_close  (clientWs, event) );
 			clientWs.addEventListener('error'  , (event)=>_MOD.ws_events.el_error  (clientWs, event) );
