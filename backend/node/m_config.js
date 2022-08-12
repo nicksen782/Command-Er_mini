@@ -1,5 +1,5 @@
 const fs = require('fs');
-// const path = require('path');
+const path = require('path');
 const os   = require('os');
 
 let _APP = null;
@@ -12,6 +12,7 @@ let _MOD = {
 	tileCoords_filename       : "public/shared/tileCoords.json",
 	tileIdsByTilename_filename: "public/shared/tileIdsByTilename.json",
 	tilenamesByIndex_filename : "public/shared/tilenamesByIndex.json",
+	remoteConf_filename       : "backend/remoteConf.json",
 	
 	// Data"
 	config            : {},
@@ -20,6 +21,7 @@ let _MOD = {
 	tileCoords        : {},
 	tileIdsByTilename : {},
 	tilenamesByIndex  : {},
+	remoteConf        : [],
 
 	configLoaded: false,
 
@@ -76,6 +78,20 @@ let _MOD = {
 			_MOD.tileCoords        = JSON.parse( fs.readFileSync(_MOD.tileCoords_filename,        'utf8') );
 			_MOD.tileIdsByTilename = JSON.parse( fs.readFileSync(_MOD.tileIdsByTilename_filename, 'utf8') );
 			_MOD.tilenamesByIndex  = JSON.parse( fs.readFileSync(_MOD.tilenamesByIndex_filename,  'utf8') );
+			if(fs.existsSync(_MOD.remoteConf_filename)){
+				_MOD.remoteConf        = JSON.parse( fs.readFileSync(_MOD.remoteConf_filename,        'utf8') );
+			}
+			else{
+				_APP.consolelog(`${path.basename(_MOD.remoteConf_filename)} is missing. Creating a new one.`, 4);
+				_MOD.remoteConf = [
+					{
+						"name": "DEFAULT - CHANGEME",
+						"URL" : "http://127.0.0.1/",
+						"getConfigs" : "getConfigs"
+					}
+				];
+				fs.writeFileSync(_MOD.remoteConf_filename, JSON.stringify(_MOD.remoteConf,null,1) );
+			}
 
 			resolve();
 		});

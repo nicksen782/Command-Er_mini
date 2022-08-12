@@ -40,10 +40,10 @@ let _MOD = {
 	// ******
 	layers   : []  , // Output layers. Last layer is the combined layer.
 	fb       : null, // Handle to the output framebuffer.
-	rawBuffer:null,
+	rawBuffer: null, // Saved as to not need to reallocate memory each draw.
 	tileCache: []  , // Cache of all tiles.
 
-	drawLayersUpdateFramebuffer: async function(){
+	drawLayersUpdateFramebuffer: async function(_changes){
 		return new Promise(async function(resolve,reject){
 			// Get the LCD config.
 			let conf = _APP.m_config.config.lcd;
@@ -58,10 +58,17 @@ let _MOD = {
 				
 				// Get the changes for this layer.
 				let changes = [];
-				if(_APP.m_draw._VRAM_updateStats[layer_i].updates){
-					changes = Object.keys(layer).filter(function(d){ return layer[d].c; });
+				if(!_changes){
+					console.log("_changes was NOT supplied.");
+					if(_APP.m_draw._VRAM_updateStats[layer_i].updates){
+						changes = Object.keys(layer).filter(function(d){ return layer[d].c; });
+					}
+				}
+				else{
+					changes = _changes[layer_i];
 				}
 				
+				// Go through each change. 
 				for(let coordKey of changes){
 					// Skip if the changed key is false.
 					if(! layer[coordKey].c){ continue; }
@@ -77,19 +84,11 @@ let _MOD = {
 
 					// Draw the tile to this layer.
 					layerCtx.drawImage(newTileCanvas, rec.x*ts.tileWidth, rec.y*ts.tileHeight);
-
-					// console.log(layer_i, coordKey, layer[coordKey], _APP.m_config.tilenamesByIndex[layer[coordKey].t], newTileCanvas);
 				}
 
-				// Draw this layer to the last layer.
+				// Draw this layer (updated or not) to the last layer.
 				_MOD.layers[_MOD.layers.length-1].ctx.drawImage(layerCtx.canvas, 0, 0);
 			}
-
-			// console.log("");
-
-			// Use _APP.m_draw._VRAM to only draw to each canvas what has changed.
-
-			// Combine the layers into the last layer.
 
 			// Create a raw buffer from the last layer. 
 			_MOD.rawBuffer = _MOD.layers[_MOD.layers.length-1].canvas.toBuffer('raw');
@@ -100,7 +99,8 @@ let _MOD = {
 			// Reset the draw flags.
 			_APP.m_draw.clearDrawingFlags();
 
-			_APP.timeIt("WS_DISPLAYUPDATE", "e");
+			// Update the timeIt stamps.
+			_APP.timeIt("DISPLAYUPDATE", "e");
 			_APP.timeIt("FULLLOOP", "e");
 
 			// Schedule the next appLoop.
@@ -175,7 +175,7 @@ let _MOD = {
 				let ts = conf.tileset;
 
 				// Get the tileset image as a canvas and context.
-				let { canvas: canvasTileset, ctx: canvasTilesetCtx } = await _MOD.init.createTileSetCanvas(); // 
+				let { canvas: canvasTileset, ctx: canvasTilesetCtx } = await _MOD.init.createTileSetCanvas();
 
 				// Get the tileCoord keys. 
 				let keys = Object.keys(_APP.m_config.tileCoords);
@@ -198,10 +198,7 @@ let _MOD = {
 				let conf = _APP.m_config.config.lcd;
 				let ts = conf.tileset;
 
-				// Make sure that index is a number.
-				// index = !isNaN(index) && typeof index == "str" ? index : parseInt(index,10);
-
-				// Create the cache canvas and ctx.
+				// Create the cache canvas and ctx for this tile.
 				let tmpCanvas = createCanvas(ts.tileWidth, ts.tileHeight);
 				let tmpCtx    = tmpCanvas.getContext('2d');
 
@@ -230,7 +227,7 @@ let _MOD = {
 				_MOD.tileCache.push({
 					"key"       : key,                   // tileName.
 					"canvas"    : tmpCanvas,             // Canvas of this tile. 
-					"index"     : _MOD.tileCache.length, // Should be the real index and match index.
+					"index"     : _MOD.tileCache.length, // tileId.
 				});
 
 				resolve();

@@ -77,7 +77,12 @@ let websocket = {
 				let outputText = "";
 				for(let key in data.data){
 					let rec = data.data[key];
-					outputText += `L:${rec.layer}, CHANGES: ${rec.updates}\n`;
+					outputText += `` +
+					`L:${rec.layer}, ` +
+					`U:${rec.updates   .toString().padStart(3, " ")}, ` +
+					`R:${rec.real      .toString().padStart(3, " ")}, ` +
+					`O:${rec.overwrites.toString().padStart(3, " ")}  ` + 
+					`\n`;
 				}
 				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
 			},
@@ -150,6 +155,9 @@ let websocket = {
 			// Remove disconnected, add connected.
 			let wsElems = document.querySelectorAll(".ws");
 			wsElems.forEach(function(d){ d.classList.add("connected"); d.classList.remove("disconnected"); });
+
+			// Request GET_VRAM.
+			draw.getVram("ws");
 		},
 		el_message:function(event){
 			let data;
@@ -189,12 +197,9 @@ let websocket = {
 			
 			// Expects VRAM in event.data.
 			else if(tests.isArrayBuffer){
-				// Draw _VRAM again.
+				// Draw _VRAM..
 				if(!draw.isDrawing){
-					// Graphics data. Replace _VRAM with this new data.
-					draw._VRAM = new Uint8Array(data);
-					draw.draws += 1;
-					draw.drawVram();
+					draw.drawVram( new Uint8Array(data) );
 				}
 				else{ draw.skippedDraws += 1; }
 			}
@@ -259,10 +264,11 @@ let draw = {
 		vram_all:null,
 	},
 	_VRAM:[],
+	_VRAM_prev:[],
 	isDrawing:false,
 	draws:0,
 	skippedDraws:0,
-	drawIndividualLayers: true,
+	showIndividualLayers: true,
 	showVramLayers: function(){
 		draw.DOM.vram_div_layers.classList.remove("hide");
 	},
@@ -298,7 +304,7 @@ let draw = {
 			draw.clearOneCanvas(draw.canvases[key], fillStyle);
 		}
 	},
-	drawVram: async function(){
+	drawVram: async function(_VRAM_new){
 		window.requestAnimationFrame(function(){
 			draw.isDrawing=true;
 			// let s = performance.now();
@@ -313,7 +319,7 @@ let draw = {
 			let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
 			let x,y,tileId,tileImage,dx,dy;
 				
-			draw.clearAllCanvases();
+			// draw.clearAllCanvases();
 
 			for(let index=0; index<draw.configs.coordsByIndex.length; index+=1){
 				x = draw.configs.coordsByIndex[index][0];
@@ -321,7 +327,11 @@ let draw = {
 
 				for(let v=0; v<tilesInCol; v+=1){
 					// Get the tile id.
-					tileId = draw._VRAM[(index*tilesInCol)+v];
+					tileId_old = draw._VRAM_prev[(index*tilesInCol)+v];
+					tileId = _VRAM_new[(index*tilesInCol)+v];
+
+					// Skip the drawing of any tile that has not changed.
+					if(tileId == tileId_old){ continue; }
 
 					// Get the tile image from cache.
 					tileImage = draw.tilesCache[tileId];
@@ -330,17 +340,29 @@ let draw = {
 					dx = x*tileWidth;
 					dy = y*tileHeight;
 
-					// Draw the correct canvas.
-					if(draw.drawIndividualLayers){
-						if     (v==0){ draw.canvases["vram_l1"] .drawImage(tileImage, dx, dy); }
-						else if(v==1){ draw.canvases["vram_l2"] .drawImage(tileImage, dx, dy); }
-						else if(v==2){ draw.canvases["vram_l3"] .drawImage(tileImage, dx, dy); }
+					// Draw to the matching canvas.
+					if     (v==0){ 
+						draw.canvases["vram_l1"].clearRect(dx, dy, tileWidth, tileHeight);
+						draw.canvases["vram_l1"].drawImage(tileImage, dx, dy); 
 					}
-
-					// Always draw to the last canvas.
-					draw.canvases["vram_all"].drawImage(tileImage, dx, dy);
+					else if(v==1){ 
+						draw.canvases["vram_l2"].clearRect(dx, dy, tileWidth, tileHeight);
+						draw.canvases["vram_l2"].drawImage(tileImage, dx, dy); 
+					}
+					else if(v==2){ 
+						draw.canvases["vram_l3"].clearRect(dx, dy, tileWidth, tileHeight);
+						draw.canvases["vram_l3"].drawImage(tileImage, dx, dy); 
+					}
 				}
 			}
+			// Combine the canvas layers into the ALL canvas.
+			draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
+			draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
+			draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
+
+			// Save new to prev.
+			draw._VRAM_prev = new Uint8Array( Array.from(_VRAM_new) );
+
 			// let e = performance.now();
 
 			// console.log((e-s).toFixed(3));
@@ -352,6 +374,7 @@ let draw = {
 				draw.DOM.info_lastDraw.innerText = newTime;
 			}
 			draw.DOM.info_skippedDraws.innerText = draw.skippedDraws;
+			draw.draws += 1;
 			draw.DOM.info_draws.innerText = draw.draws;
 		});
 	},
@@ -485,10 +508,8 @@ let draw = {
 			}
 		}
 		else if(type=="post"){
-			draw._VRAM = await http.post("GET_VRAM", {});
 			if(!draw.isDrawing){
-				draw.draws += 1;
-				draw.drawVram();
+				draw.drawVram( await http.post("GET_VRAM", {}) );
 			}
 			else{ draw.skippedDraws += 1; }
 		}
@@ -614,7 +635,7 @@ window.onload = async function(){
 	// VRAM layers toggle.
 	draw.DOM.vram_div_layersChk = document.getElementById("vram_div_layersChk");
 	draw.DOM.vram_div_layersChk.addEventListener("click", function(){
-		draw.drawIndividualLayers = this.checked; 
+		draw.showIndividualLayers = this.checked; 
 		if(this.checked){ draw.showVramLayers(); }
 		else{ draw.hideVramLayers(); }
 	}, false)

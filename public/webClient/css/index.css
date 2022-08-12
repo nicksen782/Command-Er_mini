@@ -186,7 +186,7 @@ div#controls_right {
 
 table td, table tr, table th{ vertical-align: top; }
 #info_SUBSCRIPTIONS{font-family: monospace;white-space: pre;font-size: 10px;}
-#info_VRAM_UPDATESTATS{font-family: monospace;white-space: pre;font-size: 12px;}
+#info_VRAM_UPDATESTATS{font-family: monospace;white-space: pre;font-size: 10px;}
 
 
 .ws{width: 100%;}

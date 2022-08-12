@@ -41,8 +41,12 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
-		_APP.addToRouteList({ path: "GET_VRAM"  , method: "ws", args: [], file: __filename, desc: "(JSON): Return _VRAM buffer" });
-		_APP.addToRouteList({ path: "CHANGE_FPS", method: "ws", args: [], file: __filename, desc: "(JSON): Change FPS" });
+		_APP.addToRouteList({ path: "GET_VRAM"         , method: "ws", args: [], file: __filename, desc: "(JSON): Return _VRAM buffer" });
+		_APP.addToRouteList({ path: "CHANGE_FPS"       , method: "ws", args: [], file: __filename, desc: "(JSON): Change FPS" });
+		_APP.addToRouteList({ path: "CLEAR_LAYER"      , method: "ws", args: [], file: __filename, desc: "(JSON): Clear selected VRAM layer." });
+		_APP.addToRouteList({ path: "SUBSCRIBE"        , method: "ws", args: [], file: __filename, desc: "(JSON): Subscript to event." });
+		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unubscript from event." });
+		_APP.addToRouteList({ path: "GET_SUBSCRIPTIONS", method: "ws", args: [], file: __filename, desc: "(TEXT): Get list of active subscriptions." });
 	},
 
 	// **********
@@ -93,12 +97,8 @@ let _MOD = {
 			CLEAR_LAYER:    async function(ws, data){
 				console.log(data.mode, data.data);
 				console.log(data.data);
-				if(data.data == "ALL"){
-					_APP.m_draw.clearLayers();
-				}
-				else{
-					_APP.m_draw.clearLayer(" ", data.data );
-				}
+				if(data.data == "ALL"){ _APP.m_draw.clearLayers(" "); }
+				else{                   _APP.m_draw.clearLayer(" ", data.data ); }
 			},
 			SUBSCRIBE:      async function(ws, data){
 				_MOD.ws_utilities.addSubscription(ws, data.data);
@@ -151,14 +151,6 @@ let _MOD = {
 			return arr;
 		},
 		
-		// sendToOne: function(data, uuid){
-		// 	_MOD.ws.clients.forEach(function each(ws) { 
-		// 		if (ws.readyState === _MOD.ws_readyStates.OPEN && ws.id == uuid) {
-		// 			ws.send(data); 
-		// 		}
-		// 	});
-		// },
-
 		// Sends the specified data to ALL connected clients. 
 		sendToAll: function(data){
 			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
@@ -169,11 +161,11 @@ let _MOD = {
 			});
 		},
 
-		sendToAllSubscribers: function(data, condition=""){
+		sendToAllSubscribers: function(data, eventType=""){
 			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
 			_MOD.ws.clients.forEach(function each(ws) { 
 				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
-					if(ws.subscriptions.indexOf(condition) != -1){
+					if(ws.subscriptions.indexOf(eventType) != -1){
 						ws.send(data); 
 					}
 				}
@@ -183,34 +175,34 @@ let _MOD = {
 		getSubscriptions  : function(ws)   { 
 			// if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
 		},
-		addSubscription   : function(ws, key){ 
-			// Only accept valid keys.
-			if(_MOD.subscriptionKeys.indexOf(key) != -1){
-				// Add the key if it doesn't exist.
-				if(ws.subscriptions.indexOf(key) == -1){
-					ws.subscriptions.push(key);
+		addSubscription   : function(ws, eventType){ 
+			// Only accept valid eventTypes.
+			if(_MOD.subscriptionKeys.indexOf(eventType) != -1){
+				// Add the eventType if it doesn't exist.
+				if(ws.subscriptions.indexOf(eventType) == -1){
+					ws.subscriptions.push(eventType);
 				}
 
 				// Send the client's current subscription list. 
 				ws.send(JSON.stringify({"mode":"SUBSCRIBE", "data":ws.subscriptions}));
 			}
 			else{
-				console.log("Invalid subscription key provided:", key);
+				console.log("Invalid subscription eventType provided:", eventType);
 			}
 		},
-		removeSubscription: function(ws, key){ 
-			// Only accept valid keys.
-			if(_MOD.subscriptionKeys.indexOf(key) != -1){
-				// Remove the key if it exists.
-				if(ws.subscriptions.indexOf(key) != -1){
-					ws.subscriptions = ws.subscriptions.filter(d=>d!=key);
+		removeSubscription: function(ws, eventType){ 
+			// Only accept valid eventTypes.
+			if(_MOD.subscriptionKeys.indexOf(eventType) != -1){
+				// Remove the eventType if it exists.
+				if(ws.subscriptions.indexOf(eventType) != -1){
+					ws.subscriptions = ws.subscriptions.filter(d=>d!=eventType);
 				}
 
 				// Send the client's current subscription list. 
 				ws.send(JSON.stringify({"mode":"UNSUBSCRIBE", "data":ws.subscriptions}));
 			}
 			else{
-				console.log("Invalid subscription key provided:", key);
+				console.log("Invalid subscription eventType provided:", eventType);
 			}
 		},
 	},

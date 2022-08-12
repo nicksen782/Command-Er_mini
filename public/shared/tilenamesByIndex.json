@@ -81,5 +81,19 @@
  "batt1",
  "batt2",
  "batt3",
- "batt4"
+ "batt4",
+ "btn_u",
+ "btn_d",
+ "btn_l",
+ "btn_r",
+ "btn_a",
+ "btn_b",
+ "btn_c",
+ "btn_u_active",
+ "btn_d_active",
+ "btn_l_active",
+ "btn_r_active",
+ "btn_a_active",
+ "btn_b_active",
+ "btn_c_active"
 ]

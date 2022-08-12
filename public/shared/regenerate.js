@@ -19,7 +19,7 @@ function create_coordsByIndex(){
 		let lastIndex=0;
 		for(let row=0;row<_rows;row+=1){
 			for(let col=0;col<_cols;col+=1){
-				let index = ( row * ( _cols * c.tilesInCol ) ) + ( col * c.tilesInCol );
+				let index = ( row * ( _cols * ts.tilesInCol ) ) + ( col * ts.tilesInCol );
 				byIndex.push([col, row, index, lastIndex]); 
 				lastIndex+=1;
 			}
@@ -71,7 +71,7 @@ function create_indexByCoords(){
 		for(let row=0;row<_rows;row+=1){
 			byCoord.push([]);
 			for(let col=0;col<_cols;col+=1){
-				let index = ( row * ( _cols * c.tilesInCol ) ) + ( col * c.tilesInCol );
+				let index = ( row * ( _cols * ts.tilesInCol ) ) + ( col * ts.tilesInCol );
 				byCoord[row].push(index);
 			}
 		}

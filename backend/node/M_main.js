@@ -9,6 +9,7 @@ const m_websocket_node   = require('./m_websocket_node.js');
 const m_websocket_python = require('./m_websocket_python.js');
 const m_gpio             = require('./m_gpio.js');
 const m_s_title          = require('./m_s_title.js');
+const m_s_test_1         = require('./m_s_test_1.js');
 const m_canvas           = require('./m_canvas.js');
 // const m_battery     = require('./m_battery.js');
 // const m_s_timing    = require('./m_s_timing.js');
@@ -33,6 +34,7 @@ let _APP = {
 	m_websocket_python: m_websocket_python ,
 	m_gpio            : m_gpio ,
 	m_s_title         : m_s_title ,
+	m_s_test_1        : m_s_test_1 ,
 	m_canvas          : m_canvas ,
 	// m_battery     : m_battery ,
 	// m_s_timing    : m_s_timing ,
@@ -120,13 +122,13 @@ let _APP = {
 			_APP.timeIt("M_main", "s");   await _APP         .module_init(_APP); _APP.timeIt("M_main", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("M_main", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
-			_APP.consolelog("START: module_init: m_canvas :", 0);        
-			_APP.timeIt("m_canvas", "s"); await _APP.m_canvas.module_init(_APP); _APP.timeIt("m_canvas", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_canvas", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
 			_APP.consolelog("START: module_init: m_draw :", 0);        
 			_APP.timeIt("m_draw", "s"); await _APP.m_draw.module_init(_APP); _APP.timeIt("m_draw", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_draw", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+
+			_APP.consolelog("START: module_init: m_canvas :", 0);        
+			_APP.timeIt("m_canvas", "s"); await _APP.m_canvas.module_init(_APP); _APP.timeIt("m_canvas", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_canvas", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
 			_APP.consolelog("START: module_init: m_websocket_node :", 0);        
 			_APP.timeIt("m_websocket_node", "s"); await _APP.m_websocket_node.module_init(_APP); _APP.timeIt("m_websocket_node", "e");
@@ -140,9 +142,14 @@ let _APP = {
 			_APP.timeIt("m_gpio", "s"); await _APP.m_gpio.module_init(_APP); _APP.timeIt("m_gpio", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_gpio", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 			
+			// SCREENS
 			_APP.consolelog("START: module_init: m_s_title :", 0);        
 			_APP.timeIt("m_s_title", "s"); await _APP.m_s_title.module_init(_APP); _APP.timeIt("m_s_title", "e");
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_s_title", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+			
+			_APP.consolelog("START: module_init: m_s_test_1 :", 0);        
+			_APP.timeIt("m_s_test_1", "s"); await _APP.m_s_test_1.module_init(_APP); _APP.timeIt("m_s_test_1", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_s_test_1", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
 
 			resolve();
 		});
@@ -150,131 +157,156 @@ let _APP = {
 
 	// *****************
 
-	screens: [
-		"screen_title", 
-	],
+	screens: [], // Each screen module will add it's key this to this.
+	// currentScreen : "test_1",
+	currentScreen : "title",
 	screenLogic: {
 		shared: {
-			goToPrevScreen : function(){
-				// Find the index of the current screen.
-				let index = _APP.screens.indexOf(_APP.currentScreen);
-				let canMove = index > 0;
-				if(canMove){ 
-					_APP.currentScreen = _APP.screens[index -1];
-					_APP.screenLogic.screens[_APP.currentScreen].init();
-					// console.log("Switching to:", _APP.currentScreen);
-				}
-				// console.log(`PREV: ${index}/${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`);
+			// Changing screens. 
+			changeScreen:{
+				prev:function(){
+					// Find the index of the current screen.
+					let index = _APP.screens.indexOf(_APP.currentScreen);
+					let canMove = index > 0;
+					if(canMove){ 
+						// Remove the init flag of the current screen.
+						_APP.screenLogic.screens[_APP.currentScreen].inited = false;
+
+						// Change to the new screen. 
+						_APP.currentScreen = _APP.screens[index -1];
+						_APP.screenLogic.screens[_APP.currentScreen].init();
+					}
+				},
+				next:function(){
+					// Find the index of the current screen.
+					let index = _APP.screens.indexOf(_APP.currentScreen);
+					let canMove = index < _APP.screens.length-1;
+					let newScreen = false;
+					if(canMove){ 
+						// Remove the init flag of the current screen.
+						_APP.screenLogic.screens[_APP.currentScreen].inited = false;
+
+						// Change to the new screen. 
+						_APP.currentScreen = _APP.screens[index +1];
+						_APP.screenLogic.screens[_APP.currentScreen].init();
+					}
+				},
+				specific:function(key){
+					// Is this a valid key?
+					if( _APP.screens.indexOf(key) != -1){
+						// Remove the init flag of the current screen.
+						_APP.screenLogic.screens[_APP.currentScreen].inited = false;
+
+						// Change to the new screen. 
+						_APP.currentScreen = key;
+						_APP.screenLogic.screens[_APP.currentScreen].init();
+					}
+					else{
+						console.log("changeScreen.specific: Unknown screen key:", key);
+					}
+				},
 			},
-			goToNextScreen : function(){
-				// Find the index of the current screen.
-				let index = _APP.screens.indexOf(_APP.currentScreen);
-				let canMove = index < _APP.screens.length-1;
-				let newScreen = false;
-				if(canMove){ 
-					_APP.currentScreen = _APP.screens[index +1];
-					_APP.screenLogic.screens[_APP.currentScreen].init();
-					// console.log("Switching to:", _APP.currentScreen);
-				}
-				// console.log(`NEXT: ${index+1}/${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`, _APP.screens);
+
+			// Display the time.
+			time: {
+				display: function(x=0, y=29, tile="tile3"){
+					var d = new Date(); // for now
+					let h = d.getHours();
+					let ampm="AM";
+					if (h > 12) { h -= 12; ampm="PM";} 
+					else if (h === 0) { h = 12; }
+					h=h.toString().padStart(2, " ");
+			
+					let m = d.getMinutes().toString().padStart(2, "0");
+					let s = d.getSeconds().toString().padStart(2, "0");
+					let str = `${h}:${m}:${s}${ampm}`;
+	
+					_APP.m_draw.fillTile(tile, x, y, 11, 1); 
+					_APP.m_draw.setTile("clock1", x, y);
+					_APP.m_draw.print(str, x+1, y);
+				},
 			},
+
+			// Display battery info.
+			battery:{
+				chargeFlag:false,
+				lastBattery:{},
+				lastBatteryUpdate:0,
+				display: function(x=23, y=29, tile="tile3"){
+					let json = this.lastBattery;
+					firstLoad=false;
+					if(!json['%']){
+						firstLoad=true;
+						console.log("Battery data has not been populated yet.");
+						// return; 
+					}
+			
+					// DEBUG
+					// if(!json['%']){ json = {'%': 100.0}; }
+					// else{ json['%'] = 100.0; }
+	
+					// CREATE THE STRING. 
+					let str;
+					let batIcon;
+					if(!firstLoad){
+						str = ( json['%'].toFixed(1) + "%" ).padStart(6, " ");
+	
+						// DETERMINE WHICH BATTERY ICON TO DISPLAY.
+						if     (json['%'] <=25){ batIcon = "batt1"; } // RED
+						else if(json['%'] <=50){ batIcon = "batt2"; } // ORANGE
+						else if(json['%'] <=80){ batIcon = "batt3"; } // YELLOW
+						else                   { batIcon = "batt4"; } // GREEN
+					}
+					else{
+						str = "LOAD".padStart(6, " ");
+					}
+	
+					// Provide a background for the battery text. (str.length should be 6.)
+					_APP.m_draw.fillTile(tile, x+1, y, str.length, 1); 
+					
+					if(!firstLoad){
+						// Set the tile for the battery icon and charge indicator.
+						_APP.m_draw.setTile(batIcon, x, y); 
+	
+						// Show the battery indicator?
+						if(Math.sign(json['A']) == 1){
+							// Change the charge indictator icon periodically.
+							if(performance.now() - this.lastBatteryUpdate > (_APP.screenLogic.shared.secondsToFramesToMs(1))){
+								this.chargeFlag = !this.chargeFlag;
+								this.lastBatteryUpdate = performance.now();
+							}
+							// Display the charge indicator.
+							if(this.chargeFlag){ _APP.m_draw.setTile("battcharge1", x, y, 2); }
+							else{                _APP.m_draw.setTile("battcharge2", x, y, 2); }
+						}
+						else{
+							_APP.m_draw.setTile(" ", x, y, 2); 
+						}
+					}
+					else{
+						// _APP.m_draw.setTile("L", x, y, 2); 
+					}
+					_APP.m_draw.print(str, x+1, y);
+			
+				},
+			},
+
+			// Provide seconds (can be decimal) and get the number of frames in that period rounded up.
 			secondsToFrames: function(seconds){
 				// Resolution is affected by the actual frame rate.
 				let frames = Math.ceil( (seconds*1000) /_APP.stats.interval );
 				return frames;
 			},
+			// Provide seconds (can be decimal) and get the actual time back based on what is allowed by the framerate resolution.
 			secondsToFramesToMs: function(seconds){
 				// Resolution is affected by the actual frame rate.
 				let frames = _APP.screenLogic.shared.secondsToFrames(seconds);
 				ms = Math.ceil(frames * _APP.stats.interval) ;
 				return ms;
 			},
-			displayTime: function(x=0, y=29, tile="tile3"){
-				var d = new Date(); // for now
-				let h = d.getHours();
-				let ampm="AM";
-				if (h > 12) { h -= 12; ampm="PM";} 
-				else if (h === 0) { h = 12; }
-				h=h.toString().padStart(2, " ");
-		
-				let m = d.getMinutes().toString().padStart(2, "0");
-				let s = d.getSeconds().toString().padStart(2, "0");
-				let str = `${h}:${m}:${s}${ampm}`;
-
-				_APP.m_draw.fillTile(tile, x, y, 11, 1); 
-				_APP.m_draw.setTile("clock1", x, y);
-				_APP.m_draw.print(str, x+1, y);
-
-			},
-			chargeFlag:false,
-			lastBattery:{},
-			lastBatteryUpdate:0,
-			displayBattery: function(x=23, y=29, tile="tile3"){
-				let json = _APP.screenLogic.shared.lastBattery;
-				firstLoad=false;
-				if(!json['%']){
-					firstLoad=true;
-					console.log("Battery data has not been populated yet.");
-					// return; 
-				}
-		
-				// DEBUG
-				// if(!json['%']){ json = {'%': 100.0}; }
-				// else{ json['%'] = 100.0; }
-
-				// CREATE THE STRING. 
-				let str;
-				let batIcon;
-				if(!firstLoad){
-					str = ( json['%'].toFixed(1) + "%" ).padStart(6, " ");
-
-					// DETERMINE WHICH BATTERY ICON TO DISPLAY.
-					if     (json['%'] <=25){ batIcon = "batt1"; } // RED
-					else if(json['%'] <=50){ batIcon = "batt2"; } // ORANGE
-					else if(json['%'] <=80){ batIcon = "batt3"; } // YELLOW
-					else                   { batIcon = "batt4"; } // GREEN
-				}
-				else{
-					str = "LOAD".padStart(6, " ");
-				}
-
-				// Provide a background for the battery text. (str.length should be 6.)
-				_APP.m_draw.fillTile(tile, x+1, y, str.length, 1); 
-				// _APP.m_draw.fillTile(tile, x+1, y-0, 6-0, 1); 
-				// _APP.m_draw.fillTile(tile, x+2, y-0, 6-0, 1); 
-				// return;
-				
-				if(!firstLoad){
-					// Set the tile for the battery icon and charge indicator.
-					_APP.m_draw.setTile(batIcon, x, y); 
-
-					// Show the battery indicator?
-					if(Math.sign(json['A']) == 1){
-						// Change the charge indictator icon periodically.
-						if(performance.now() - _APP.screenLogic.shared.lastBatteryUpdate > (_APP.screenLogic.shared.secondsToFramesToMs(1))){
-							_APP.screenLogic.shared.chargeFlag = !_APP.screenLogic.shared.chargeFlag;
-							_APP.screenLogic.shared.lastBatteryUpdate = performance.now();
-						}
-						// Display the charge indicator.
-						if(_APP.screenLogic.shared.chargeFlag){ _APP.m_draw.setTile("battcharge1", x, y, 2); }
-						else{                                   _APP.m_draw.setTile("battcharge2", x, y, 2); }
-					}
-					else{
-						_APP.m_draw.setTile(" ", x, y, 2); 
-					}
-				}
-				else{
-					// _APP.m_draw.setTile("L", x, y, 2); 
-				}
-				_APP.m_draw.print(str, x+1, y);
-		
-			},
 		},
 		screens: {},
 	},
-	currentScreen : "screen_title",
-	// currentScreen : "timings_test",
-	// currentScreen : "drawingTest",
 
 	// DEBUG: Used to measure how long something takes.
 	timeIt_timings : { },
@@ -495,24 +527,35 @@ let _APP = {
 			if(_APP.m_draw.lcdUpdateNeeded){ 
 				_APP.m_draw.updatingLCD=true;
 				// Start the timeIt.
-				_APP.timeIt("WS_DISPLAYUPDATE", "s");
+				_APP.timeIt("DISPLAYUPDATE", "s");
 				
-				// Update the web clients. (ArrayBuffer)
+				// Determine changes.
+				let _changes = [];
+				for(let layer_i=0; layer_i<_APP.m_draw._VRAM_changes.length; layer_i+=1){
+					let layer = _APP.m_draw._VRAM_changes[layer_i];
+					_changes[layer_i] = [];
+					if(_APP.m_draw._VRAM_updateStats[layer_i].updates){
+						_changes[layer_i] = Object.keys(layer).filter(function(d){ return layer[d].c; });
+					}
+					_APP.m_draw._VRAM_updateStats[layer_i].real = _changes[layer_i].length;
+					_APP.m_draw._VRAM_updateStats[layer_i].overwrites = _APP.m_draw._VRAM_updateStats[layer_i].updates - _APP.m_draw._VRAM_updateStats[layer_i].real;
+				}
+
+				// Update the web clients.
 				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
-					// VRAM
+					// VRAM - (ArrayBuffer)
 					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(_APP.m_draw._VRAM, "VRAM_FULL");
 					
-					// VRAM update stats1.
+					// VRAM update stats1. - JSON
 					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1");
 				}
 				
-				// Updates via m_canvas.
-				_APP.m_canvas.drawLayersUpdateFramebuffer();
+				// Updates via m_canvas. (Will reset the draw flags/data and update the timeIt stamps.)
+				_APP.m_canvas.drawLayersUpdateFramebuffer(_changes);
 			}
-			
-			// _APP.timeIt("FULLLOOP", "e");
-	
-			// _APP.schedule_appLoop();
+			else{
+				_APP.schedule_appLoop();
+			}
 		}
 		// NO
 		else{

@@ -54,7 +54,7 @@ let _MOD = {
 						if(attempts > 4){
 							_APP.consolelog(`Server not ready. Attempts: ${attempts+1}/${maxAttempts}`, 4);
 						}
-						await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 2000); });
+						await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 1000); });
 					}
 				}
 				console.log("ERROR: SERVER NOT READY");
@@ -149,29 +149,7 @@ let _MOD = {
 				},
 				GET_BATTERY: function(ws, data){
 					// console.log(`mode: ${data.mode}, data: ${data.data}`);
-					_APP.screenLogic.shared.lastBattery = data.data;
-				},
-				LCD_UPDATE_DONE: function(ws, data){
-					
-					// End the timeIt.
-					_APP.timeIt("WS_DISPLAYUPDATE", "e");
-					
-					if(data.data == "DONE"){
-						// console.log( _APP.timeIt("WS_DISPLAYUPDATE", "t") );
-						
-						// Reset the draw flags.
-						_APP.m_draw.clearDrawingFlags();
-					}
-					else if(data.data == "SKIPPED"){
-						console.log( _APP.timeIt("WS_DISPLAYUPDATE", "t"), "********", data.data );
-
-						// Reset the draw flags.
-						// _APP.m_draw.clearDrawingFlags();
-					}
-					
-					// Schedule the next appLoop.
-					_APP.schedule_appLoop();
-					// _APP.appLoop(  performance.now() );
+					_APP.screenLogic.shared.battery.lastBattery = data.data;
 				},
 			},
 			TEXT  : {
@@ -245,7 +223,7 @@ let _MOD = {
 				}, 1000);
 			},
 			el_error:function(ws, event){
-				console.log("Node WebSockets Client: ERROR:", event); 
+				console.log("Python WebSockets Client: ERROR:", event); 
 				ws.close(); 
 				setTimeout(function(){
 					ws=null; 
@@ -260,8 +238,8 @@ let _MOD = {
 		
 		// Start the server.
 		_MOD.cp_child = child_process.spawn(
-			"python3", ["-u", _MOD.serverFile]
-			// "python3", [_MOD.serverFile]
+			// "python3", ["-u", _MOD.serverFile]
+			"python3", [_MOD.serverFile]
 		);
 
 		// Add event handlers.

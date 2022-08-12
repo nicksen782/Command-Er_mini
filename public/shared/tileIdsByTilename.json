@@ -81,5 +81,19 @@
  "batt1": 79,
  "batt2": 80,
  "batt3": 81,
- "batt4": 82
+ "batt4": 82,
+ "btn_u": 83,
+ "btn_d": 84,
+ "btn_l": 85,
+ "btn_r": 86,
+ "btn_a": 87,
+ "btn_b": 88,
+ "btn_c": 89,
+ "btn_u_active": 90,
+ "btn_d_active": 91,
+ "btn_l_active": 92,
+ "btn_r_active": 93,
+ "btn_a_active": 94,
+ "btn_b_active": 95,
+ "btn_c_active": 96
 }
