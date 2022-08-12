@@ -29,7 +29,5 @@ Designed to interact with this software:
   -  NOTE: The install/compile steps can take a long time (30+ mins) on a Raspberry Pi Zero.
 - sudo npm install -g npm@latest
 - nvm alias default 16.15.1
-- pip3 install freeport
-- pip3 install Pillow
 - git clone git@github.com:nicksen782/Command-Er_mini.git
 - cd Command-Er_mini

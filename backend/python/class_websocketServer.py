@@ -21,11 +21,14 @@ class C_WebSocketServer:
 
     def is_json(self, myjson):
         resp = False
+
         try:
             resp = json.loads(myjson)
-        except ValueError as e:
-            # print(f"Error in is_json: {e}")
+
+        except ValueError as ex:
+            # print(f"Error in is_json: {ex}")
             return False
+
         return resp
     
     class handler(WebSocket):
@@ -45,48 +48,21 @@ class C_WebSocketServer:
                         else:
                             type="text"
                 except Exception as ex:
-                    print(f"ex -->>: {ex}")
+                    print(f"Error in websocket handler: type check: ex: {ex}")
                     return
 
                 # BINARY-based requests.
-                if type == "binary" and False:
-                    try:
-                        start1 = time.time()
-                        
-                        # Use PIL?
-                        resp="SKIPPED"
-                        if self.parent.config['python']['gfx'] == "PIL":
-                            if self.parent.c_gfx.currentlyDrawing==False:
-                                self.parent.c_gfx.currentlyDrawing=True
-                                self.parent.c_gfx.PIL_updateVram(self.data)	
-                                self.parent.c_gfx.currentlyDrawing=False
-                                resp="DONE"
-
-                        # Use OCV?
-                        elif self.parent.config['python']['gfx'] == "OCV":
-                            if self.parent.c_gfx.currentlyDrawing==False:
-                                self.parent.c_gfx.currentlyDrawing=True
-                                self.parent.c_gfx.OCV_updateVram(self.data)
-                                self.parent.c_gfx.currentlyDrawing=False
-                                resp="DONE"
-                        
-                        end1 = time.time()
-                        print(f"updateVram: {format( ((end1 - start1) * 1000), '.2f') } ms")
-
-                    except Exception as ex:
-                        print(f"ex BINARY -->> :", ex)
-                        self.parent.c_gfx.currentlyDrawing=False
-
+                if type == "binary":
                     # Let the client know that we are done with the lcd update.
                     jsonObj = {}
-                    jsonObj['mode'] = "LCD_UPDATE_DONE"
+                    jsonObj['mode'] = "BINARY_DONE"
                     jsonObj['data'] = resp
                     self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                 # JSON-based requests.
                 elif type == "json": 
-                    if jsonObj['mode'] == "updateVram":
-                        print("updateVram")
+                    if jsonObj['mode'] == "TEST":
+                        print("JSON TEST")
 
                     # CATCH-ALL.
                     else:
@@ -126,7 +102,7 @@ class C_WebSocketServer:
                     self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
             except Exception as ex:
-                print(f"Error in ... , ex:{ex}")
+                print(f"Error in websocket handler: ex: {ex}")
 
         def connected(self):
             print(self.address, 'CONNECTED')
