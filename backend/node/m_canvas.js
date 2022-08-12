@@ -55,10 +55,20 @@ let _MOD = {
 				let rec;
 				let layer = _APP.m_draw._VRAM_changes[layer_i];
 				let layerCtx = _MOD.layers[layer_i].ctx;
-				for(let coordKey in layer){
+				
+				// Get the changes for this layer.
+				let changes = [];
+				if(_APP.m_draw._VRAM_updateStats[layer_i].updates){
+					changes = Object.keys(layer).filter(function(d){ return layer[d].c; });
+				}
+				
+				for(let coordKey of changes){
+					// Skip if the changed key is false.
+					if(! layer[coordKey].c){ continue; }
+
 					// Get the change record.
 					rec = layer[coordKey];
-
+					
 					// Get the new tile canvas.
 					let newTileCanvas = _MOD.tileCache[rec.t].canvas;
 
@@ -89,6 +99,9 @@ let _MOD = {
 
 			// Reset the draw flags.
 			_APP.m_draw.clearDrawingFlags();
+
+			_APP.timeIt("WS_DISPLAYUPDATE", "e");
+			_APP.timeIt("FULLLOOP", "e");
 
 			// Schedule the next appLoop.
 			_APP.schedule_appLoop();

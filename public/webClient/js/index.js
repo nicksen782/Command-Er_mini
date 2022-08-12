@@ -72,12 +72,12 @@ let websocket = {
 			},
 
 			// VRAM UPDATES
-			_VRAM_UPDATESTATS: function(data){
+			STATS1: function(data){
 				// console.log(`mode: ${data.mode}, data:`,data.data);
 				let outputText = "";
 				for(let key in data.data){
 					let rec = data.data[key];
-					outputText += `L:${rec.layer}, Updates:${rec.updates}\n`;
+					outputText += `L:${rec.layer}, CHANGES: ${rec.updates}\n`;
 				}
 				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
 			},

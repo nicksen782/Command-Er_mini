@@ -99,32 +99,23 @@
 		<div id="controls_bottom1">
 			<table class="ws disconnected">
 				<tr>
-					<th class="title"> </th>
-					<th class="title">VRAM</th>
-					<th class="title">STATS1</th>
-					<th class="title">*****</th>
-					<th class="title">*****</th>
-					<th class="title">*****</th>
-					<th class="title">*****</th>
+					<th class="title table-cell"> </th>
+					<th class="title table-cell">VRAM_FULL</th>
+					<th class="title table-cell">STATS1</th>
+					<th class="title table-cell">*****</th>
 				</tr>
 
 				<tr>
-					<th class="title">SUBSCRIBE</th>
-					<td><button onclick="buttons.addSubscription('VRAM');" class="button" onclick="">ADD</button></td>
+					<th class="title table-cell">SUBSCRIBE</th>
+					<td><button onclick="buttons.addSubscription('VRAM_FULL');" class="button" onclick="">ADD</button></td>
 					<td><button onclick="buttons.addSubscription('STATS1');" class="button" onclick="">ADD</button></td>
 					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
-					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
-					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
-					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
 				</tr>
 
 				<tr>
-					<th class="title">UNSUBSCRIBE</th>
-					<td><button onclick="buttons.removeSubscription('VRAM');" class="button" onclick="">REMOVE</button></td>
+					<th class="title table-cell">UNSUBSCRIBE</th>
+					<td><button onclick="buttons.removeSubscription('VRAM_FULL');" class="button" onclick="">REMOVE</button></td>
 					<td><button onclick="buttons.removeSubscription('STATS1');" class="button" onclick="">REMOVE</button></td>
-					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
-					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
-					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
 					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
 				</tr>
 			</table>
@@ -134,27 +125,27 @@
 		<div id="controls_bottom2">
 			<table class="ws disconnected">
 				<tr>
-					<th class="title">L:FPS</th>
+					<th class="title table-cell">L:FPS</th>
 					<td> <span id="info_fps">0 f/s</span> </td>
-					<th class="title">L:skipped</th>
+					<th class="title table-cell">L:skipped</th>
 					<td> <span id="info_skippedDraws">0</span> </td>
-					<th class="title">L:draws</th>
+					<th class="title table-cell">L:draws</th>
 					<td> <span id="info_draws">0</span> </td>
 				</tr>
 				<tr>
-					<th class="title">S:FPS</th>
+					<th class="title table-cell">S:FPS</th>
 					<td> <span>0</span> </td>
-					<th class="title">S:lastDraw</th>
+					<th class="title table-cell">S:lastDraw</th>
 					<td> <span>0</span> </td>
-					<th class="title">S:curFrame</th>
+					<th class="title table-cell">S:curFrame</th>
 					<td> <span id="info_curFrame">0</span> </td>
 				</tr>
 				<tr>
-					<th class="title">L:lastDraw</th>
+					<th class="title table-cell">L:lastDraw</th>
 					<td> <span id="info_lastDraw">0</span> </td>
-					<th class="title">*</th>
+					<th class="title table-cell">*</th>
 					<td> <span>0</span> </td>
-					<th class="title">*</th>
+					<th class="title table-cell">*</th>
 					<td> <span>0</span> </td>
 				</tr>
 			</table>

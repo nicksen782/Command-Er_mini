@@ -24,7 +24,7 @@ body {
 }
 
 .title {
-	/* display: block; */
+	display: block;
 	background-color: rgb(98 176 255 / 50%);
 	position: relative;
 	margin-bottom: 3px;
@@ -35,6 +35,14 @@ body {
 	display: inline-block;
 	vertical-align: top;
 }
+.inline {
+	display: inline;
+	vertical-align: top;
+}
+.table-cell {
+	display: table-cell;
+	vertical-align: top;
+}
 
 #controls_cont {
 	border: 1px solid darkblue;
@@ -42,7 +50,7 @@ body {
 	padding: 5px;
 	margin: 0px;
 	background-color: lightsteelblue;
-	width: 550px;
+	width: 535px;
 	height: 430px;
 	display: inline-block;
 	vertical-align: top;
@@ -61,13 +69,13 @@ body {
 
 #controls_bottom1 {
 	vertical-align: top;
-	width: 535px;
+	width: 520px;
 	background-color: rgb(255 255 255 / 25%);
 	padding: 4px;
 	margin-top: 5px;
 }
 #controls_bottom1 table{
-	width:530px;
+	/* width:530px; */
 }
 #controls_bottom1 table th{
 	/* background-color: green; */
@@ -80,13 +88,13 @@ body {
 
 #controls_bottom2 {
 	vertical-align: top;
-	width: 535px;
+	/* width: 535px; */
 	background-color: rgb(255 255 255 / 25%);
 	padding: 4px;
 	margin-top: 5px;
 }
 #controls_bottom2 table{
-	width:530px;
+	/* width:530px; */
 }
 #controls_bottom2 table th{
 	/* background-color: green; */
@@ -167,7 +175,7 @@ span#ws_status {
 }
 
 div#controls_right {
-	width: 315px;
+	width: 300px;
 	height: 240px;
 	background-color: #c4d3e7;
 }
@@ -177,10 +185,11 @@ div#controls_right {
 }
 
 table td, table tr, table th{ vertical-align: top; }
+#info_SUBSCRIPTIONS{font-family: monospace;white-space: pre;font-size: 10px;}
 #info_VRAM_UPDATESTATS{font-family: monospace;white-space: pre;font-size: 12px;}
 
-.ws{
-}
+
+.ws{width: 100%;}
 .ws.disconnected{
 	background-color: crimson;
 	cursor:not-allowed;
@@ -191,4 +200,5 @@ table td, table tr, table th{ vertical-align: top; }
 }
 .ws.connected{
 	background-color: #a5c2dd;
+	/* width: 100%; */
 }

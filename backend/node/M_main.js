@@ -178,8 +178,18 @@ let _APP = {
 				}
 				// console.log(`NEXT: ${index+1}/${_APP.screens.length} total. canMove: ${canMove}, newScreen: ${_APP.currentScreen}`, _APP.screens);
 			},
-			displayTime: function(x=0, y=29, tile="tile1"){
-				// _APP.screenLogic.shared.displayTime(0, 28, "tile1");
+			secondsToFrames: function(seconds){
+				// Resolution is affected by the actual frame rate.
+				let frames = Math.ceil( (seconds*1000) /_APP.stats.interval );
+				return frames;
+			},
+			secondsToFramesToMs: function(seconds){
+				// Resolution is affected by the actual frame rate.
+				let frames = _APP.screenLogic.shared.secondsToFrames(seconds);
+				ms = Math.ceil(frames * _APP.stats.interval) ;
+				return ms;
+			},
+			displayTime: function(x=0, y=29, tile="tile3"){
 				var d = new Date(); // for now
 				let h = d.getHours();
 				let ampm="AM";
@@ -189,30 +199,17 @@ let _APP = {
 		
 				let m = d.getMinutes().toString().padStart(2, "0");
 				let s = d.getSeconds().toString().padStart(2, "0");
-				let str2 = `${h}:${m}:${s}${ampm}`;
-		
+				let str = `${h}:${m}:${s}${ampm}`;
+
 				_APP.m_draw.fillTile(tile, x, y, 11, 1); 
 				_APP.m_draw.setTile("clock1", x, y);
-				_APP.m_draw.print(str2, x+1, y);
+				_APP.m_draw.print(str, x+1, y);
+
 			},
 			chargeFlag:false,
 			lastBattery:{},
-			displayBattery: function(x=17, y=28, tile="tile1"){
-				// EXAMPLE DATA:
-				//{
-				//	V: 4.0760000000000005,
-				//	A: 0.001,
-				//	W: 0,
-				//	'%': 89.66666666666671,
-				//	PV: 4.07601,
-				//	SV: 0.00001
-				//}
-
-				// console.log(json);
-				// json['%'] = 25.0;
-				// json['%'] = 50.0;
-				// json['%'] = 75.0;
-				// json['%'] = 100.0;
+			lastBatteryUpdate:0,
+			displayBattery: function(x=23, y=29, tile="tile3"){
 				let json = _APP.screenLogic.shared.lastBattery;
 				firstLoad=false;
 				if(!json['%']){
@@ -221,41 +218,53 @@ let _APP = {
 					// return; 
 				}
 		
+				// DEBUG
+				// if(!json['%']){ json = {'%': 100.0}; }
+				// else{ json['%'] = 100.0; }
+
 				// CREATE THE STRING. 
 				let str;
 				let batIcon;
 				if(!firstLoad){
-					str = (json['%'].toFixed(1)+"%").padStart(7, " ");
+					str = ( json['%'].toFixed(1) + "%" ).padStart(6, " ");
 
 					// DETERMINE WHICH BATTERY ICON TO DISPLAY.
 					if     (json['%'] <=25){ batIcon = "batt1"; } // RED
 					else if(json['%'] <=50){ batIcon = "batt2"; } // ORANGE
 					else if(json['%'] <=80){ batIcon = "batt3"; } // YELLOW
-					else { batIcon = "batt4"; } // GREEN
+					else                   { batIcon = "batt4"; } // GREEN
 				}
 				else{
-					str = "LOADING";
+					str = "LOAD".padStart(6, " ");
 				}
-		
-				// Clear the area for the battery text. (str.length should be 7.)
-				_APP.m_draw.fillTile(tile, x+0, y, str.length + 1, 1); 
+
+				// Provide a background for the battery text. (str.length should be 6.)
+				_APP.m_draw.fillTile(tile, x+1, y, str.length, 1); 
+				// _APP.m_draw.fillTile(tile, x+1, y-0, 6-0, 1); 
+				// _APP.m_draw.fillTile(tile, x+2, y-0, 6-0, 1); 
+				// return;
 				
 				if(!firstLoad){
 					// Set the tile for the battery icon and charge indicator.
-					_APP.m_draw.setTile(batIcon, x, y, 0); 
+					_APP.m_draw.setTile(batIcon, x, y); 
 
+					// Show the battery indicator?
 					if(Math.sign(json['A']) == 1){
-						if(_APP.screenLogic.shared.chargeFlag){
-							_APP.m_draw.setTile("battcharge1", x, y, 1); 
+						// Change the charge indictator icon periodically.
+						if(performance.now() - _APP.screenLogic.shared.lastBatteryUpdate > (_APP.screenLogic.shared.secondsToFramesToMs(1))){
+							_APP.screenLogic.shared.chargeFlag = !_APP.screenLogic.shared.chargeFlag;
+							_APP.screenLogic.shared.lastBatteryUpdate = performance.now();
 						}
-						else{
-							_APP.m_draw.setTile("battcharge2", x, y, 1); 
-						}
-						_APP.screenLogic.shared.chargeFlag = !_APP.screenLogic.shared.chargeFlag;
+						// Display the charge indicator.
+						if(_APP.screenLogic.shared.chargeFlag){ _APP.m_draw.setTile("battcharge1", x, y, 2); }
+						else{                                   _APP.m_draw.setTile("battcharge2", x, y, 2); }
 					}
 					else{
-						_APP.m_draw.setTile(" ", x, y, 1); 
+						_APP.m_draw.setTile(" ", x, y, 2); 
 					}
+				}
+				else{
+					// _APP.m_draw.setTile("L", x, y, 2); 
 				}
 				_APP.m_draw.print(str, x+1, y);
 		
@@ -491,20 +500,17 @@ let _APP = {
 				// Update the web clients. (ArrayBuffer)
 				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
 					// VRAM
-					_APP.m_websocket_node.ws_utilities.sendToAll(_APP.m_draw._VRAM, ["VRAM_UPDATES"]);
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(_APP.m_draw._VRAM, "VRAM_FULL");
 					
-					// VRAM update stats.
-					_APP.m_websocket_node.ws_utilities.sendToAll(JSON.stringify({mode:"_VRAM_UPDATESTATS", data:_APP.m_draw._VRAM_updateStats}));
+					// VRAM update stats1.
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1");
 				}
 				
-				// Update the Python server. (ArrayBuffer)
-				// _APP.m_websocket_python.wsClient.send(_APP.m_draw._VRAM);
-
 				// Updates via m_canvas.
 				_APP.m_canvas.drawLayersUpdateFramebuffer();
 			}
 			
-			_APP.timeIt("FULLLOOP", "e");
+			// _APP.timeIt("FULLLOOP", "e");
 	
 			// _APP.schedule_appLoop();
 		}

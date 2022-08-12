@@ -67,11 +67,18 @@ let _MOD = {
 			_MOD._VRAM_view = new Uint8Array(_MOD._VRAM);
 
 			// Fill the _VRAM with the "space" tile (fully transparent and blank.)
-			_MOD._VRAM_view.fill( _APP.m_config.tileIdsByTilename[" "] );
+			_MOD._VRAM_view.fill( _APP.m_config.tileIdsByTilename["n "] );
 
 			// Init the _VRAM_changes array.
 			for(let i=0; i<ts.tilesInCol; i+=1){
 				_MOD._VRAM_changes.push( [] );
+				for(let y=0; y<ts.rows; y+=1){
+					for(let x=0; x<ts.cols; x+=1){
+						let key = `Y${y}_X${x}`;
+						let tileId = _APP.m_config.tileIdsByTilename["n "];
+						_MOD._VRAM_changes[i][key] = {y:y, x:x, t:tileId, c:false };
+					}
+				}
 			}
 			_MOD.clear_VRAM_changes();
 
@@ -90,13 +97,12 @@ let _MOD = {
 
 	// Clear _VRAM_changes.
 	clear_VRAM_changes: function(){
-		// Get the LCD config.
-		let conf = _APP.m_config.config.lcd;
-		let ts = conf.tileset;
-		
-		// Clear the rows of the _VRAM_changes array.
-		for(let i=0; i<ts.tilesInCol; i+=1){
-			_MOD._VRAM_changes[i] = {};
+		// Clear the rows of the _VRAM_changes array. (leave the coordKeys.)
+		for(let layer_i=0; layer_i<_MOD._VRAM_changes.length; layer_i+=1){
+			let layer = _APP.m_draw._VRAM_changes[layer_i];
+			for(let coordKey in layer){
+				layer[coordKey].c = false;
+			}
 		}
 	},
 
@@ -104,7 +110,7 @@ let _MOD = {
 	addTo_VRAM_changes: function(layer, x, y, tileId){
 		// Add to a layer of _VRAM_changes.
 		let key = `Y${y}_X${x}`;
-		_MOD._VRAM_changes[layer][key] = {y:y, x:x, t:tileId };
+		_MOD._VRAM_changes[layer][key] = {y:y, x:x, t:tileId, c:true };
 	},
 
 	// Clear one VRAM layer with a tile. (Used by the Web Client... only??)
@@ -115,9 +121,6 @@ let _MOD = {
 
 		// Fill _VRAM with one tile.
 		_MOD.fillTile(tile, 0, 0, ts.cols, ts.rows, xcolLayer);
-
-		// Set the lcdUpdateNeeded flag.
-		// _MOD.lcdUpdateNeeded = true;
 	},
 
 	// Clear all VRAM layers. Can specify the layer 0 tile.
@@ -132,9 +135,6 @@ let _MOD = {
 		// Fill the other layers _VRAM with the "space" tile (fully transparent and blank.)
 		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 1);
 		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 2);
-
-		// Set the lcdUpdateNeeded flag.
-		// _MOD.lcdUpdateNeeded = true;
 	},
 
 	// Update one tile in _VRAM.
@@ -203,7 +203,7 @@ let _MOD = {
 	},
 
 	// DRAW TEXT TO THE CANVAS. 
-	print      : function(str="", x, y, xcolLayer=1){
+	print      : function(str="", x, y, xcolLayer=2){
 		let chars = str.split("");
 		for(let i=0; i<chars.length; i+=1){
 			let tileName = chars[i].toString().toUpperCase();

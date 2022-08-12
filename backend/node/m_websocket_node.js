@@ -8,7 +8,7 @@ let _APP = null;
 let _MOD = {
 	ws:null,
 	subscriptionKeys: [
-		"VRAM",
+		"VRAM_FULL",
 		"STATS1",
 	],
 
@@ -160,11 +160,22 @@ let _MOD = {
 		// },
 
 		// Sends the specified data to ALL connected clients. 
-		sendToAll: function(data, conditions=[]){
+		sendToAll: function(data){
 			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
 			_MOD.ws.clients.forEach(function each(ws) { 
 				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
 					ws.send(data); 
+				}
+			});
+		},
+
+		sendToAllSubscribers: function(data, condition=""){
+			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
+			_MOD.ws.clients.forEach(function each(ws) { 
+				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
+					if(ws.subscriptions.indexOf(condition) != -1){
+						ws.send(data); 
+					}
 				}
 			});
 		},
@@ -263,7 +274,7 @@ let _MOD = {
 			
 			// Add subscriptions array to this connection. 
 			clientWs.subscriptions = [];
-			_MOD.ws_utilities.addSubscription(clientWs, "VRAM");
+			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_FULL");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
