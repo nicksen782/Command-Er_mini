@@ -6,6 +6,8 @@ const WSServer = require('ws').WebSocketServer;
 let _APP = null;
 
 let _MOD = {
+	moduleLoaded: false,
+
 	ws:null,
 	subscriptionKeys: [
 		"VRAM_FULL",
@@ -16,24 +18,28 @@ let _MOD = {
 	// Init this module.
 	module_init: async function(parent){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
-	
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
-			
-			_APP.consolelog("Node WebSockets Server", 2);
-			if(_APP.m_config.config.toggles.isActive_nodeWsServer){
-				_APP.consolelog("Create Server", 4);
-				_MOD.createWebSocketsServer();
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
+		
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+				
+				_APP.consolelog("Node WebSockets Server", 2);
+				if(_APP.m_config.config.toggles.isActive_nodeWsServer){
+					_APP.consolelog("Create Server", 4);
+					_MOD.createWebSocketsServer();
 
-				_APP.consolelog("Init Server", 4);
-				_MOD.initWss();
-			}
-			else{
-				_APP.consolelog("DISABLED IN CONFIG", 2);
-				_MOD.ws = null;
+					_APP.consolelog("Init Server", 4);
+					_MOD.initWss();
+				}
+				else{
+					_APP.consolelog("DISABLED IN CONFIG", 2);
+					_MOD.ws = null;
+				}
+
+				_MOD.moduleLoaded = true;
 			}
 
 			resolve();

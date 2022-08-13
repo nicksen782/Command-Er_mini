@@ -5,6 +5,8 @@ const os   = require('os');
 let _APP = null;
 
 let _MOD = {
+	moduleLoaded: false,
+
 	// File names:
 	config_filename           : "public/shared/config.json",
 	coordsByIndex_filename    : "public/shared/coordsByIndex.json",
@@ -23,24 +25,23 @@ let _MOD = {
 	tilenamesByIndex  : {},
 	remoteConf        : [],
 
-	configLoaded: false,
-
 	// Init this module.
 	module_init: async function(parent){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
-	
-			// Get and store the config file. 
-			_APP.consolelog("get_config", 2);
-			if(!_MOD.configLoaded){
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
+		
+				// Get and store the config file. 
+				_APP.consolelog("get_config", 2);
 				await _MOD.get_configs();
-				_MOD.configLoaded = true;
-			}
+				
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
 
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
+				_MOD.moduleLoaded = true;
+			}
 
 			resolve();
 		});

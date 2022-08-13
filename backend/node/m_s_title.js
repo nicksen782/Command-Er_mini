@@ -1,26 +1,28 @@
 const fs = require('fs');
-// const path = require('path');
+const path = require('path');
 const os   = require('os');
 
 let _APP = null;
 
 let _MOD = {
-	// config_filename: "backend/config.json",
-	// config: {},
+	moduleLoaded: false,
 
 	// Init this module.
-	module_init: async function(parent){
+	module_init: async function(parent, key){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
-	
-			_APP.consolelog("add screen: title", 2);
-			_APP.screens.push("title");
-			_APP.screenLogic.screens.title = title;
-			
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
+		
+				_APP.consolelog(`add screen: ${key}`, 2);
+				_APP.screenLogic.screens[key] = screen;
+				
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+
+				_MOD.moduleLoaded = true;
+			}
 
 			resolve();
 		});
@@ -32,7 +34,7 @@ let _MOD = {
 };
 
 
-let title = {
+let screen = {
 	// Variables.
 	inited: false,
 	lines:[],
@@ -148,7 +150,7 @@ let title = {
 				thisScreen.lastCounterUpdate = performance.now();
 			}
 			if(thisScreen.counter == 0){
-				thisScreen.shared.changeScreen.specific("test_1");
+				thisScreen.shared.changeScreen.specific("m_s_test_1");
 			}
 
 			resolve();

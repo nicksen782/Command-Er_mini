@@ -31,10 +31,11 @@ const compressionObj = {
 };
 
 // Modules (routes are added per module via their module_init method.)
-const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
+let _APP;
 
 // START THE SERVER.
 (async function startServer(){
+	_APP   = await require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
 	_APP.timeIt("_STARTUP_", "s");
 
 	// Load the config.
@@ -119,28 +120,6 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 		};
 	};
 
-	let printModuleLoadTimes = function(){
-		let keys = [
-			"M_main",
-			"m_config",
-			"WSServer",
-			"m_gpio",
-			"m_battery",
-			"m_lcd",
-			"m_screenLogic",
-			"m_s_timing",
-		];
-		let maxKeyLen = 0;
-		let totalTime = 0;
-		for(let key of keys){ if(key.length > maxKeyLen){ maxKeyLen = key.length; } }
-		for(let key of keys){ 
-			console.log( `  ${key.padEnd(maxKeyLen, " ")} : ${_APP.timeIt(key, "t").toFixed(3).padStart(8, " ")}` );
-			totalTime += _APP.timeIt(key, "t");
-		}
-		console.log("  "+"-".repeat(24));
-		console.log(`  ${totalTime.toFixed(3).padEnd(maxKeyLen, " ")}: ${"TOTAL".padStart(8, " ")}`);
-	};
-
 	await _APP.module_inits();
 
 	let conf = {
@@ -148,15 +127,6 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 		port: _APP.m_config.config.node.http.port
 	};
 
-	// server.on('connection', function(req, socket, head){
-	// 	// console.log("Client connected: req   : ", req);
-	// 	// console.log("Client connected: socket: ", socket);
-	// 	// console.log("Client connected: head  : ", head);
-	// });
-	// server.on('error', function(e) {
-	// 	console.log("Server connection error: " + e);
-	// });
-	
 	(async function startServer(){
 		server.listen(conf, async function () {
 			app.use( compression(compressionObj) );
@@ -183,14 +153,12 @@ const _APP   = require(path.join(process.cwd(), './backend/node/M_main.js'))(app
 			// console.log(_APP.m_config.config);
 			// console.log("");
 			
-			// console.log(`MODULE LOAD TIMES:`);
-			// printModuleLoadTimes(); 
-			// console.log("");
-
 			_APP.timeIt("_STARTUP_", "e");
 
 			console.log("-".repeat(45));
 			console.log(`READY (STARTUP TIME: ${_APP.timeIt("_STARTUP_", "t").toFixed(3).padStart(9, " ")} ms)` );
+			// console.log("Screen keys1: ", _APP.screens);
+			// console.log("Screen keys2: ", Object.keys(_APP.screenLogic.screens));
 			console.log("-".repeat(45));
 			console.log("");
 

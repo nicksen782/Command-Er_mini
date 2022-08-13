@@ -10,6 +10,8 @@ const child_process = require('child_process');
 let _APP = null;
 
 let _MOD = {
+	moduleLoaded: false,
+	
 	serverFile:"",
 	wshost:"",
 	wsport:"",
@@ -17,56 +19,57 @@ let _MOD = {
 	cp_child:null,
 	wsClient:null,
 	pinged:false,
-	inited:false,
 
 	// Init this module.
 	module_init: async function(parent){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
-	
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
-			
-			// Update local config.
-			_APP.consolelog("updateLocalConfig", 2);
-			_MOD.serverFile = _APP.m_config.config.python.file;
-			_MOD.wshost     = _APP.m_config.config.python.ws.host;
-			_MOD.wsport     = _APP.m_config.config.python.ws.port;
-			_MOD.initString = _APP.m_config.config.python.initString;
-
-			if( _APP.m_config.config.toggles.isActive_pythonWsServer ){
-				// Start the server process. After the initString is received a WebSockets connection will be created.
-				_APP.consolelog("startServer", 2);
-				_MOD.startServer();
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
+		
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
 				
-				await new Promise(async function(res,rej){
-					let maxAttempts = 10;
-					for(let attempts=0; attempts<maxAttempts; attempts+=1){
-						// Successful ping?
-						if(_MOD.pinged){
-							_APP.consolelog("Server is ready", 4);
-							res();
-							return; 
-						}
-						//.Wait.
-						else{
-							if(attempts > 4){
-								_APP.consolelog(`Server not ready. Attempts: ${attempts+1}/${maxAttempts}`, 4);
+				// Update local config.
+				_APP.consolelog("updateLocalConfig", 2);
+				_MOD.serverFile = _APP.m_config.config.python.file;
+				_MOD.wshost     = _APP.m_config.config.python.ws.host;
+				_MOD.wsport     = _APP.m_config.config.python.ws.port;
+				_MOD.initString = _APP.m_config.config.python.initString;
+
+				if( _APP.m_config.config.toggles.isActive_pythonWsServer ){
+					// Start the server process. After the initString is received a WebSockets connection will be created.
+					_APP.consolelog("startServer", 2);
+					_MOD.startServer();
+					
+					await new Promise(async function(res,rej){
+						let maxAttempts = 10;
+						for(let attempts=0; attempts<maxAttempts; attempts+=1){
+							// Successful ping?
+							if(_MOD.pinged){
+								_APP.consolelog("Server is ready", 4);
+								res();
+								return; 
 							}
-							await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 1000); });
+							//.Wait.
+							else{
+								if(attempts > 4){
+									_APP.consolelog(`Server not ready. Attempts: ${attempts+1}/${maxAttempts}`, 4);
+								}
+								await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 1000); });
+							}
 						}
-					}
-					console.log("ERROR: SERVER NOT READY");
-					console.log("EXITING");
-					process.exit(1);
-				});
+						console.log("ERROR: SERVER NOT READY");
+						console.log("EXITING");
+						process.exit(1);
+					});
+				}
+				else{
+					_APP.consolelog("DISABLED IN CONFIG", 2);
+				}
+				_MOD.moduleLoaded = true;
 			}
-			else{
-				_APP.consolelog("DISABLED IN CONFIG", 2);
-			}
-			_MOD.inited=true;
 			resolve();
 		});
 	},
@@ -89,7 +92,7 @@ let _MOD = {
 			// Display output.
 			let lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
 			for(let i=0; i<lines.length; i+=1){
-				_APP.consolelog(`PYTHON STDOUT: ${lines[i]}`, _MOD.inited ? 0 : 4); 
+				_APP.consolelog(`PYTHON STDOUT: ${lines[i]}`, _MOD.moduleLoaded ? 0 : 4); 
 			}
 		},
 		el_stderr: function(data){ 
@@ -98,7 +101,7 @@ let _MOD = {
 
 			let lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
 			for(let i=0; i<lines.length; i+=1){
-				_APP.consolelog(`PYTHON STDERR: ${lines[i]}`, _MOD.inited ? 0 : 4); 
+				_APP.consolelog(`PYTHON STDERR: ${lines[i]}`, _MOD.moduleLoaded ? 0 : 4); 
 			}
 		},
 		el_close : function(data){ 
@@ -107,7 +110,7 @@ let _MOD = {
 	
 			let lines = text.split("\n").map(l=>l.trim()).filter(l=>l);
 			for(let i=0; i<lines.length; i+=1){
-				_APP.consolelog(`PYTHON CLOSE: ${lines[i]}`, _MOD.inited ? 0 : 4); 
+				_APP.consolelog(`PYTHON CLOSE: ${lines[i]}`, _MOD.moduleLoaded ? 0 : 4); 
 			}
 		},
 	},
@@ -167,6 +170,7 @@ let _MOD = {
 			el_open:function(ws, event){
 				// console.log("Node WebSockets Client: OPEN:", event.data || ""); 
 				_MOD.wsClient.send("PING");
+				_MOD.wsClient.send("GET_BATTERY");
 			},
 			el_message:function(ws, event){
 				let data;

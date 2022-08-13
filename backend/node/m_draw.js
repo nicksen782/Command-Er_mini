@@ -5,6 +5,8 @@ const os   = require('os');
 let _APP = null;
 
 let _MOD = {
+	moduleLoaded: false,
+
 	//
 	_VRAM            : [], // ArrayBuffer for VRAM.
 	_VRAM_view       : [], // Uint8 view of _VRAM ArrayBuffer.
@@ -19,16 +21,20 @@ let _MOD = {
 	// Init this module.
 	module_init: async function(parent){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
-	
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
-			
-			// VRAM init.
-			_APP.consolelog("LCD VRAM init", 2);
-			await _MOD.init();
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
+		
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+				
+				// VRAM init.
+				_APP.consolelog("LCD VRAM init", 2);
+				await _MOD.init();
+
+				_MOD.moduleLoaded = true;
+			}
 
 			resolve();
 		});

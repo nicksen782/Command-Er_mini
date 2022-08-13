@@ -6,6 +6,8 @@ const Gpio  = require('onoff').Gpio;
 let _APP = null;
 
 let _MOD = {
+	moduleLoaded: false,
+
 	// INPUTS
 	inputs: {
 		KEY_UP_PIN   : null,
@@ -25,21 +27,25 @@ let _MOD = {
 	// Init this module.
 	module_init: async function(parent){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
-	
-			// Init the buttons.
-			if( _APP.m_config.config.toggles.isActive_gpio ){ 
-				_APP.consolelog("buttons_init", 2);
-				await _MOD.buttons_init();
-			}
-			else{
-				_APP.consolelog("m_gpio: module_init: GPIO DISABLED IN CONFIG", 2);
-			}
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
+		
+				// Init the buttons.
+				if( _APP.m_config.config.toggles.isActive_gpio ){ 
+					_APP.consolelog("buttons_init", 2);
+					await _MOD.buttons_init();
+				}
+				else{
+					_APP.consolelog("m_gpio: module_init: GPIO DISABLED IN CONFIG", 2);
+				}
 
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+
+				_MOD.moduleLoaded = true;
+			}
 
 			resolve();
 		});

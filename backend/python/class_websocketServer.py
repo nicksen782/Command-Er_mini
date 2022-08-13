@@ -61,8 +61,11 @@ class C_WebSocketServer:
 
                 # JSON-based requests.
                 elif type == "json": 
-                    if jsonObj['mode'] == "TEST":
-                        print("JSON TEST")
+                    if jsonObj['mode'] == "PING":
+                        jsonObj = {}
+                        jsonObj['mode'] = "PING"
+                        jsonObj['data'] = "PONG"
+                        self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                     # CATCH-ALL.
                     else:

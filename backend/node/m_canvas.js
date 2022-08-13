@@ -6,28 +6,34 @@ const {createCanvas, loadImage } = require("canvas");
 let _APP = null;
 
 let _MOD = {
+	moduleLoaded: false,
+
 	// Init this module.
 	module_init: async function(parent){
 		return new Promise(async function(resolve,reject){
-			// Save reference to the parent module.
-			_APP = parent;
+			if(!_MOD.moduleLoaded){
+				// Save reference to the parent module.
+				_APP = parent;
 	
-			// Init.
-			_APP.consolelog("createCanvasLayers", 2);
-			await _MOD.init.createCanvasLayers();
-			
-			_APP.consolelog("createTileSetCanvas", 2);
-			await _MOD.init.createTileSetCanvas();
-			
-			_APP.consolelog("generateTileCaches", 2);
-			await _MOD.init.generateTileCaches();
-			
-			// _APP.consolelog("getFramebuffer", 2);
-			_MOD.init.getFramebuffer();
+				// Init.
+				_APP.consolelog("createCanvasLayers", 2);
+				await _MOD.init.createCanvasLayers();
+				
+				_APP.consolelog("createTileSetCanvas", 2);
+				await _MOD.init.createTileSetCanvas();
+				
+				_APP.consolelog("generateTileCaches", 2);
+				await _MOD.init.generateTileCaches();
+				
+				// _APP.consolelog("getFramebuffer", 2);
+				_MOD.init.getFramebuffer();
 
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_MOD.addRoutes(_APP.app, _APP.express);
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+
+				_MOD.moduleLoaded = true;
+			}
 
 			resolve();
 		});
@@ -110,7 +116,6 @@ let _MOD = {
 		});
 	},
 
-	
 	init: {
 		createCanvasLayers: function(){
 			return new Promise(async function(resolve,reject){

@@ -3,19 +3,21 @@ const fs   = require('fs');
 const path = require('path'); 
 
 // Modules saved within THIS module.
-const m_config           = require('./m_config.js');
-const m_draw             = require('./m_draw.js');
-const m_websocket_node   = require('./m_websocket_node.js');
-const m_websocket_python = require('./m_websocket_python.js');
-const m_gpio             = require('./m_gpio.js');
-const m_s_title          = require('./m_s_title.js');
-const m_s_test_1         = require('./m_s_test_1.js');
-const m_canvas           = require('./m_canvas.js');
-// const m_battery     = require('./m_battery.js');
-// const m_s_timing    = require('./m_s_timing.js');
-
-// 
+const m_modules = [
+	'./m_config.js',
+	'./m_draw.js',
+	'./m_websocket_node.js',
+	'./m_websocket_python.js',
+	'./m_gpio.js',
+	'./m_canvas.js',
+];
 const rpbp = require( './removeprocess.js' ).run;
+
+// Screen modules saved within THIS module.
+const m_screens = [
+	'./m_s_title.js',
+	'./m_s_test_1.js',
+];
 
 // Main app.
 let _APP = {
@@ -28,16 +30,6 @@ let _APP = {
 	routeList: {}, 
 
 	// MODULES (_APP will have access to all the modules.)
-	m_config          : m_config ,
-	m_draw            : m_draw  ,
-	m_websocket_node  : m_websocket_node ,
-	m_websocket_python: m_websocket_python ,
-	m_gpio            : m_gpio ,
-	m_s_title         : m_s_title ,
-	m_s_test_1        : m_s_test_1 ,
-	m_canvas          : m_canvas ,
-	// m_battery     : m_battery ,
-	// m_s_timing    : m_s_timing ,
 	rpbp         : rpbp ,
 
 	// Init this module.
@@ -46,6 +38,22 @@ let _APP = {
 			// Add routes.
 			_APP.consolelog("addRoutes", 2);
 			_APP.addRoutes(_APP.app, _APP.express);
+			
+			_APP.consolelog("add modules", 2);
+			for(let i=0; i<m_modules.length; i+=1){
+				let key = path.basename(m_modules[i], '.js');
+				_APP[key] = require( m_modules[i] );
+				_APP.consolelog(`Added: ${key}`, 4);
+			}
+
+			// Add the screen requires.
+			_APP.consolelog("add screens", 2);
+			for(let i=0; i<m_screens.length; i+=1){
+				let key = path.basename(m_screens[i], '.js');
+				_APP.screens.push(key);
+				_APP[key] = require( m_screens[i] );
+				_APP.consolelog(`Added: ${key}`, 4);
+			};
 
 			resolve();
 		});
@@ -118,38 +126,25 @@ let _APP = {
 	// Add the _APP object to each required object.
 	module_inits: function(){
 		return new Promise(async function(resolve,reject){
-			_APP.consolelog("START: module_init: M_main :", 0);        
-			_APP.timeIt("M_main", "s");   await _APP         .module_init(_APP); _APP.timeIt("M_main", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("M_main", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
-			_APP.consolelog("START: module_init: m_draw :", 0);        
-			_APP.timeIt("m_draw", "s"); await _APP.m_draw.module_init(_APP); _APP.timeIt("m_draw", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_draw", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+			// MODULE INITS.
+			for(let i=0; i<m_modules.length; i+=1){
+				let key = path.basename(m_modules[i], '.js');
+				if(!_APP[key].moduleLoaded){
+					_APP.consolelog(`START: module_init: ${key} :`, 0);        
+					_APP.timeIt(`${key}`, "s"); await _APP[key].module_init(_APP); _APP.timeIt(`${key}`, "e");
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+				}
+			}
 
-			_APP.consolelog("START: module_init: m_canvas :", 0);        
-			_APP.timeIt("m_canvas", "s"); await _APP.m_canvas.module_init(_APP); _APP.timeIt("m_canvas", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_canvas", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
-			_APP.consolelog("START: module_init: m_websocket_node :", 0);        
-			_APP.timeIt("m_websocket_node", "s"); await _APP.m_websocket_node.module_init(_APP); _APP.timeIt("m_websocket_node", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_node", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
-			_APP.consolelog("START: module_init: m_websocket_python :", 0);
-			_APP.timeIt("m_websocket_python", "s"); await _APP.m_websocket_python.module_init(_APP); _APP.timeIt("m_websocket_python", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_websocket_python", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
-			_APP.consolelog("START: module_init: m_gpio :", 0);        
-			_APP.timeIt("m_gpio", "s"); await _APP.m_gpio.module_init(_APP); _APP.timeIt("m_gpio", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_gpio", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
 			// SCREENS
-			_APP.consolelog("START: module_init: m_s_title :", 0);        
-			_APP.timeIt("m_s_title", "s"); await _APP.m_s_title.module_init(_APP); _APP.timeIt("m_s_title", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_s_title", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-			
-			_APP.consolelog("START: module_init: m_s_test_1 :", 0);        
-			_APP.timeIt("m_s_test_1", "s"); await _APP.m_s_test_1.module_init(_APP); _APP.timeIt("m_s_test_1", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_s_test_1", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+			for(let i=0; i<m_screens.length; i+=1){
+				let key = path.basename(m_screens[i], '.js');
+				if(!_APP[key].moduleLoaded){
+					_APP.consolelog(`START: module_init: ${key} :`, 0);        
+					_APP.timeIt(`${key}`, "s"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e");
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+				}
+			};
 
 			resolve();
 		});
@@ -157,9 +152,9 @@ let _APP = {
 
 	// *****************
 
-	screens: [], // Each screen module will add it's key this to this.
-	// currentScreen : "test_1",
-	currentScreen : "title",
+	screens: [], // Populated by this module_init.
+	// currentScreen : "m_s_test_1",
+	currentScreen : "m_s_title",
 	screenLogic: {
 		shared: {
 			// Changing screens. 
@@ -580,13 +575,21 @@ let _APP = {
 		}
 	},
 
-
 };
 
 // Save app and express to _APP and then return _APP.
-module.exports = function(app, express, server){
+module.exports = async function(app, express, server){
+	// Set these into _APP.
 	_APP.app     = app;
 	_APP.express = express;
 	_APP.server  = server;
+
+	// Init this module.
+	let key = path.basename(__filename, '.js');
+	_APP.consolelog(`START: module_init: ${key} :`, 0);        
+	_APP.timeIt(`${key}`, "s"); await _APP.module_init(_APP); _APP.timeIt(`${key}`, "e");
+	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+
+	// Return a reference to _APP.
 	return _APP;
 };
