@@ -176,8 +176,14 @@ let _MOD = {
 		// Bounds-checking. (Ignore further chars on x if oob. Ignore oob on y too.)
 		let oob_x = x >= ts.cols ? true : false;
 		let oob_y = y >= ts.rows ? true : false;
-		if(oob_x){ console.log(`oob_x:${x} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); return; }
-		if(oob_y){ console.log(`oob_y:${y} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); return; }
+		if(oob_x){ 
+			console.log(`oob_x:${x} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); 
+			return;
+		}
+		if(oob_y){ 
+			console.log(`oob_y:${y} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); 
+			return;
+		}
 
 		// Numbers and spaces cannot be used as JSON keys. This is the fix.
 		if(tileName.length == 1 && tileName.match(/[0-9\s]/g)){

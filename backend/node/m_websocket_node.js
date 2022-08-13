@@ -10,6 +10,7 @@ let _MOD = {
 	subscriptionKeys: [
 		"VRAM_FULL",
 		"STATS1",
+		"STATS2",
 	],
 
 	// Init this module.
@@ -268,6 +269,7 @@ let _MOD = {
 			clientWs.subscriptions = [];
 			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_FULL");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
+			_MOD.ws_utilities.addSubscription(clientWs, "STATS2");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
 

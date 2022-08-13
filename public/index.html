@@ -64,10 +64,16 @@
 						<td><input type="checkbox" id="vram_div_layersChk"></td>
 					</tr>
 					<tr>
-						<td class="title">Server FPS</td>
+						<td class="title">Server FPS: Set</td>
 						<td>
 							<select id="info_changeFps"></select>
 							<button id="info_changeFpsBtn">SET</button>
+						</td>
+					</tr>
+					<tr>
+						<td class="title">Server FPS: Is:</td>
+						<td>
+							<span id="info_serverFps"></span>
 						</td>
 					</tr>
 					<tr>
@@ -102,21 +108,21 @@
 					<th class="title table-cell"> </th>
 					<th class="title table-cell">VRAM_FULL</th>
 					<th class="title table-cell">STATS1</th>
-					<th class="title table-cell">*****</th>
+					<th class="title table-cell">STATS2</th>
 				</tr>
 
 				<tr>
 					<th class="title table-cell">SUBSCRIBE</th>
 					<td><button onclick="buttons.addSubscription('VRAM_FULL');" class="button" onclick="">ADD</button></td>
 					<td><button onclick="buttons.addSubscription('STATS1');" class="button" onclick="">ADD</button></td>
-					<td><button onclick="buttons.addSubscription('*****');" class="button" onclick="">ADD</button></td>
+					<td><button onclick="buttons.addSubscription('STATS2');" class="button" onclick="">ADD</button></td>
 				</tr>
 
 				<tr>
 					<th class="title table-cell">UNSUBSCRIBE</th>
 					<td><button onclick="buttons.removeSubscription('VRAM_FULL');" class="button" onclick="">REMOVE</button></td>
 					<td><button onclick="buttons.removeSubscription('STATS1');" class="button" onclick="">REMOVE</button></td>
-					<td><button onclick="buttons.removeSubscription('*****');" class="button" onclick="">REMOVE</button></td>
+					<td><button onclick="buttons.removeSubscription('STATS2');" class="button" onclick="">REMOVE</button></td>
 				</tr>
 			</table>
 		</div>

@@ -86,6 +86,14 @@ let websocket = {
 				}
 				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
 			},
+			STATS2: function(data){
+				// console.log(data);
+				// console.log("update fps", draw.serverFps, data.data);
+				if(draw.serverFps != data.data){
+					draw.serverFps = data.data;
+					draw.DOM.info_serverFps.innerText = data.data;
+				}
+			},
 		},
 		TEXT  : {
 		},
@@ -155,6 +163,9 @@ let websocket = {
 			// Remove disconnected, add connected.
 			let wsElems = document.querySelectorAll(".ws");
 			wsElems.forEach(function(d){ d.classList.add("connected"); d.classList.remove("disconnected"); });
+
+			// Init fps.
+			draw.fps.init();
 
 			// Request GET_VRAM.
 			draw.getVram("ws");
@@ -266,9 +277,12 @@ let draw = {
 	_VRAM:[],
 	_VRAM_prev:[],
 	isDrawing:false,
+	lastDraw: performance.now(),
 	draws:0,
 	skippedDraws:0,
 	showIndividualLayers: true,
+	serverFps:1,
+
 	showVramLayers: function(){
 		draw.DOM.vram_div_layers.classList.remove("hide");
 	},
@@ -306,76 +320,97 @@ let draw = {
 	},
 	drawVram: async function(_VRAM_new){
 		window.requestAnimationFrame(function(){
-			draw.isDrawing=true;
-			// let s = performance.now();
-			// 4 output canvases total. 
-			// The first 3 are the layers.
-			// The last 1 is the combination of all 3 layers.
-			draw.fps.tick();
-			draw.fps.updateDisplay();
+			let runCheck = function(){
+				// let sinceLastDraw = performance.now() - draw.lastDraw;
+				let sinceLastDraw = performance.now() - draw.fps._lastTick_;
+				let fpsMs = 1000/(draw.serverFps);
+				if(  (sinceLastDraw) >= (fpsMs) ){
+					// console.log(`DRAW: YES: DIFF:${(sinceLastDraw-fpsMs).toFixed(8).padStart(14, " ")}, fpsMs:${fpsMs.toFixed(2).padStart(7, " ")}, sinceLastDraw:${sinceLastDraw.toFixed(2).padStart(7, " ")}`);
+					draw.fps.tick();
+					draw.lastDraw = performance.now();
+					return true;
+				}
+				else{
+					// console.log(`DRAW: NO : DIFF:${(sinceLastDraw-fpsMs).toFixed(8).padStart(14, " ")}, fpsMs:${fpsMs.toFixed(2).padStart(7, " ")}, sinceLastDraw:${sinceLastDraw.toFixed(2).padStart(7, " ")}`);
+					return false;
+				}
+			};
+			let updateLayerCanvases = function(){
+				let tileWidth = draw.configs.config.lcd.tileset.tileWidth;
+				let tileHeight = draw.configs.config.lcd.tileset.tileHeight;
+				let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
+				let x,y,tileId,tileImage,dx,dy;
+					
+				// draw.clearAllCanvases();
 
-			let tileWidth = draw.configs.config.lcd.tileset.tileWidth;
-			let tileHeight = draw.configs.config.lcd.tileset.tileHeight;
-			let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
-			let x,y,tileId,tileImage,dx,dy;
-				
-			// draw.clearAllCanvases();
+				for(let index=0; index<draw.configs.coordsByIndex.length; index+=1){
+					x = draw.configs.coordsByIndex[index][0];
+					y = draw.configs.coordsByIndex[index][1];
 
-			for(let index=0; index<draw.configs.coordsByIndex.length; index+=1){
-				x = draw.configs.coordsByIndex[index][0];
-				y = draw.configs.coordsByIndex[index][1];
+					for(let v=0; v<tilesInCol; v+=1){
+						// Get the tile id.
+						tileId_old = draw._VRAM_prev[(index*tilesInCol)+v];
+						tileId = _VRAM_new[(index*tilesInCol)+v];
 
-				for(let v=0; v<tilesInCol; v+=1){
-					// Get the tile id.
-					tileId_old = draw._VRAM_prev[(index*tilesInCol)+v];
-					tileId = _VRAM_new[(index*tilesInCol)+v];
+						// Skip the drawing of any tile that has not changed.
+						if(tileId == tileId_old){ continue; }
 
-					// Skip the drawing of any tile that has not changed.
-					if(tileId == tileId_old){ continue; }
+						// Get the tile image from cache.
+						tileImage = draw.tilesCache[tileId];
 
-					// Get the tile image from cache.
-					tileImage = draw.tilesCache[tileId];
+						// Determine destination x and y on the canvas.
+						dx = x*tileWidth;
+						dy = y*tileHeight;
 
-					// Determine destination x and y on the canvas.
-					dx = x*tileWidth;
-					dy = y*tileHeight;
-
-					// Draw to the matching canvas.
-					if     (v==0){ 
-						draw.canvases["vram_l1"].clearRect(dx, dy, tileWidth, tileHeight);
-						draw.canvases["vram_l1"].drawImage(tileImage, dx, dy); 
-					}
-					else if(v==1){ 
-						draw.canvases["vram_l2"].clearRect(dx, dy, tileWidth, tileHeight);
-						draw.canvases["vram_l2"].drawImage(tileImage, dx, dy); 
-					}
-					else if(v==2){ 
-						draw.canvases["vram_l3"].clearRect(dx, dy, tileWidth, tileHeight);
-						draw.canvases["vram_l3"].drawImage(tileImage, dx, dy); 
+						// Draw to the matching canvas.
+						if     (v==0){ 
+							draw.canvases["vram_l1"].clearRect(dx, dy, tileWidth, tileHeight);
+							draw.canvases["vram_l1"].drawImage(tileImage, dx, dy); 
+						}
+						else if(v==1){ 
+							draw.canvases["vram_l2"].clearRect(dx, dy, tileWidth, tileHeight);
+							draw.canvases["vram_l2"].drawImage(tileImage, dx, dy); 
+						}
+						else if(v==2){ 
+							draw.canvases["vram_l3"].clearRect(dx, dy, tileWidth, tileHeight);
+							draw.canvases["vram_l3"].drawImage(tileImage, dx, dy); 
+						}
 					}
 				}
-			}
-			// Combine the canvas layers into the ALL canvas.
-			draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
-			draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
-			draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
+				// Combine the canvas layers into the ALL canvas.
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
+			};
+			let updateMainCanvas = function(){
+				// Combine the canvas layers into the ALL canvas.
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
+			};
+			let saveNew_VRAM = function(){
+				// Save new to prev.
+				draw._VRAM_prev = new Uint8Array( Array.from(_VRAM_new) );
+			};
+			let end = function(drawn=true){
+				draw.isDrawing=false;
+				if(drawn){
+					let oldTime = draw.DOM.info_lastDraw.innerText;
+					let newTime = draw.getTime();
+					if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
+					draw.draws += 1;
+					draw.DOM.info_skippedDraws.innerText = draw.skippedDraws;
+					draw.DOM.info_draws.innerText = draw.draws;
+					draw.fps.updateDisplay();
+				}
+			};
 
-			// Save new to prev.
-			draw._VRAM_prev = new Uint8Array( Array.from(_VRAM_new) );
-
-			// let e = performance.now();
-
-			// console.log((e-s).toFixed(3));
-
-			draw.isDrawing=false;
-			let oldTime = draw.DOM.info_lastDraw.innerText;
-			let newTime = draw.getTime();
-			if(oldTime!= newTime){
-				draw.DOM.info_lastDraw.innerText = newTime;
-			}
-			draw.DOM.info_skippedDraws.innerText = draw.skippedDraws;
-			draw.draws += 1;
-			draw.DOM.info_draws.innerText = draw.draws;
+			draw.isDrawing=true;
+			if( !runCheck() ){ end(false); return; };
+			updateLayerCanvases();
+			updateMainCanvas();
+			saveNew_VRAM();
+			end(true);
 		});
 	},
 	getTime: function(){
@@ -434,22 +469,23 @@ let draw = {
 		},
 		init: function(){
 			// Set the values. 
-			this._sample_   = []   ;
-			this._index_    = 0    ;
-			this._lastTick_ = false;
-		},
-		clearDisplay: function(){
-			document.getElementById("info_fps").innerText = `0 f/s`;
+			this.sampleSize = 60;
+			this.value      = 0;
+			this.average    = 0;
+			this._sample_   = [];
+			this._index_    = 0;
+			this._lastTick_ = performance.now();
+			draw.fps.updateDisplay();
 		},
 		updateDisplay: function(){
-			document.getElementById("info_fps").innerText = `${draw.fps.average} f/s`;
+			document.getElementById("info_fps").innerText = `` +
+				`${draw.fps.average.toString().padStart(2, " ")} f/s ` +
+				`(${draw.fps._index_.toString()}/${draw.fps.sampleSize.toString()})`.padStart(7, " ") +
+				``
+				;
 		},
-	},	
-	OLDfps:{
-		// draw.DOM.info_fps
-		// draw.DOM.info_curFrame
-		// draw.DOM.info_lastDraw
 	},
+
 	requestFpsChange: function(newFps){
 		// CONFIG.
 		// CHANGE_FPS
@@ -670,6 +706,8 @@ window.onload = async function(){
 	draw.DOM.info_VRAM_UPDATESTATS.innerText = "\n\n\n";
 
 	draw.DOM.info_SUBSCRIPTIONS    = document.getElementById("info_SUBSCRIPTIONS");
+	
+	draw.DOM.info_serverFps    = document.getElementById("info_serverFps");
 
 	window.addEventListener("unload", function () {
 		console.log("unload: Closing websockets.");
@@ -681,4 +719,7 @@ window.onload = async function(){
 	});
 
 	buttons.setup();
+
+	// Init fps.
+	draw.fps.init();
 }

@@ -36,32 +36,36 @@ let _MOD = {
 			_MOD.wsport     = _APP.m_config.config.python.ws.port;
 			_MOD.initString = _APP.m_config.config.python.initString;
 
-			// Start the server process. After the initString is received a WebSockets connection will be created.
-			_APP.consolelog("startServer", 2);
-			_MOD.startServer();
-			
-			await new Promise(async function(res,rej){
-				let maxAttempts = 10;
-				for(let attempts=0; attempts<maxAttempts; attempts+=1){
-					// Successful ping?
-					if(_MOD.pinged){
-						_APP.consolelog("Server is ready", 4);
-						res();
-						return; 
-					}
-					//.Wait.
-					else{
-						if(attempts > 4){
-							_APP.consolelog(`Server not ready. Attempts: ${attempts+1}/${maxAttempts}`, 4);
+			if( _APP.m_config.config.toggles.isActive_pythonWsServer ){
+				// Start the server process. After the initString is received a WebSockets connection will be created.
+				_APP.consolelog("startServer", 2);
+				_MOD.startServer();
+				
+				await new Promise(async function(res,rej){
+					let maxAttempts = 10;
+					for(let attempts=0; attempts<maxAttempts; attempts+=1){
+						// Successful ping?
+						if(_MOD.pinged){
+							_APP.consolelog("Server is ready", 4);
+							res();
+							return; 
 						}
-						await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 1000); });
+						//.Wait.
+						else{
+							if(attempts > 4){
+								_APP.consolelog(`Server not ready. Attempts: ${attempts+1}/${maxAttempts}`, 4);
+							}
+							await new Promise(function(res2,rej2){ setTimeout(function(){ res2(); }, 1000); });
+						}
 					}
-				}
-				console.log("ERROR: SERVER NOT READY");
-				console.log("EXITING");
-				process.exit(1);
-			});
-
+					console.log("ERROR: SERVER NOT READY");
+					console.log("EXITING");
+					process.exit(1);
+				});
+			}
+			else{
+				_APP.consolelog("DISABLED IN CONFIG", 2);
+			}
 			_MOD.inited=true;
 			resolve();
 		});
@@ -256,6 +260,15 @@ let _MOD = {
 		_MOD.wsClient.addEventListener('error'  , (event)=>{ _MOD.ws.ws_events.el_error  (_MOD.wsClient, event); });
 	},
 
+	getBatteryUpdate: function(){
+		if( _APP.m_config.config.toggles.isActive_battery ){
+			// _APP.m_websocket_python.getBatteryUpdate()
+			_MOD.wsClient.send("GET_BATTERY");
+		}
+		else{
+			// _APP.consolelog("DISABLED IN CONFIG", 2);
+		}
+	},
 };
 
 module.exports = _MOD;

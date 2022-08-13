@@ -237,7 +237,7 @@ let _APP = {
 					firstLoad=false;
 					if(!json['%']){
 						firstLoad=true;
-						console.log("Battery data has not been populated yet.");
+						// console.log("Battery data has not been populated yet.");
 						// return; 
 					}
 			
@@ -258,7 +258,8 @@ let _APP = {
 						else                   { batIcon = "batt4"; } // GREEN
 					}
 					else{
-						str = "LOAD".padStart(6, " ");
+						// str = "LOAD".padStart(6, " ");
+						str = "------".padStart(6, " ");
 					}
 	
 					// Provide a background for the battery text. (str.length should be 6.)
@@ -548,10 +549,26 @@ let _APP = {
 					
 					// VRAM update stats1. - JSON
 					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1");
+
+					// VRAM update stats2. - JSON
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2");
 				}
 				
-				// Updates via m_canvas. (Will reset the draw flags/data and update the timeIt stamps.)
-				_APP.m_canvas.drawLayersUpdateFramebuffer(_changes);
+				if( _APP.m_config.config.toggles.isActive_lcd ){
+					// Updates via m_canvas. (Will reset the draw flags/data and update the timeIt stamps.)
+					_APP.m_canvas.drawLayersUpdateFramebuffer(_changes);
+				}
+				else{
+					// Reset the draw flags.
+					_APP.m_draw.clearDrawingFlags();
+
+					// Update the timeIt stamps.
+					_APP.timeIt("DISPLAYUPDATE", "e");
+					_APP.timeIt("FULLLOOP", "e");
+
+					// Schedule the next appLoop.
+					_APP.schedule_appLoop();
+				}
 			}
 			else{
 				_APP.schedule_appLoop();

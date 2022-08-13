@@ -85,8 +85,7 @@ let test_1 = {
 	init: async function(){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
-
-		console.log("init of:", _APP.currentScreen);
+		console.log("SCREEN: init:", _APP.currentScreen);
 	
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
@@ -106,7 +105,8 @@ let test_1 = {
 		_APP.m_draw.print(`]{}|;:'",.<>/?\\`           , 0 , 5);
 		// _APP.m_draw.print(`....X....X....X....X....X....X`           , 0 , 6);
 		
-		_APP.m_websocket_python.wsClient.send("GET_BATTERY");
+		// _APP.m_websocket_python.wsClient.send("GET_BATTERY");
+		_APP.m_websocket_python.getBatteryUpdate();
 
 		thisScreen.shared.time.display(0, 29, "tile3");
 		thisScreen.shared.battery.display(23, 29, "tile3");
@@ -225,7 +225,8 @@ let test_1 = {
 			// Display/Update the battery data section on a counter. 
 			thisScreen.shared.battery.display(23, 29, "tile3");
 			if(performance.now() - thisScreen.lastBatteryUpdate >= thisScreen.batteryUpdateMs ){
-				_APP.m_websocket_python.wsClient.send("GET_BATTERY");
+				// _APP.m_websocket_python.wsClient.send("GET_BATTERY");
+				_APP.m_websocket_python.getBatteryUpdate();
 				// if(thisScreen.flag3){ _APP.m_draw.setTile("tile_red", 21, 29); }
 				// else{                 _APP.m_draw.setTile("tile_blue" , 21, 29); }
 				// thisScreen.flag3 = !thisScreen.flag3;

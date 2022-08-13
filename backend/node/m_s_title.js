@@ -41,7 +41,7 @@ let title = {
 	screenEndDelayMs:null,
 
 	// Constants
-	screenEndDelaySeconds:5,
+	screenEndDelaySeconds:1,
 
 	buttons: async function(key, state){
 		if(state){ return; }
@@ -82,8 +82,7 @@ let title = {
 	init: async function(){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
-
-		console.log("init of:", _APP.currentScreen);
+		console.log("SCREEN: init:", _APP.currentScreen);
 	
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
@@ -142,7 +141,7 @@ let title = {
 
 			if(performance.now() - thisScreen.lastCounterUpdate >= thisScreen.screenEndDelayMs ){
 				thisScreen.counter -= 1;
-				if(thisScreen.counter >= 0){
+				if(thisScreen.counter >= 1){
 					_APP.m_draw.print((thisScreen.counter-1).toString() , ts.cols-1 , ts.rows-1);
 				}
 				

@@ -202,3 +202,8 @@ table td, table tr, table th{ vertical-align: top; }
 	background-color: #a5c2dd;
 	/* width: 100%; */
 }
+
+span#info_fps {
+    white-space: pre;
+    font-size: 13px;
+}
