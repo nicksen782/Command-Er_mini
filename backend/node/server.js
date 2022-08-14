@@ -1,4 +1,14 @@
-console.log("...LOADING...\n");
+let lines = [
+	"-".repeat(27)  ,
+	" . . . L O A D I N G . . . " ,
+	"-".repeat(27)  ,
+];
+// console.log("");
+for(let i=0; i<lines.length; i+=1){
+	console.log("\x1b[40m" + "\x1b[1;31m" + lines[i].padEnd(27, " ") + "\x1b[0m");
+}
+console.log("");
+// process.exit();
 
 // OS/Filesystem requires. 
 const os       = require('os');
@@ -131,20 +141,27 @@ let _APP;
 			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("expressServerStart", "t").toFixed(3).padStart(9, " ")} ms`, 0);
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog("");
-
+			
 			// console.log("-".repeat(45));
 			// console.log(`SERVER STARTED`);
 			// console.log("-".repeat(45));
 			// console.log("");
-
+			
 			let appTitle = "Command-Er_Mini";
 			process.title = appTitle;
+			
+			let lines = [
+				"*".repeat(27)                                                                              ,
+				` NAME    : ${appTitle} `                                                                   ,
+				` STARTDIR: ${process.cwd()} `                                                              ,
+				` SERVER  : ${_APP.m_config.config.node.http.host}:${_APP.m_config.config.node.http.port} ` ,
+				"*".repeat(27)                                                                              ,
+			];
+			// https://gist.github.com/JBlond/2fea43a3049b38287e5e9cefc87b2124
 			console.log("");
-			console.log("*".repeat(45));
-			console.log(`NAME    : ${appTitle}`);
-			console.log(`STARTDIR: ${process.cwd()}`);
-			console.log(`SERVER  : ${_APP.m_config.config.node.http.host}:${_APP.m_config.config.node.http.port}`);
-			console.log("*".repeat(45));
+			for(let i=0; i<lines.length; i+=1){
+				console.log("\x1b[40m" + "\x1b[1;93m" + lines[i].padEnd(27, " ") + "\x1b[0m");
+			}
 			console.log("");
 
 			// ROUTES
@@ -152,12 +169,16 @@ let _APP;
 			console.log("");
 			
 			_APP.timeIt("_STARTUP_", "e");
-
-			console.log("-".repeat(45));
-			console.log(`READY (STARTUP TIME: ${_APP.timeIt("_STARTUP_", "t").toFixed(3).padStart(9, " ")} ms)` );
-			// console.log("Screen keys1: ", _APP.screens);
-			// console.log("Screen keys2: ", Object.keys(_APP.screenLogic.screens));
-			console.log("-".repeat(45));
+			 
+			lines = [
+				"-".repeat(36)                                                                          ,
+				` READY (STARTUP TIME: ${_APP.timeIt("_STARTUP_", "t").toFixed(3).padStart(9, " ")} ms) ` ,
+				"-".repeat(36)                                                                          ,
+			];
+			console.log("");
+			for(let i=0; i<lines.length; i+=1){
+				console.log("\x1b[40m" + "\x1b[1;92m" + lines[i].padEnd(36, " ") + "\x1b[0m");
+			}
 			console.log("");
 
 			_APP.fps.init( _APP.m_config.config.node.fps );

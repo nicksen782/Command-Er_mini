@@ -286,6 +286,7 @@ let _APP = {
 								this.chargeFlag = !this.chargeFlag;
 								this.lastBatteryUpdate = performance.now();
 							}
+							
 							// Display the charge indicator.
 							if(this.chargeFlag){ _APP.m_draw.setTile("battcharge1", x, y, 2); }
 							else{                _APP.m_draw.setTile("battcharge2", x, y, 2); }
