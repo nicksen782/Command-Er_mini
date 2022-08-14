@@ -152,7 +152,7 @@ let _MOD = {
 	isPrev : function(key){ return _MOD.states_prev     & (1 << _MOD.bits[key]) ? true : false },
 	isHeld : function(key){ return _MOD.states_held     & (1 << _MOD.bits[key]) ? true : false },
 	isPress: function(key){ return _MOD.states_pressed  & (1 << _MOD.bits[key]) ? true : false },
-	isReal : function(key){ return _MOD.states_released & (1 << _MOD.bits[key]) ? true : false },
+	isRele : function(key){ return _MOD.states_released & (1 << _MOD.bits[key]) ? true : false },
 
 	// Inits the button states and adds listeners (watches) to the input buttons. 
 	buttons_init: async function(){

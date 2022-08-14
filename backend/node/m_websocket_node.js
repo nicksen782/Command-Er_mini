@@ -98,7 +98,7 @@ let _MOD = {
 			},
 			// Expected origin: Web client by request.
 			CHANGE_FPS:    async function(ws, data){
-				_APP.fps.init();
+				_APP.fps.init( data.data );
 				_APP.stats.setFps( data.data );
 			},
 			// Expected origin: Web client by request.

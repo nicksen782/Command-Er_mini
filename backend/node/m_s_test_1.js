@@ -145,21 +145,20 @@ let screen = {
 			
 			let y=6;
 			thisScreen.lines2.push(`${"*".repeat(29)}`);
-
-			thisScreen.lines2.push(`FPS AVG/CONF: ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(7, " ")}`);
+			thisScreen.lines2.push(`FPS AVG/CONF: ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(7, " ")}` + `${("("+(_APP.fps._index_+1).toFixed(0) +"/"+ (_APP.fps.sampleSize-0).toFixed(0) +")").padStart(8, " ")}`);
 			thisScreen.lines2.push(`SET MS/FRAME: ${_APP.stats.interval.toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`MS DELTA    : ${_APP.stats.delta   .toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`${"*".repeat(29)}`);
 
 			let totalTime = _APP.timeIt_timings_prev["FULLLOOP"].t;
-			let gpio          = _APP.timeIt_timings_prev["GPIO"].t;          let gpio_p          = ((gpio          / totalTime)*100).toFixed(2).padStart(5, " ");
-			let logic         = _APP.timeIt_timings_prev["LOGIC"].t;         let logic_p         = ((logic         / totalTime)*100).toFixed(2).padStart(5, " ");
-			let displayupdate = _APP.timeIt_timings_prev["DISPLAY"].t; let displayupdate_p = ((displayupdate / totalTime)*100).toFixed(2).padStart(5, " ");
-			thisScreen.lines2.push(`GPIO    :${gpio         .toFixed(2).padStart(6, " ")} / ${gpio_p}%`         .padStart(7, " "));
-			thisScreen.lines2.push(`LOGIC   :${logic        .toFixed(2).padStart(6, " ")} / ${logic_p}%`        .padStart(7, " "));
-			thisScreen.lines2.push(`DISPLAY :${displayupdate.toFixed(2).padStart(6, " ")} / ${displayupdate_p}%`.padStart(7, " "));
-			thisScreen.lines2.push(`FULLLOOP:${totalTime    .toFixed(2).padStart(6, " ")}`);
+			let gpio          = _APP.timeIt_timings_prev["GPIO"].t;          let gpio_p          = ((gpio          / totalTime)*100).toFixed(2);
+			let logic         = _APP.timeIt_timings_prev["LOGIC"].t;         let logic_p         = ((logic         / totalTime)*100).toFixed(2);
+			let displayupdate = _APP.timeIt_timings_prev["DISPLAY"].t; let displayupdate_p = ((displayupdate / totalTime)*100).toFixed(2);
+			thisScreen.lines2.push( `GPIO    :${gpio         .toFixed(2).padStart(6, " ")} / ${(gpio_p          + '%').padStart(8, " ")}` );
+			thisScreen.lines2.push( `LOGIC   :${logic        .toFixed(2).padStart(6, " ")} / ${(logic_p         + '%').padStart(8, " ")}` );
+			thisScreen.lines2.push( `DISPLAY :${displayupdate.toFixed(2).padStart(6, " ")} / ${(displayupdate_p + '%').padStart(8, " ")}` );
+			thisScreen.lines2.push(`FULLLOOP:${totalTime     .toFixed(2).padStart(6, " ")}`);
 			thisScreen.lines2.push(`${"*".repeat(29)}`);
 
 			let t1a = ((performance.now()-thisScreen.lastTimeUpdate)/1000)   .toFixed(1).toString().padStart(3, " ");
@@ -195,7 +194,7 @@ let screen = {
 			// if(_APP.m_gpio.isPress("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
 			// if(_APP.m_gpio.isPrev ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
 			// if(_APP.m_gpio.isHeld ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
-			// if(_APP.m_gpio.isReal ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
+			// if(_APP.m_gpio.isRele ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
 			// else{ _APP.m_draw.setTile("btn_u", 12, 29); }
 			
 			let x;
@@ -240,14 +239,14 @@ let screen = {
 			
 			x=15;
 			_APP.m_draw.print(`RELE: ${_APP.m_gpio.states_released.toString(2).padStart(8, "0")}`  , 0 , y); 
-			if( _APP.m_gpio.isReal ("KEY_UP_PIN")    ){ _APP.m_draw.setTile("btn_u_active", x++, y); } else{ _APP.m_draw.setTile("btn_u", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY_DOWN_PIN")  ){ _APP.m_draw.setTile("btn_d_active", x++, y); } else{ _APP.m_draw.setTile("btn_d", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY_PRESS_PIN") ){ _APP.m_draw.setTile("btn_p_active", x++, y); } else{ _APP.m_draw.setTile("btn_p", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY_LEFT_PIN")  ){ _APP.m_draw.setTile("btn_l_active", x++, y); } else{ _APP.m_draw.setTile("btn_l", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY_RIGHT_PIN") ){ _APP.m_draw.setTile("btn_r_active", x++, y); } else{ _APP.m_draw.setTile("btn_r", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY1_PIN")      ){ _APP.m_draw.setTile("btn_a_active", x++, y); } else{ _APP.m_draw.setTile("btn_a", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY2_PIN")      ){ _APP.m_draw.setTile("btn_b_active", x++, y); } else{ _APP.m_draw.setTile("btn_b", x++, y); }
-			if( _APP.m_gpio.isReal ("KEY3_PIN")      ){ _APP.m_draw.setTile("btn_c_active", x++, y); } else{ _APP.m_draw.setTile("btn_c", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY_UP_PIN")    ){ _APP.m_draw.setTile("btn_u_active", x++, y); } else{ _APP.m_draw.setTile("btn_u", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY_DOWN_PIN")  ){ _APP.m_draw.setTile("btn_d_active", x++, y); } else{ _APP.m_draw.setTile("btn_d", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY_PRESS_PIN") ){ _APP.m_draw.setTile("btn_p_active", x++, y); } else{ _APP.m_draw.setTile("btn_p", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY_LEFT_PIN")  ){ _APP.m_draw.setTile("btn_l_active", x++, y); } else{ _APP.m_draw.setTile("btn_l", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY_RIGHT_PIN") ){ _APP.m_draw.setTile("btn_r_active", x++, y); } else{ _APP.m_draw.setTile("btn_r", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY1_PIN")      ){ _APP.m_draw.setTile("btn_a_active", x++, y); } else{ _APP.m_draw.setTile("btn_a", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY2_PIN")      ){ _APP.m_draw.setTile("btn_b_active", x++, y); } else{ _APP.m_draw.setTile("btn_b", x++, y); }
+			if( _APP.m_gpio.isRele ("KEY3_PIN")      ){ _APP.m_draw.setTile("btn_c_active", x++, y); } else{ _APP.m_draw.setTile("btn_c", x++, y); }
 			y++;
 			if(performance.now() - thisScreen.lastTimeUpdate >= thisScreen.timeUpdateMs ){
 				thisScreen.shared.time.display(0, 29, "tile3");

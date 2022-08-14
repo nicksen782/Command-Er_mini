@@ -4,12 +4,12 @@ const path = require('path');
 
 // Modules saved within THIS module.
 const m_modules = [
-	'./m_config.js',
+	'./m_config.js', // Must be first!
+	'./m_gpio.js',
 	'./m_draw.js',
+	'./m_canvas.js',
 	'./m_websocket_node.js',
 	'./m_websocket_python.js',
-	'./m_gpio.js',
-	'./m_canvas.js',
 ];
 const rpbp = require( './removeprocess.js' ).run;
 
@@ -35,10 +35,7 @@ let _APP = {
 	// Init this module.
 	module_init: function(parent){
 		return new Promise(async function(resolve,reject){
-			// Add routes.
-			_APP.consolelog("addRoutes", 2);
-			_APP.addRoutes(_APP.app, _APP.express);
-			
+			// _APP.consolelog("add modules", 2);
 			_APP.consolelog("add modules", 2);
 			for(let i=0; i<m_modules.length; i+=1){
 				let key = path.basename(m_modules[i], '.js');
@@ -54,6 +51,10 @@ let _APP = {
 				_APP[key] = require( m_screens[i] );
 				_APP.consolelog(`Added: ${key}`, 4);
 			};
+
+			// Add routes.
+			_APP.consolelog("addRoutes", 2);
+			_APP.addRoutes(_APP.app, _APP.express);
 
 			resolve();
 		});
@@ -130,19 +131,33 @@ let _APP = {
 			for(let i=0; i<m_modules.length; i+=1){
 				let key = path.basename(m_modules[i], '.js');
 				if(!_APP[key].moduleLoaded){
-					_APP.consolelog(`START: module_init: ${key} :`, 0);        
+					_APP.consolelog(".".repeat(54), 0);
+					let line1 = `START: module_init: ` + " ".repeat(4);
+					line1+= `${key.toUpperCase()}`.padEnd(20, " ");
+					line1+= ` : `;
+					line1+= `(${ (i+1) + "/" + m_modules.length })`.padStart(7, " ");
+					_APP.consolelog(line1, 0);
 					_APP.timeIt(`${key}`, "s"); await _APP[key].module_init(_APP); _APP.timeIt(`${key}`, "e");
-					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+					_APP.consolelog(".".repeat(54), 0);
+					_APP.consolelog("");
 				}
 			}
-
+			
 			// SCREENS
 			for(let i=0; i<m_screens.length; i+=1){
 				let key = path.basename(m_screens[i], '.js');
 				if(!_APP[key].moduleLoaded){
-					_APP.consolelog(`START: module_init: ${key} :`, 0);        
+					_APP.consolelog(".".repeat(54), 0);
+					let line1 = `START: module_init: ` + " ".repeat(4);
+					line1+= `${key.toUpperCase()}`.padEnd(20, " ");
+					line1+= ` : `;
+					line1+= `(${ (i+1) + "/" + m_screens.length })`.padStart(7, " ");
+					_APP.consolelog(line1, 0);
 					_APP.timeIt(`${key}`, "s"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e");
-					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+					_APP.consolelog(".".repeat(54), 0);
+					_APP.consolelog("");
 				}
 			};
 
@@ -336,13 +351,14 @@ let _APP = {
 		// Remove any potential duplicates in the ports list. 
 		ports = [...new Set(ports)] ;
 	
-		_APP.consolelog(`Removing processes using ports: ${ports}`, 2);
+		// _APP.consolelog(`Removing processes using ports: ${ports}`, 2);
 	
 		//
 		let closed = [];
 		return new Promise(async function(resolve,reject){
 			// Add promises for each removal.
 			let proms = [];
+			let responses = [];
 			for(let i=0; i<ports.length; i+=1){
 				proms.push(
 					new Promise(function(res,rej){
@@ -358,13 +374,19 @@ let _APP = {
 								if(data.success){
 									if(data.removed){ 
 										if(closed.length){
-											if(display){ _APP.consolelog(`${data.text}`, 2); } 
+											if(display){ 
+												// _APP.consolelog(`${data.text}`, 2); 
+												responses.push(data.text);
+											} 
 										}
 									}
 								}
 								
 								// Error.
-								else{ _APP.consolelog(`ERROR: ${data}`, 2); }
+								else{ 
+									// _APP.consolelog(`ERROR: ${data}`, 4); 
+									responses.push(data);
+								}
 								res(data);
 							});
 						} 
@@ -382,25 +404,43 @@ let _APP = {
 
 			// Output the results. 
 			if(closed.length){
-				_APP.consolelog(`Processes were removed on these ports: ${closed}`, 2);
+				// _APP.consolelog(`Processes were removed on these ports: ${closed}`, 2);
+				resolve(responses);
 			}
 			else{
-				_APP.consolelog(`No matching processes were found.`, 2);
+				// _APP.consolelog(`No matching processes were found.`, 2);
+				resolve(responses);
 			}
 
-			resolve();
+			// resolve();
 		})
 	},
 
-	consolelog: function(str, indent=2, ){
-		// str=str.replace(/ /g, "*");
-		try{
-			if(!_APP.m_config.config.toggles.hide_APP_consolelog){
-				console.log(`(LOG) ${" ".repeat(indent)}${str}`);
-			}
+	consolelog: function(str, indent=2){
+		// m_config isn't loaded yet. Print the message anyway.
+		let prefix = "[LOG] ::";
+
+		if(!_APP.m_config ){ 
+			console.log(`${prefix} ${" ".repeat(indent)}${str}`);
+			return; 
 		}
-		catch(e){
-			console.log(`{LOG} ${" ".repeat(indent)}${str}`);
+		// m_config is loaded but not inited yet. Print the message anyway.
+		else if(_APP.m_config.config && !_APP.m_config.config.toggles){ 
+			console.log(`${prefix} ${" ".repeat(indent)}${str}`);
+			return; 
+		}
+		// Do the normal checks. 
+		else{
+			try{
+				if(_APP.m_config.config.toggles.show_APP_consolelog){
+					prefix = "[LOG] : ";
+					console.log(`${prefix} ${" ".repeat(indent)}${str}`);
+				}
+			}
+			catch(e){
+				console.log(e);
+				// console.log(`${prefix} ${" ".repeat(indent)}${str}`);
+			}
 		}
 	},
 
@@ -425,11 +465,16 @@ let _APP = {
 			let fps = 1/delta;
 			// add to fps samples, current tick fps value 
 			this._sample_[ this._index_ ] = Math.round(fps);
+			// this._sample_[ this._index_ ] = Math.floor(fps);
+			// this._sample_[ this._index_ ] = Math.ceil(fps);
 			
 			// iterate samples to obtain the average
 			let average = 0;
 			for(i=0; i<this._sample_.length; i++) average += this._sample_[ i ];
-			average = Math.round( average / this._sample_.length);
+			// average = Math.round( average / this._sample_.length);
+			average = Math.round( average / this.sampleSize);
+			// average = Math.floor( average / this.sampleSize);
+			// average = Math.ceil( average / this.sampleSize);
 	
 			// set new FPS
 			this.value = average;
@@ -445,13 +490,19 @@ let _APP = {
 			
 			return this.value;
 		},
-		init: function(){
+		init: function(sampleSize){
 			// Set the values. 
-			this._sample_   = []   ;
+			this.sampleSize = sampleSize;
+
+			// Create new samples array (typed.)
+			this._sample_ = new Uint8Array( new ArrayBuffer(this.sampleSize) )
+			for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = this.sampleSize; }
+			
 			this._index_    = 0    ;
 			this._lastTick_ = false;
 		},
 	},	
+
 	// APP LOOP.
 	stats : {
 		now      : performance.now(),
@@ -481,12 +532,27 @@ let _APP = {
 		},
 	},
 
-	schedule_appLoop: function(){
-		// setTimeout -- Gives a little "breathing room" for the CPU.
-		// setTimeout(function(){ _APP.appLoop(  performance.now() ); }, 10);
+	schedule_appLoop: function(msUntilNextFrameNeeded=0){
+		// In Node, setTimeout seems to have a resolution of around 1ms ideally but not always.
+		// If we add a little buffer room we can sometimes avoid calling the appLoop immediately.
+		// The appLoop call would be async-ish in this way and should still prevent frame drops. 
+		if(msUntilNextFrameNeeded != 0 && msUntilNextFrameNeeded > _APP.stats.interval / 4){
+			// console.log("setTimeout", msUntilNextFrameNeeded, msUntilNextFrameNeeded-(_APP.stats.interval / 2), );
+			// setTimeout -- Gives a little "breathing room" for the CPU.
+			setTimeout(
+				function(){ 
+					_APP.appLoop(  performance.now() ); 
+				}, 
+				Math.max(0, msUntilNextFrameNeeded-(_APP.stats.interval / 4) )
+			);
+		}
+		else{
+			// console.log("setImmediate", msUntilNextFrameNeeded);
+			// setImmediate. Frees up whatever remains of the current event loop. (breathing room?)
+			setImmediate(function(){ _APP.appLoop(  performance.now() ); });
+		}
 
-		// setImmediate. Frees up whatever remains of the current event loop. (breathing room?)
-		setImmediate(function(){ _APP.appLoop(  performance.now() ); });
+		// _APP.stats.interval - _APP.stats.delta
 	},
 
 	// timestamp should be performance.now().
@@ -557,19 +623,23 @@ let _APP = {
 					_APP.timeIt("FULLLOOP", "e");
 
 					// Schedule the next appLoop.
-					_APP.schedule_appLoop();
+					_APP.schedule_appLoop(0);
 				}
 			}
 			else{
-				_APP.schedule_appLoop();
+				_APP.schedule_appLoop(0);
 			}
 		}
+
 		// NO
 		else{
-			_APP.schedule_appLoop();
+			// Send remaining time needed before the next frame should actually run.
+			_APP.schedule_appLoop(_APP.stats.interval - _APP.stats.delta);
+
+			// let time = performance.now();
+			// setTimeout(function(){ console.log(performance.now()-time); }, 1);
 		}
 	},
-
 };
 
 // Save app and express to _APP and then return _APP.
@@ -581,9 +651,15 @@ module.exports = async function(app, express, server){
 
 	// Init this module.
 	let key = path.basename(__filename, '.js');
-	_APP.consolelog(`START: module_init: ${key} :`, 0);        
+	_APP.consolelog(".".repeat(54), 0);
+	_APP.consolelog(`START: module_init: ${key} :`, 0);
 	_APP.timeIt(`${key}`, "s"); await _APP.module_init(_APP); _APP.timeIt(`${key}`, "e");
-	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
+	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+	_APP.consolelog(".".repeat(54), 0);
+	_APP.consolelog("", 0);
+
+	//
+	await _APP.m_config.get_configs();
 
 	// Return a reference to _APP.
 	return _APP;

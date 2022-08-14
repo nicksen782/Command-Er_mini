@@ -18,7 +18,7 @@ class Server:
     config=False
 	
     def __init__(self):
-        print(f"SERVER START")
+        # print(f"SERVER START")
         
         # Get the config.
         with open('public/shared/config.json', 'r') as myfile:

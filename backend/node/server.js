@@ -38,25 +38,6 @@ let _APP;
 	_APP   = await require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
 	_APP.timeIt("_STARTUP_", "s");
 
-	// Load the config.
-	_APP.consolelog("START: module_init: m_config :", 0);        
-	_APP.timeIt("m_config", "s"); await _APP.m_config.module_init(_APP); _APP.timeIt("m_config", "e");
-	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("m_config", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-
-	// Remove any lingering processes that use these ports:
-	_APP.timeIt("removeProcessByPort", "s");   
-	_APP.consolelog("START: removeProcessByPort:", 0);        
-	await _APP.removeProcessByPort(
-		[
-			_APP.m_config.config.node.http.port, 
-			_APP.m_config.config.python.ws.port, 
-			// _APP.m_config.config.python.http.port 
-		], true
-	);
-	_APP.timeIt("removeProcessByPort", "e");
-	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("removeProcessByPort", "t").toFixed(3).padStart(9, " ")} ms\n`, 0);
-	// console.log("");
-	
 	let printRoutes = function(){
 		let routes = _APP.getRoutePaths("manual", app).manual;
 		
@@ -120,24 +101,45 @@ let _APP;
 		};
 	};
 
+	// Add compression.
+	app.use( compression(compressionObj) );
+
+	// Default routes:
+	app.use('/'    , express.static(path.join(process.cwd(), './public')));
+	app.use('/libs', express.static(path.join(process.cwd(), './node_modules')));
+
+	// Init the modules.
 	await _APP.module_inits();
 
+	// Start the web server.
 	let conf = {
 		host: _APP.m_config.config.node.http.host, 
 		port: _APP.m_config.config.node.http.port
 	};
 
+	_APP.consolelog(".".repeat(54), 0);
+	_APP.timeIt("expressServerStart", "s");   
+	_APP.consolelog("START: expressServerStart:", 0);
+	
+	// Remove the process if it already exists.
+	let responses = await _APP.removeProcessByPort( [ _APP.m_config.config.node.http.port ], true );
+	for(let i=0; i<responses.length; i+=1){ _APP.consolelog(responses[i], 4); }
+
 	(async function startServer(){
 		server.listen(conf, async function () {
-			app.use( compression(compressionObj) );
+			_APP.timeIt("expressServerStart", "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("expressServerStart", "t").toFixed(3).padStart(9, " ")} ms`, 0);
+			_APP.consolelog(".".repeat(54), 0);
+			_APP.consolelog("");
 
-			// Default routes:
-			app.use('/'    , express.static(path.join(process.cwd(), './public')));
-			app.use('/libs', express.static(path.join(process.cwd(), './node_modules')));
+			// console.log("-".repeat(45));
+			// console.log(`SERVER STARTED`);
+			// console.log("-".repeat(45));
+			// console.log("");
 
 			let appTitle = "Command-Er_Mini";
 			process.title = appTitle;
-			// console.log("");
+			console.log("");
 			console.log("*".repeat(45));
 			console.log(`NAME    : ${appTitle}`);
 			console.log(`STARTDIR: ${process.cwd()}`);
@@ -145,13 +147,9 @@ let _APP;
 			console.log("*".repeat(45));
 			console.log("");
 
-			// console.log(`ROUTES:`);
+			// ROUTES
 			printRoutes(); 
 			console.log("");
-			
-			// console.log(`CONFIG:`);
-			// console.log(_APP.m_config.config);
-			// console.log("");
 			
 			_APP.timeIt("_STARTUP_", "e");
 
@@ -162,9 +160,9 @@ let _APP;
 			console.log("-".repeat(45));
 			console.log("");
 
-			_APP.fps.init();
+			_APP.fps.init( _APP.m_config.config.node.fps );
 			_APP.stats.setFps( _APP.m_config.config.node.fps );
-			_APP.schedule_appLoop();
+			_APP.schedule_appLoop(0);
 		});
 	})();
 

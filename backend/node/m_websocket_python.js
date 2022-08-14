@@ -48,7 +48,7 @@ let _MOD = {
 						for(let attempts=0; attempts<maxAttempts; attempts+=1){
 							// Successful ping?
 							if(_MOD.pinged){
-								_APP.consolelog("Server is ready", 4);
+								// _APP.consolelog("Server is ready", 4);
 								res();
 								return; 
 							}
@@ -244,6 +244,10 @@ let _MOD = {
 		// Remove the child process if it is set.
 		if(_MOD.cp_child){ _MOD.cp_child.kill('SIGINT'); }
 		
+		// Remove the process if it already exists.
+		let responses = await _APP.removeProcessByPort( [ _APP.m_config.config.python.ws.port ], true );
+		for(let i=0; i<responses.length; i+=1){ _APP.consolelog(responses[i], 4); }
+
 		// Start the server.
 		_MOD.cp_child = child_process.spawn(
 			// "python3", ["-u", _MOD.serverFile]

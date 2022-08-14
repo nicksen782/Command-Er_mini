@@ -32,9 +32,9 @@ let _MOD = {
 				// Save reference to the parent module.
 				_APP = parent;
 		
-				// Get and store the config file. 
-				_APP.consolelog("get_config", 2);
-				await _MOD.get_configs();
+				// Get and store the config file. (check if it is populated.)
+				if(!_MOD.config.node){ await _MOD.get_configs(); }
+				_APP.consolelog("got_config", 2);
 				
 				// Add routes.
 				_APP.consolelog("addRoutes", 2);
@@ -42,7 +42,6 @@ let _MOD = {
 
 				_MOD.moduleLoaded = true;
 			}
-
 			resolve();
 		});
 	},

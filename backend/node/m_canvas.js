@@ -110,7 +110,7 @@ let _MOD = {
 			_APP.timeIt("FULLLOOP", "e");
 
 			// Schedule the next appLoop.
-			_APP.schedule_appLoop();
+			_APP.schedule_appLoop(0);
 
 			resolve();
 		});

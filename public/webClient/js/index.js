@@ -14,6 +14,10 @@ let websocket = {
 	activeUuid:null,
 	activeWs:null,
 	wsArr:[],
+	autoReconnect:false,
+	// autoReconnecting:false,
+	autoReconnect_intervalId:false,
+	connecting:false,
 
 	// STATUS CODES
 	ws_statusCodes: {
@@ -124,6 +128,7 @@ let websocket = {
 			buttons.DOM["ws_status"].innerHTML = "&#128997;";
 
 			// Create new. 
+			websocket.connecting = true;
 			let ws = new WebSocket(locUrl);
 			ws.onopen   = websocket.ws_events.el_open   ;
 			ws.onmessage= websocket.ws_events.el_message;
@@ -153,6 +158,15 @@ let websocket = {
 				}
 			}
 		},
+		//
+		autoReconnect: function(){
+			// websocket.ws_utilities.autoReconnect
+			// if(websocket.autoReconnect && !websocket.autoReconnecting){
+			if(websocket.autoReconnect){
+				// console.log("Auto-reconnect: TRYING...");
+				websocket.ws_utilities.initWss();
+			}
+		},
 	},
 	// EVENT HANDLERS.
 	ws_events:{
@@ -173,6 +187,12 @@ let websocket = {
 
 			// Request GET_VRAM.
 			draw.getVram("ws");
+
+			if(websocket.autoReconnect){
+				// websocket.autoReconnecting = false;
+				clearTimeout(websocket.autoReconnect_intervalId);
+			}
+			websocket.connecting = false;
 		},
 		el_message:function(event){
 			let data;
@@ -245,6 +265,16 @@ let websocket = {
 			setTimeout(function(){
 				buttons.DOM["ws_status"].innerHTML = "&#11035;";
 				websocket.activeWs=null; 
+				websocket.connecting = false;
+
+				if(websocket.autoReconnect){
+					// websocket.autoReconnecting = true;
+					console.log("Websocket connection lost. Will try to reconnect.");
+					websocket.autoReconnect_intervalId = setInterval(function(){
+						websocket.ws_utilities.autoReconnect();
+					}, 3000);
+				}
+
 			}, 1000);
 			draw.fps.updateDisplay();
 		},
@@ -579,7 +609,11 @@ let buttons = {
 		// Add listeners for each button.
 		// buttons.DOM["ws_status"];
 		buttons.DOM["ws_connect"]   .addEventListener("click", ()=>{ websocket.ws_utilities.initWss(); }, false);
-		buttons.DOM["ws_disconnect"].addEventListener("click", ()=>{ websocket.ws_utilities.wsCloseAll(); }, false);
+		buttons.DOM["ws_disconnect"].addEventListener("click", ()=>{ 
+			websocket.autoReconnect=false;
+			buttons.DOM.ws_autoReconnect.checked = false;
+			websocket.ws_utilities.wsCloseAll(false); 
+		}, false);
 
 		buttons.DOM["ws_up"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_UP_PIN");}, false);
 		buttons.DOM["ws_down"] .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_DOWN_PIN");}, false);
@@ -726,6 +760,12 @@ window.onload = async function(){
 		if(this.checked){ draw.showVramLayers(); }
 		else{ draw.hideVramLayers(); }
 	}, false)
+
+	buttons.DOM.ws_autoReconnect = document.getElementById("ws_autoReconnect");
+	buttons.DOM.ws_autoReconnect.addEventListener("click", function(){
+		websocket.autoReconnect = this.checked;
+	}, false);
+	buttons.DOM.ws_autoReconnect.checked = websocket.autoReconnect;
 
 	// FPS changes.
 	draw.DOM.info_changeFps = document.getElementById("info_changeFps");

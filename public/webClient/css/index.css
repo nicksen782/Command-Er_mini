@@ -243,3 +243,10 @@ button#ws_connect {
 
 .subscriptionDiv{/* border:1px solid black; */background-color: rgb(255 255 255 / 25%);padding: 3px;border: 1px solid black;margin: 2px;}
 .subscriptionDiv:hover{background-color: #83b8ee;}
+
+span#ws_autoReconnectDiv {
+    position: absolute;
+    right: 180px;
+	display:none;
+}
+span#ws_autoReconnectDiv:hover{background-color: #bcd2e6;}
