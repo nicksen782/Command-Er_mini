@@ -53,6 +53,7 @@ let _MOD = {
 		_APP.addToRouteList({ path: "CLEAR_LAYER"      , method: "ws", args: [], file: __filename, desc: "(JSON): Clear selected VRAM layer." });
 		_APP.addToRouteList({ path: "SUBSCRIBE"        , method: "ws", args: [], file: __filename, desc: "(JSON): Subscript to event." });
 		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unubscript from event." });
+		_APP.addToRouteList({ path: "PRESS_BUTTONS"    , method: "ws", args: [], file: __filename, desc: "(JSON): PRESS_BUTTONS" });
 		_APP.addToRouteList({ path: "GET_SUBSCRIPTIONS", method: "ws", args: [], file: __filename, desc: "(TEXT): Get list of active subscriptions." });
 	},
 
@@ -113,6 +114,9 @@ let _MOD = {
 			UNSUBSCRIBE:      async function(ws, data){
 				_MOD.ws_utilities.removeSubscription(ws, data.data);
 			},
+			PRESS_BUTTONS:      async function(ws, data){
+				_APP.m_gpio.setButtonOverrideValues(data.data);
+			},
 		},
 		TEXT:{
 			GET_SUBSCRIPTIONS:      async function(ws, key){
@@ -120,7 +124,13 @@ let _MOD = {
 
 				// Send the client's current subscription list. 
 				ws.send(JSON.stringify({"mode":"GET_SUBSCRIPTIONS", "data":ws.subscriptions}));
-			}
+			},
+			// GET_SUBSCRIPTIONS_LIST:      async function(ws, key){
+			// 	// console.log(`${key}:`, ws.subscriptions);
+
+			// 	// Send the client's current subscription list. 
+			// 	ws.send(JSON.stringify({"mode":"GET_SUBSCRIPTIONS_LIST", "data":_MOD.subscriptionKeys}));
+			// }
 		},
 	},
 	ws_utilities: {

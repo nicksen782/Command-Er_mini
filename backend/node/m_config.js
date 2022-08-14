@@ -60,6 +60,7 @@ let _MOD = {
 					tileCoords       : _MOD.tileCoords,
 					tileIdsByTilename: _MOD.tileIdsByTilename,
 					tilenamesByIndex : _MOD.tilenamesByIndex,
+					subscriptionKeys : _APP.m_websocket_node.subscriptionKeys,
 				};
 				res.json(result);
 			}

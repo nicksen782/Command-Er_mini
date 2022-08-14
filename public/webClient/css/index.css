@@ -12,15 +12,23 @@ body {
 }
 
 .button {
-	font-size: 12px;
+	font-size: 16px;
 	font-family: monospace;
 	min-width: 60px;
+	height:25px;
+}
+.button2 {
+	/* font-size: 16px; */
+	font-family: monospace;
+	min-width: 60px;
+	/* height:25px; */
 }
 
 .icon {
 	font-size: 16px;
 	min-width: 45px;
 	max-width: 45px;
+	height:25px;
 }
 
 .title {
@@ -29,6 +37,9 @@ body {
 	position: relative;
 	margin-bottom: 3px;
 	border: 2px solid black;
+}
+.title.taller {
+	padding: 6px;
 }
 
 .inlineBlock {
@@ -59,15 +70,15 @@ body {
 }
 
 #controls_top {
-	width: 215px;
-	height: 240px;
+	width: 523px;
+	/* height: 200px; */
 	background-color: rgb(255 255 255 / 25%);
 	padding: 5px;
 }
 
 
 
-#controls_bottom1 {
+/* #controls_bottom1 {
 	vertical-align: top;
 	width: 520px;
 	background-color: rgb(255 255 255 / 25%);
@@ -75,23 +86,28 @@ body {
 	margin-top: 5px;
 }
 #controls_bottom1 table{
-	/* width:530px; */
 }
 #controls_bottom1 table th{
-	/* background-color: green; */
 }
 #controls_bottom1 table th,
 #controls_bottom1 table td{
 	width: 16%;
 	border: 1px solid black;
-}
+} */
 
+#controls_bottom1 {
+	vertical-align: top;
+	/* width: 535px; */
+	/* background-color: rgb(255 255 255 / 25%); */
+	padding: 4px;
+	margin-top: 5px;
+}
 #controls_bottom2 {
 	vertical-align: top;
 	/* width: 535px; */
 	background-color: rgb(255 255 255 / 25%);
 	padding: 4px;
-	margin-top: 5px;
+	/* margin-top: 5px; */
 }
 #controls_bottom2 table{
 	/* width:530px; */
@@ -170,14 +186,11 @@ body {
 
 span#ws_status {
 	position: absolute;
-	right: 0px;
-	font-size: 12px;
-}
-
-div#controls_right {
-	width: 300px;
-	height: 240px;
-	background-color: #c4d3e7;
+	right: 5px;
+	font-size: 18px;
+	/* display: inline-block; */
+	/* height: 85px; */
+	top: 3px;
 }
 
 #vram_div_layers.hide {
@@ -185,7 +198,7 @@ div#controls_right {
 }
 
 table td, table tr, table th{ vertical-align: top; }
-#info_SUBSCRIPTIONS{font-family: monospace;white-space: pre;font-size: 10px;}
+#info_SUBSCRIPTIONS{font-family: monospace;/* white-space: pre; */font-size: 10px;}
 #info_VRAM_UPDATESTATS{font-family: monospace;white-space: pre;font-size: 10px;}
 
 
@@ -194,7 +207,9 @@ table td, table tr, table th{ vertical-align: top; }
 	background-color: crimson;
 	cursor:not-allowed;
 }
-.ws.disconnected button{
+.ws.disconnected button,
+.ws.disconnected select,
+.ws.disconnected .subscriptionDiv{
 	pointer-events:none;
 	opacity:0.75
 }
@@ -207,3 +222,24 @@ span#info_fps {
     white-space: pre;
     font-size: 13px;
 }
+
+button#ws_disconnect {
+    position: absolute;
+    right: 40px;
+    font-size: 12px;
+    top: 2px;
+}
+
+button#ws_connect {
+    position: absolute;
+    right: 110px;
+    font-size: 12px;
+    top: 2px;
+}
+
+.inputButtons{
+	margin-bottom:5px;
+}
+
+.subscriptionDiv{/* border:1px solid black; */background-color: rgb(255 255 255 / 25%);padding: 3px;border: 1px solid black;margin: 2px;}
+.subscriptionDiv:hover{background-color: #83b8ee;}

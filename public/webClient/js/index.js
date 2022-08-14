@@ -58,10 +58,10 @@ let websocket = {
 			},
 
 			// SUBSCRIPTIONS
-			GET_SUBSCRIPTIONS: function(data){
+			// GET_SUBSCRIPTIONS: function(data){
 				// console.log(`mode: ${data.mode}, data:`,data.data);
-				buttons.updateSubscriptionList(data.data);
-			},
+				// buttons.updateSubscriptionList(data.data);
+			// },
 			SUBSCRIBE: function(data){
 				// console.log(`mode: ${data.mode}, data:`,data.data);
 				buttons.updateSubscriptionList(data.data);
@@ -82,6 +82,7 @@ let websocket = {
 					`U:${rec.updates   .toString().padStart(3, " ")}, ` +
 					`R:${rec.real      .toString().padStart(3, " ")}, ` +
 					`O:${rec.overwrites.toString().padStart(3, " ")}  ` + 
+					// ``;
 					`\n`;
 				}
 				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
@@ -94,6 +95,9 @@ let websocket = {
 					draw.DOM.info_serverFps.innerText = data.data;
 				}
 			},
+			// GET_SUBSCRIPTIONS_LIST: function(data){
+				// console.log("GET_SUBSCRIPTIONS_LIST", data);
+			// },
 		},
 		TEXT  : {
 		},
@@ -239,7 +243,7 @@ let websocket = {
 			wsElems.forEach(function(d){ d.classList.add("disconnected"); d.classList.remove("connected"); });
 
 			setTimeout(function(){
-				buttons.DOM["ws_status"].innerHTML = "";
+				buttons.DOM["ws_status"].innerHTML = "&#11035;";
 				websocket.activeWs=null; 
 			}, 1000);
 			draw.fps.updateDisplay();
@@ -577,23 +581,33 @@ let buttons = {
 		buttons.DOM["ws_connect"]   .addEventListener("click", ()=>{ websocket.ws_utilities.initWss(); }, false);
 		buttons.DOM["ws_disconnect"].addEventListener("click", ()=>{ websocket.ws_utilities.wsCloseAll(); }, false);
 
-		buttons.DOM["ws_up"]   .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_UP_PIN");}, false);
-		buttons.DOM["ws_down"] .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_DOWN_PIN");}, false);
-		buttons.DOM["ws_left"] .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_LEFT_PIN");}, false);
-		buttons.DOM["ws_right"].addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_RIGHT_PIN");}, false);
-		buttons.DOM["ws_press"].addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY_PRESS_PIN");}, false);
-		buttons.DOM["ws_b1"]   .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY1_PIN");}, false);
-		buttons.DOM["ws_b2"]   .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY2_PIN");}, false);
-		buttons.DOM["ws_b3"]   .addEventListener("click", ()=>{buttons.toggle_button("ws", "KEY3_PIN");}, false);
+		buttons.DOM["ws_up"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_UP_PIN");}, false);
+		buttons.DOM["ws_down"] .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_DOWN_PIN");}, false);
+		buttons.DOM["ws_left"] .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_LEFT_PIN");}, false);
+		buttons.DOM["ws_right"].addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_RIGHT_PIN");}, false);
+		buttons.DOM["ws_press"].addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_PRESS_PIN");}, false);
+		buttons.DOM["ws_b1"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY1_PIN");}, false);
+		buttons.DOM["ws_b2"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY2_PIN");}, false);
+		buttons.DOM["ws_b3"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY3_PIN");}, false);
 		buttons.DOM["ws_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('ws');}, false);
 
 		buttons.DOM["post_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('post');}, false);
 	},
 
 	// REQUESTS
-	toggle_button: function(type, buttonKey){
+	PRESS_BUTTONS: function(type, buttonKey){
 		if(websocket.activeWs){
-			// websocket.activeWs.send(JSON.stringify({"mode":"GET_VRAM", "data":""}));
+			let obj = {
+				KEY_UP_PIN   : buttonKey == "KEY_UP_PIN",
+				KEY_DOWN_PIN : buttonKey == "KEY_DOWN_PIN",
+				KEY_LEFT_PIN : buttonKey == "KEY_LEFT_PIN",
+				KEY_RIGHT_PIN: buttonKey == "KEY_RIGHT_PIN",
+				KEY_PRESS_PIN: buttonKey == "KEY_PRESS_PIN",
+				KEY1_PIN     : buttonKey == "KEY1_PIN",
+				KEY2_PIN     : buttonKey == "KEY2_PIN",
+				KEY3_PIN     : buttonKey == "KEY3_PIN",
+			}
+			websocket.activeWs.send(JSON.stringify({"mode":"PRESS_BUTTONS", "data":obj}));
 		}
 	},
 	populateFpsValues: function(){
@@ -610,7 +624,37 @@ let buttons = {
 		}
 		select.options.length=0;
 		select.append(frag);
+	},
+	populateSubscriptionKeys: function(){
+		let subscriptionKeys = draw.configs.subscriptionKeys;
+		// console.log("subscriptionKeys:", subscriptionKeys);
 
+		let frag = document.createDocumentFragment();
+		for(let i=0; i<subscriptionKeys.length; i+=1){
+			let key = subscriptionKeys[i];
+			let div   = document.createElement("div");
+			div.classList.add("inlineBlock");
+			div.classList.add("subscriptionDiv");
+			let label = document.createElement("label");
+			label.innerText = key;
+			let input = document.createElement("input");
+			input.type="checkbox";
+			input.setAttribute("key", key);
+			input.onclick = function(){ 
+				if(this.checked){
+					buttons.addSubscription(key); 
+				}
+				else{
+					buttons.removeSubscription(key); 
+				}
+			};
+
+			label.append(input);
+			div.append(label);
+			frag.append(div);
+		}
+		document.getElementById("controls_bottom1").append(frag);
+		// document.body.append(frag);
 	},
 	changeFps: function(type, newFps){
 		if(type=="ws"){
@@ -632,21 +676,28 @@ let buttons = {
 	},
 
 	// SUBSCRIPTIONS
-	// draw.addSubscription('VRAM');
-	updateSubscriptionList: function(list){
-		let outputText = "";
-		for(let i=0; i<list.length; i+=1){
-			outputText += `${list[i]}`;
-			if(i+1 != list.length){
-				outputText += `, `;
-			}
-		}
+	updateSubscriptionList: function(data){
+		// Get the list of subscription checkboxes. 
+		let checkboxes = document.getElementById("controls_bottom1").querySelectorAll("input[type='checkbox']");
 
-		draw.DOM.info_SUBSCRIPTIONS.innerText = outputText;
+		// Loop through each checkbox. 
+		for(let i=0; i<checkboxes.length; i+=1){
+			// Get this checkbox and the key.
+			let rec = checkboxes[i];
+			let key = rec.getAttribute("key");
+			
+			// Is the key of this checkbox one of the keys in data?
+
+			// Check the box?
+			if( data.indexOf(key) != -1 ){ rec.checked = true; }
+			
+			// Uncheck the box.
+			else{ rec.checked = false; }
+		}
 	},
-	getSubscriptions  : function()   { 
-		if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
-	},
+	// getSubscriptions  : function()   { 
+	// 	if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
+	// },
 	addSubscription   : function(key){ 
 		if(websocket.activeWs){ websocket.activeWs.send(JSON.stringify({mode:"SUBSCRIBE", data:key})); }
 	},
@@ -683,11 +734,11 @@ window.onload = async function(){
 	draw.DOM.info_changeFpsBtn.addEventListener("click", function(){ buttons.changeFps("ws", draw.DOM.info_changeFps.value); }, false);
 	buttons.populateFpsValues();
 	draw.DOM.info_changeFps.value = draw.configs.config.node.fps;
+	buttons.populateSubscriptionKeys();
 
 	draw.DOM.vram_div_layers = document.getElementById("vram_div_layers");
 	
 	draw.DOM.info_fps          = document.getElementById("info_fps");
-	draw.DOM.info_curFrame     = document.getElementById("info_curFrame");
 	draw.DOM.info_draws        = document.getElementById("info_draws");
 	draw.DOM.info_skippedDraws = document.getElementById("info_skippedDraws");
 	draw.DOM.info_lastDraw     = document.getElementById("info_lastDraw");
@@ -705,8 +756,6 @@ window.onload = async function(){
 	draw.DOM.info_VRAM_UPDATESTATS    = document.getElementById("info_VRAM_UPDATESTATS");
 	draw.DOM.info_VRAM_UPDATESTATS.innerText = "\n\n\n";
 
-	draw.DOM.info_SUBSCRIPTIONS    = document.getElementById("info_SUBSCRIPTIONS");
-	
 	draw.DOM.info_serverFps    = document.getElementById("info_serverFps");
 
 	window.addEventListener("unload", function () {

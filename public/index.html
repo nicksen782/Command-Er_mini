@@ -22,140 +22,100 @@
 	</div>
 
 	<div id="controls_cont">
-		<div class="inlineBlock">
-			<div id="controls_top">
-				<div class="title">WebSocket Connect <span id="ws_status"></span> </div>
-				<div class="">
-					<button id="ws_connect" class="button" onclick="">CONNECT</button>
-					<button id="ws_disconnect" class="button" onclick="">CLOSE</button>
-					<br>
-				</div>
-				<br>
-
-				<div class="title">Via WebSocket</div>
-				<div class="ws disconnected">
-					<button id="ws_up" class="button icon" onclick="">&#9650;</button>
-					<button id="ws_down" class="button icon" onclick="">&#9660;</button>
-					<button id="ws_left" class="button icon" onclick="">&#9664;</button>
-					<button id="ws_right" class="button icon" onclick="">&#9654;</button>
-					<br>
-					<button id="ws_press" class="button icon">&#128307;</button>
-					<button id="ws_b1" class="button icon" onclick="">&#9461;</button>
-					<button id="ws_b2" class="button icon" onclick="">&#9462;</button>
-					<button id="ws_b3" class="button icon" onclick="">&#9463;</button>
-					<br>
-					<button id="ws_requestVramDraw" class="button">( WS ) Request _VRAM/DRAW</button>
-				</div>
-				<br>
-
-				<div class="title">Via POST</div>
-				<div>
-					<button id="post_requestVramDraw" class="button">(POST) Request _VRAM/DRAW</button>
-				</div>
-				<br>
-			</div>
+		<div class="title taller">
+			WebSocket Connect 
+			<button id="ws_connect" class="button">CONNECT</button>
+			<button id="ws_disconnect" class="button">CLOSE</button>
+			<span id="ws_status">&#11035;</span> 
 		</div>
 
-		<div class="inlineBlock">
-			<div id="controls_right">
-				<table class="ws disconnected">
-					<tr>
-						<td class="title">VRAM Layers</td>
-						<td><input type="checkbox" id="vram_div_layersChk"></td>
-					</tr>
-					<tr>
-						<td class="title">Server FPS: Set</td>
-						<td>
-							<select id="info_changeFps"></select>
-							<button id="info_changeFpsBtn">SET</button>
-						</td>
-					</tr>
-					<tr>
-						<td class="title">Server FPS: Is:</td>
-						<td>
-							<span id="info_serverFps"></span>
-						</td>
-					</tr>
-					<tr>
-						<td class="title">CLEARLAYER</td>
-						<td>
-							<button id="info_clearLayer0">0</button>
-							<button id="info_clearLayer1">1</button>
-							<button id="info_clearLayer2">2</button>
-							<button id="info_clearLayerAll">ALL</button>
-						</td>
-					</tr>
-					<tr>
-						<td class="title">SUBSCRIPTIONS</td>
-						<td>
-							<div id="info_SUBSCRIPTIONS"></div>
-						</td>
-					</tr>
-					<tr>
-						<td class="title">UPDATESTATS</td>
-						<td>
-							<div id="info_VRAM_UPDATESTATS"></div>
-						</td>
-					</tr>
-				</table>
+		<div id="controls_top">
+			<div class="ws disconnected inputButtons">
+				<button title="KEY_UP_PIN"    id="ws_up"    class="button icon">&#9650;</button>
+				<button title="KEY_DOWN_PIN"  id="ws_down"  class="button icon">&#9660;</button>
+				<button title="KEY_PRESS_PIN" id="ws_press" class="button icon">&#128307;</button>
+				<button title="KEY_LEFT_PIN"  id="ws_left"  class="button icon">&#9664;</button>
+				<button title="KEY_RIGHT_PIN" id="ws_right" class="button icon">&#9654;</button>
+				<button title="KEY1_PIN"      id="ws_b1"    class="button icon">&#9461;</button>
+				<button title="KEY2_PIN"      id="ws_b2"    class="button icon">&#9462;</button>
+				<button title="KEY3_PIN"      id="ws_b3"    class="button icon">&#9463;</button>
+				<button id="ws_requestVramDraw" class="button">Get _VRAM</button>
 			</div>
-		</div>
-		<!-- <br> -->
 
-		<div id="controls_bottom1">
+			<!-- Options 1 -->
 			<table class="ws disconnected">
 				<tr>
-					<th class="title table-cell"> </th>
-					<th class="title table-cell">VRAM_FULL</th>
-					<th class="title table-cell">STATS1</th>
-					<th class="title table-cell">STATS2</th>
-				</tr>
+					<td class="title">CLEARLAYER</td>
+					<td>
+						<button id="info_clearLayer0">0</button>
+						<button id="info_clearLayer1">1</button>
+						<button id="info_clearLayer2">2</button>
+						<button id="info_clearLayerAll">ALL</button>
+					</td>
 
-				<tr>
-					<th class="title table-cell">SUBSCRIBE</th>
-					<td><button onclick="buttons.addSubscription('VRAM_FULL');" class="button" onclick="">ADD</button></td>
-					<td><button onclick="buttons.addSubscription('STATS1');" class="button" onclick="">ADD</button></td>
-					<td><button onclick="buttons.addSubscription('STATS2');" class="button" onclick="">ADD</button></td>
+					<td class="title">VRAM Layers</td>
+					<td><input type="checkbox" id="vram_div_layersChk"></td>
 				</tr>
-
 				<tr>
-					<th class="title table-cell">UNSUBSCRIBE</th>
-					<td><button onclick="buttons.removeSubscription('VRAM_FULL');" class="button" onclick="">REMOVE</button></td>
-					<td><button onclick="buttons.removeSubscription('STATS1');" class="button" onclick="">REMOVE</button></td>
-					<td><button onclick="buttons.removeSubscription('STATS2');" class="button" onclick="">REMOVE</button></td>
+					<td class="title">Server FPS: Set</td>
+					<td>
+						<select id="info_changeFps"></select>
+						<button id="info_changeFpsBtn">SET</button>
+					</td>
+
+					<td class="title">Server FPS: Is:</td>
+					<td>
+						<span id="info_serverFps"></span>
+					</td>
+				</tr>
+				<tr>
+					<td class="title">UPDATESTATS</td>
+					<td>
+						<div id="info_VRAM_UPDATESTATS"></div>
+					</td>
+
+					<!-- <td class="title">*</td> -->
+					<!-- <td> -->
+						<!-- * -->
+					<!-- </td> -->
 				</tr>
 			</table>
+			
+			<!-- Options 2 -->
+			<div id="controls_bottom1" class="ws disconnected">
+				<div class="title">SUBSCRIPTIONS</div>
+			</div>
 		</div>
-		<!-- <br> -->
 
+		<!-- Data 1 -->
 		<div id="controls_bottom2">
 			<table class="ws disconnected">
 				<tr>
-					<th class="title table-cell">L:FPS</th>
+					<td class="title table-cell">L:FPS</td>
 					<td> <span id="info_fps">0 f/s</span> </td>
-					<th class="title table-cell">L:skipped</th>
+
+					<td class="title table-cell">L:skipped</td>
 					<td> <span id="info_skippedDraws">0</span> </td>
-					<th class="title table-cell">L:draws</th>
+
+					<td class="title table-cell">L:draws</td>
 					<td> <span id="info_draws">0</span> </td>
 				</tr>
 				<tr>
-					<th class="title table-cell">S:FPS</th>
+					<td class="title table-cell">S:lastDraw</td>
 					<td> <span>0</span> </td>
-					<th class="title table-cell">S:lastDraw</th>
-					<td> <span>0</span> </td>
-					<th class="title table-cell">S:curFrame</th>
-					<td> <span id="info_curFrame">0</span> </td>
-				</tr>
-				<tr>
-					<th class="title table-cell">L:lastDraw</th>
+
+					<td class="title table-cell">L:lastDraw</td>
 					<td> <span id="info_lastDraw">0</span> </td>
-					<th class="title table-cell">*</th>
-					<td> <span>0</span> </td>
-					<th class="title table-cell">*</th>
-					<td> <span>0</span> </td>
 				</tr>
 			</table>
 		</div>
+		<br>
+
+		<div class="title">Via POST</div>
+		<div>
+			<button id="post_requestVramDraw" class="button">Request _VRAM/DRAW</button>
+		</div>
+
 	</div>
 
 	<div id="vram_div_layers" class="hide">

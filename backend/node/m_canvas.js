@@ -106,7 +106,7 @@ let _MOD = {
 			_APP.m_draw.clearDrawingFlags();
 
 			// Update the timeIt stamps.
-			_APP.timeIt("DISPLAYUPDATE", "e");
+			_APP.timeIt("DISPLAY", "e");
 			_APP.timeIt("FULLLOOP", "e");
 
 			// Schedule the next appLoop.

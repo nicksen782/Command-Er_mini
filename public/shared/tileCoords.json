@@ -89,14 +89,17 @@
 	"btn_d"        : { "L":19 , "T":0 },
 	"btn_l"        : { "L":20 , "T":0 },
 	"btn_r"        : { "L":21 , "T":0 },
-	"btn_a"        : { "L":22 , "T":0 },
-	"btn_b"        : { "L":23 , "T":0 },
-	"btn_c"        : { "L":24 , "T":0 },
+	"btn_p"        : { "L":22 , "T":0 },
+	"btn_a"        : { "L":23 , "T":0 },
+	"btn_b"        : { "L":24 , "T":0 },
+	"btn_c"        : { "L":25 , "T":0 },
+
 	"btn_u_active" : { "L":18 , "T":1 },
 	"btn_d_active" : { "L":19 , "T":1 },
 	"btn_l_active" : { "L":20 , "T":1 },
 	"btn_r_active" : { "L":21 , "T":1 },
-	"btn_a_active" : { "L":22 , "T":1 },
-	"btn_b_active" : { "L":23 , "T":1 },
-	"btn_c_active" : { "L":24 , "T":1 }
+	"btn_p_active" : { "L":22 , "T":1 },
+	"btn_a_active" : { "L":23 , "T":1 },
+	"btn_b_active" : { "L":24 , "T":1 },
+	"btn_c_active" : { "L":25 , "T":1 }
 }

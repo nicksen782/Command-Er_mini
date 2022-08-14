@@ -506,13 +506,8 @@ let _APP = {
 	
 			// BUTTONS
 			_APP.timeIt("GPIO", "s");
-			// _APP.m_gpio.readAll();
+			await _APP.m_gpio.readAll();
 			_APP.timeIt("GPIO", "e");
-			
-			// BUTTON ACTIONS.
-			_APP.timeIt("GPIO_ACTIONS", "s");
-			// _APP.m_gpio.buttonActions();
-			_APP.timeIt("GPIO_ACTIONS", "e");
 			
 			// STATE
 			_APP.timeIt("LOGIC", "s");
@@ -523,7 +518,7 @@ let _APP = {
 			if(_APP.m_draw.lcdUpdateNeeded){ 
 				_APP.m_draw.updatingLCD=true;
 				// Start the timeIt.
-				_APP.timeIt("DISPLAYUPDATE", "s");
+				_APP.timeIt("DISPLAY", "s");
 				
 				// Determine changes.
 				let _changes = [];
@@ -558,7 +553,7 @@ let _APP = {
 					_APP.m_draw.clearDrawingFlags();
 
 					// Update the timeIt stamps.
-					_APP.timeIt("DISPLAYUPDATE", "e");
+					_APP.timeIt("DISPLAY", "e");
 					_APP.timeIt("FULLLOOP", "e");
 
 					// Schedule the next appLoop.

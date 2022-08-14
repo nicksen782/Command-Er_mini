@@ -86,6 +86,7 @@
  "btn_d",
  "btn_l",
  "btn_r",
+ "btn_p",
  "btn_a",
  "btn_b",
  "btn_c",
@@ -93,6 +94,7 @@
  "btn_d_active",
  "btn_l_active",
  "btn_r_active",
+ "btn_p_active",
  "btn_a_active",
  "btn_b_active",
  "btn_c_active"

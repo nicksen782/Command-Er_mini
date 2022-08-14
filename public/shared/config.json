@@ -1,10 +1,10 @@
 {
 	"toggles":{
 		"show_APP_consolelog"       : true,
-		"isActive_gpio"             : true,
 		"isActive_nodeWsServer"     : true,
+		"isActive_gpio"             : true,
 		"isActive_pythonWsServer"   : true,
-		"isActive_pythonHttpServer" : true,
+		"isActive_battery"          : true,
 		"isActive_lcd"              : true
 	},
 	"node":{
@@ -14,6 +14,21 @@
 		},
 		"fps"  : 10,
 		"indexesPerCol": 4
+	},
+	"gpio":{
+		"inputs":{
+			"KEY_UP_PIN"    : { "pin":6 , "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY_DOWN_PIN"  : { "pin":19, "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY_LEFT_PIN"  : { "pin":5 , "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY_RIGHT_PIN" : { "pin":26, "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY_PRESS_PIN" : { "pin":13, "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY1_PIN"      : { "pin":21, "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY2_PIN"      : { "pin":20, "dir":"in", "edge":"rising", "options":{ "activeLow":true } },
+			"KEY3_PIN"      : { "pin":16, "dir":"in", "edge":"rising", "options":{ "activeLow":true } }
+		},
+		"outputs":{
+			"BL_PIN"        : { "pin":24, "dir":"high", "options":{ } }
+		}
 	},
 	"python":{
 		"file":"backend/python/server.py",
