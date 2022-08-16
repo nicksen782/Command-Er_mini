@@ -100,15 +100,8 @@
 					<td class="title table-cell">L:FPS</td>
 					<td> <span id="info_fps">0 f/s</span> </td>
 
-					<td class="title table-cell">L:skipped</td>
-					<td> <span id="info_skippedDraws">0</span> </td>
-
 					<td class="title table-cell">L:draws</td>
 					<td> <span id="info_draws">0</span> </td>
-				</tr>
-				<tr>
-					<td class="title table-cell">S:lastDraw</td>
-					<td> <span>0</span> </td>
 
 					<td class="title table-cell">L:lastDraw</td>
 					<td> <span id="info_lastDraw">0</span> </td>
@@ -119,7 +112,18 @@
 
 		<div class="title">Via POST</div>
 		<div>
-			<button id="post_requestVramDraw" class="button">Request _VRAM/DRAW</button>
+			<div class="inputButtons">
+				<button title="KEY_UP_PIN"    id="post_up"    class="button icon">&#9650;</button>
+				<button title="KEY_DOWN_PIN"  id="post_down"  class="button icon">&#9660;</button>
+				<button title="KEY_PRESS_PIN" id="post_press" class="button icon">&#128307;</button>
+				<button title="KEY_LEFT_PIN"  id="post_left"  class="button icon">&#9664;</button>
+				<button title="KEY_RIGHT_PIN" id="post_right" class="button icon">&#9654;</button>
+				<button title="KEY1_PIN"      id="post_b1"    class="button icon">&#9461;</button>
+				<button title="KEY2_PIN"      id="post_b2"    class="button icon">&#9462;</button>
+				<button title="KEY3_PIN"      id="post_b3"    class="button icon">&#9463;</button>
+				<button id="post_requestVramDraw" class="button">Get _VRAM</button>
+			</div>
+			<button id="post_requestDrawFlags" class="button">Request GET_DRAW_FLAGS</button>
 		</div>
 
 	</div>

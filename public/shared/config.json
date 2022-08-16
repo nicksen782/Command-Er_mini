@@ -39,8 +39,9 @@
 		}
 	},
 	"lcd":{
-		"width"      : 240,
-		"height"     : 240,
+		"fb"     : "/dev/fb0",
+		"width"  : 240,
+		"height" : 240,
 		"tileset": {
 			"file"      : "tileset_8x8.png",
 			"rows"      : 30, 

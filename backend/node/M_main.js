@@ -10,6 +10,7 @@ const m_modules = [
 	'./m_canvas.js',
 	'./m_websocket_node.js',
 	'./m_websocket_python.js',
+	'./m_drawLoop.js'
 ];
 const rpbp = require( './removeprocess.js' ).run;
 
@@ -453,7 +454,7 @@ let _APP = {
 		average : 0, // Value and average are the same value.
 		_sample_ : [],
 		_index_ : 0,
-		_lastTick_: false,
+		_lastTick_: performance.now(),
 		tick : function(){
 			// if is first tick, just set tick timestamp and return
 			if( !this._lastTick_ ){
@@ -494,10 +495,13 @@ let _APP = {
 		init: function(sampleSize){
 			// Set the values. 
 			this.sampleSize = sampleSize;
+			// this.sampleSize = 60;
 
 			// Create new samples array (typed.)
 			this._sample_ = new Uint8Array( new ArrayBuffer(this.sampleSize) )
-			for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = this.sampleSize; }
+			// for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = this.sampleSize; }
+			for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = sampleSize; }
+			// for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = 0; }
 			
 			this._index_    = 0    ;
 			this._lastTick_ = false;
@@ -511,6 +515,7 @@ let _APP = {
 		delta    : 0,
 		fps      : 0,
 		interval : 0,
+		lastDiff : 0,
 	
 		setFps: function(newFPS){
 			if(!newFPS){ 
@@ -531,115 +536,6 @@ let _APP = {
 			_APP.stats.fps      = newFPS;
 			_APP.stats.interval = 1000/newFPS;
 		},
-	},
-
-	schedule_appLoop: function(msUntilNextFrameNeeded=0){
-		// In Node, setTimeout seems to have a resolution of around 1ms ideally but not always.
-		// If we add a little buffer room we can sometimes avoid calling the appLoop immediately.
-		// The appLoop call would be async-ish in this way and should still prevent frame drops. 
-		if(msUntilNextFrameNeeded != 0 && msUntilNextFrameNeeded > _APP.stats.interval / 4){
-			// console.log("setTimeout", msUntilNextFrameNeeded, msUntilNextFrameNeeded-(_APP.stats.interval / 2), );
-			// setTimeout -- Gives a little "breathing room" for the CPU.
-			setTimeout(
-				function(){ 
-					_APP.appLoop(  performance.now() ); 
-				}, 
-				Math.max(0, msUntilNextFrameNeeded-(_APP.stats.interval / 4) )
-			);
-		}
-		else{
-			// console.log("setImmediate", msUntilNextFrameNeeded);
-			// setImmediate. Frees up whatever remains of the current event loop. (breathing room?)
-			setImmediate(function(){ _APP.appLoop(  performance.now() ); });
-		}
-
-		// _APP.stats.interval - _APP.stats.delta
-	},
-
-	// timestamp should be performance.now().
-	appLoop : async function(timestamp){
-		// How long has it been since a full loop has been completed?
-		_APP.stats.now = timestamp;
-		_APP.stats.delta = _APP.stats.now - _APP.stats._then;
-		
-		// Should the full loop run?
-		let runLoop = _APP.stats.delta >= _APP.stats.interval ? true : false;
-	
-		// YES
-		if(runLoop && !_APP.m_draw.updatingLCD){
-			_APP.timeIt("FULLLOOP", "s");
-			_APP.fps.tick();
-			_APP.stats._then = performance.now(); // _APP.stats.now - (_APP.stats.delta % _APP.stats.interval);
-	
-			// BUTTONS
-			_APP.timeIt("GPIO", "s");
-			await _APP.m_gpio.readAll();
-			_APP.timeIt("GPIO", "e");
-			
-			// STATE
-			_APP.timeIt("LOGIC", "s");
-			await _APP.screenLogic.screens[_APP.currentScreen].func();
-			_APP.timeIt("LOGIC", "e");
-			
-			// UPDATE DISPLAY(S)
-			if(_APP.m_draw.lcdUpdateNeeded){ 
-				_APP.m_draw.updatingLCD=true;
-				// Start the timeIt.
-				_APP.timeIt("DISPLAY", "s");
-				
-				// Determine changes.
-				let _changes = [];
-				for(let layer_i=0; layer_i<_APP.m_draw._VRAM_changes.length; layer_i+=1){
-					let layer = _APP.m_draw._VRAM_changes[layer_i];
-					_changes[layer_i] = [];
-					if(_APP.m_draw._VRAM_updateStats[layer_i].updates){
-						_changes[layer_i] = Object.keys(layer).filter(function(d){ return layer[d].c; });
-					}
-					_APP.m_draw._VRAM_updateStats[layer_i].real = _changes[layer_i].length;
-					_APP.m_draw._VRAM_updateStats[layer_i].overwrites = _APP.m_draw._VRAM_updateStats[layer_i].updates - _APP.m_draw._VRAM_updateStats[layer_i].real;
-				}
-
-				// Update the web clients.
-				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
-					// VRAM - (ArrayBuffer)
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(_APP.m_draw._VRAM, "VRAM_FULL");
-					
-					// VRAM update stats1. - JSON
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1");
-
-					// VRAM update stats2. - JSON
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2");
-				}
-				
-				if( _APP.m_config.config.toggles.isActive_lcd ){
-					// Updates via m_canvas. (Will reset the draw flags/data and update the timeIt stamps.)
-					_APP.m_canvas.drawLayersUpdateFramebuffer(_changes);
-				}
-				else{
-					// Reset the draw flags.
-					_APP.m_draw.clearDrawingFlags();
-
-					// Update the timeIt stamps.
-					_APP.timeIt("DISPLAY", "e");
-					_APP.timeIt("FULLLOOP", "e");
-
-					// Schedule the next appLoop.
-					_APP.schedule_appLoop(0);
-				}
-			}
-			else{
-				_APP.schedule_appLoop(0);
-			}
-		}
-
-		// NO
-		else{
-			// Send remaining time needed before the next frame should actually run.
-			_APP.schedule_appLoop(_APP.stats.interval - _APP.stats.delta);
-
-			// let time = performance.now();
-			// setTimeout(function(){ console.log(performance.now()-time); }, 1);
-		}
 	},
 };
 

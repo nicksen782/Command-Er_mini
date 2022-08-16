@@ -13,6 +13,7 @@ let _MOD = {
 		"VRAM_FULL",
 		"STATS1",
 		"STATS2",
+		"VRAM_CHANGES",
 	],
 
 	// Init this module.
@@ -94,19 +95,35 @@ let _MOD = {
 		JSON:{
 			// Expected origin: Web client by request. Sends the VRAM array.
 			GET_VRAM:    async function(ws, data){
-				ws.send(new Uint8Array(_APP.m_draw._VRAM).buffer);
+				// ws.send(new Uint8Array(_APP.m_draw._VRAM).buffer);
+				ws.send( new Uint8Array( Array.from([
+					..._APP.m_draw._VRAM_view, 
+					...Array.from("FULL").map(d=>d.charCodeAt(0))
+				]) ).buffer );
 			},
 			// Expected origin: Web client by request.
 			CHANGE_FPS:    async function(ws, data){
+				// Stop the AppLoop.
+				// if(_APP.drawLoop) { _APP.drawLoop.stop(); }
+
+				// Update the in-memory FPS settings.
+				_APP.m_config.config.node.fps = data.data;
+
+				// Re-init the fps object.
 				_APP.fps.init( data.data );
+				
+				// Re-init the stats object.
 				_APP.stats.setFps( data.data );
+
+				// Start a new AppLoop.
+				// if(_APP.drawLoop) { _APP.m_drawLoop.startAppLoop(); }
 			},
 			// Expected origin: Web client by request.
 			CLEAR_LAYER:    async function(ws, data){
-				console.log(data.mode, data.data);
-				console.log(data.data);
-				if(data.data == "ALL"){ _APP.m_draw.clearLayers(" "); }
-				else{                   _APP.m_draw.clearLayer(" ", data.data ); }
+				// console.log(data.mode, data.data);
+				// console.log(data.data);
+				// if(data.data == "ALL"){ _APP.m_draw.clearLayers(" "); }
+				// else{                   _APP.m_draw.clearLayer(" ", data.data ); }
 			},
 			SUBSCRIBE:      async function(ws, data){
 				_MOD.ws_utilities.addSubscription(ws, data.data);
@@ -180,7 +197,7 @@ let _MOD = {
 
 		sendToAllSubscribers: function(data, eventType=""){
 			// _APP.m_lcd.WebSocket.sendToAll("HEY EVERYONE!");
-			_MOD.ws.clients.forEach(function each(ws) { 
+			_MOD.ws.clients.forEach(function each(ws) {
 				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
 					if(ws.subscriptions.indexOf(eventType) != -1){
 						ws.send(data); 
@@ -193,10 +210,30 @@ let _MOD = {
 			// if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
 		},
 		addSubscription   : function(ws, eventType){ 
+			function conflictCheck(){
+				switch(eventType){
+					// If adding "VRAM_FULL" then make sure to remove "VRAM_CHANGES".
+					case "VRAM_FULL"    : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_CHANGES"); break; }
+
+					// If adding "VRAM_CHANGES" then make sure to remove "VRAM_FULL".
+					case "VRAM_CHANGES" : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_FULL");    break; }
+
+					//
+					// case "STATS1" : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_FULL");    break; }
+
+					//
+					// case "STATS2" : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_FULL");    break; }
+
+					//
+					default: { break; }
+				}
+			};
+
 			// Only accept valid eventTypes.
 			if(_MOD.subscriptionKeys.indexOf(eventType) != -1){
 				// Add the eventType if it doesn't exist.
 				if(ws.subscriptions.indexOf(eventType) == -1){
+					conflictCheck();
 					ws.subscriptions.push(eventType);
 				}
 
@@ -283,9 +320,10 @@ let _MOD = {
 			
 			// Add subscriptions array to this connection. 
 			clientWs.subscriptions = [];
-			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_FULL");
+			// _MOD.ws_utilities.addSubscription(clientWs, "VRAM_FULL");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS2");
+			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_CHANGES");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
 
@@ -294,6 +332,8 @@ let _MOD = {
 			
 			// SEND THE NEW CONNECTION MESSAGE.
 			clientWs.send(JSON.stringify( {"mode":"WELCOMEMESSAGE", data:`WELCOME TO COMMAND-ER MINI.`} ));
+
+			// clientWs.send(new Uint8Array(_APP.m_draw._VRAM).buffer);
 
 			// ADD LISTENERS.
 			clientWs.addEventListener('message', (event)=>_MOD.ws_events.el_message(clientWs, event) );

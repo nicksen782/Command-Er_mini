@@ -42,11 +42,43 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
-		_APP.addToRouteList({ path: "/GET_VRAM", method: "post", args: [], file: __filename, desc: "" });
+		_APP.addToRouteList({ path: "/GET_VRAM", method: "post", args: [], file: __filename, desc: "GET_VRAM" });
 		app.post('/GET_VRAM'    ,express.json(), async (req, res) => {
 			try{ 
-				// res.json(_MOD._VRAM);
-				res.json(_MOD._VRAM_view);
+				res.json(Array.from([
+					..._MOD._VRAM_view, 
+					...Array.from("FULL").map(d=>d.charCodeAt(0))
+				]) );
+			}
+			catch(e){
+				res.json(e);
+			}
+		});
+
+		_APP.addToRouteList({ path: "/PRESS_BUTTONS", method: "post", args: [], file: __filename, desc: "PRESS_BUTTONS" });
+		app.post('/PRESS_BUTTONS'    ,express.json(), async (req, res) => {
+			try{ 
+				_APP.m_gpio.setButtonOverrideValues(req.body);
+				res.json("DONE");
+			}
+			catch(e){
+				res.json(e);
+			}
+		});
+
+		_APP.addToRouteList({ path: "/GET_DRAW_FLAGS", method: "post", args: [], file: __filename, desc: "GET_DRAW_FLAGS" });
+		app.post('/GET_DRAW_FLAGS'    ,express.json(), async (req, res) => {
+			try{ 
+				res.json({
+					"1_now            ": _APP.stats.now,
+					"2_delta          ": _APP.stats.delta,
+					"3_interval       ": _APP.stats.interval,
+					"3__then          ": _APP.stats._then,
+					"4_lcdUpdateNeeded": _APP.m_draw.lcdUpdateNeeded,
+					"5_updatingLCD    ": _APP.m_draw.updatingLCD,
+					"6_lastDiff       ": _APP.stats.lastDiff,
+					"7_overby         ": (_APP.stats.delta - _APP.stats.interval),
+				});
 			}
 			catch(e){
 				res.json(e);
@@ -113,10 +145,16 @@ let _MOD = {
 	},
 
 	// Add to _VRAM_changes.
-	addTo_VRAM_changes: function(layer, x, y, tileId){
+	addTo_VRAM_changes: function(layer, x, y, tileId, layerNumber){
 		// Add to a layer of _VRAM_changes.
 		let key = `Y${y}_X${x}`;
-		_MOD._VRAM_changes[layer][key] = {y:y, x:x, t:tileId, c:true };
+		_MOD._VRAM_changes[layer][key] = { 
+			y: y, 
+			x: x, 
+			t: tileId, 
+			c: true, 
+			l: layerNumber 
+		};
 	},
 
 	// Clear one VRAM layer with a tile. (Used by the Web Client... only??)
@@ -166,7 +204,7 @@ let _MOD = {
 			_MOD._VRAM_updateStats[xcolLayer].updates += 1;
 
 			// Add to changes.
-			_MOD.addTo_VRAM_changes(xcolLayer, x, y, tile_new);
+			_MOD.addTo_VRAM_changes(xcolLayer, x, y, tile_new, xcolLayer);
 
 			// Set the lcdUpdateNeeded flag.
 			_MOD.lcdUpdateNeeded = true;

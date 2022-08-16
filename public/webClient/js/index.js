@@ -66,6 +66,7 @@ let websocket = {
 				// console.log(`mode: ${data.mode}, data:`,data.data);
 				// buttons.updateSubscriptionList(data.data);
 			// },
+
 			SUBSCRIBE: function(data){
 				// console.log(`mode: ${data.mode}, data:`,data.data);
 				buttons.updateSubscriptionList(data.data);
@@ -99,6 +100,7 @@ let websocket = {
 					draw.DOM.info_serverFps.innerText = data.data;
 				}
 			},
+			
 			// GET_SUBSCRIPTIONS_LIST: function(data){
 				// console.log("GET_SUBSCRIPTIONS_LIST", data);
 			// },
@@ -127,7 +129,7 @@ let websocket = {
 			// Set the connection indicator.
 			buttons.DOM["ws_status"].innerHTML = "&#128997;";
 
-			// Create new. 
+			// Create new WebSocket connection. 
 			websocket.connecting = true;
 			let ws = new WebSocket(locUrl);
 			ws.onopen   = websocket.ws_events.el_open   ;
@@ -232,16 +234,25 @@ let websocket = {
 			
 			// Expects VRAM in event.data.
 			else if(tests.isArrayBuffer){
-				// Draw _VRAM..
+				// Draw the new VRAM.
 				if(!draw.isDrawing){
-					draw.drawVram( new Uint8Array(data) );
-				}
-				else{ draw.skippedDraws += 1; }
+					// Strip off the last 4 bytes and convert each to one string.
+					let view = new Uint8Array(data.slice(0, -4));
+					let type = Array.from(new Uint8Array(data.slice(-4))).map(d=>String.fromCharCode(d)).join("");
+
+					// Run the correct drawing function based on the value of part.
+					if(type == "FULL"){
+						draw.drawVram_FULL(view) ;
+					}
+					else if(type == "PART"){
+						draw.drawVram_CHANGES(view) ;
+					}
+				} else{ console.log("ALREADY IN A DRAW"); }
 			}
 			
-			else if(tests.isBlob){
-				console.log("tests: isBlob:", tests);
-			}
+			// else if(tests.isBlob){
+			// 	console.log("tests: isBlob:", tests);
+			// }
 
 			// Catch-all.
 			else{
@@ -313,7 +324,6 @@ let draw = {
 	isDrawing:false,
 	lastDraw: performance.now(),
 	draws:0,
-	skippedDraws:0,
 	showIndividualLayers: true,
 	serverFps:1,
 
@@ -335,80 +345,125 @@ let draw = {
 			draw.canvases[key].canvas.width = draw.configs.config.lcd.width;
 			draw.canvases[key].canvas.height = draw.configs.config.lcd.height;
 		}
-		draw.clearAllCanvases("black");
+		draw.clearAllCanvases();
 	},
-	clearOneCanvas: function(canvasCtx, fillStyle=null){
-		// Clear all.
-		canvasCtx.clearRect(0,0, canvasCtx.canvas.width, canvasCtx.canvas.height);
 
-		// Make black;
-		if(fillStyle){
-			canvasCtx.fillStyle = "black";
-			canvasCtx.fillRect(0,0, canvasCtx.canvas.width, canvasCtx.canvas.height);
-		}
-	},
-	clearAllCanvases: function(fillStyle=null){
+	clearAllCanvases: function(){
 		for(let key in draw.canvases){
-			draw.clearOneCanvas(draw.canvases[key], fillStyle);
+			draw.canvases[key].clearRect(0,0, draw.canvases[key].canvas.width, draw.canvases[key].canvas.height);
 		}
 	},
-	drawVram: async function(_VRAM_new){
+
+	// Draws only the specified changes to canvas and updates VRAM. (Expects Uint8Array)
+	drawVram_CHANGES: async function(_changesFull){
 		window.requestAnimationFrame(function(){
-			let runCheck = function(){
-				// let sinceLastDraw = performance.now() - draw.lastDraw;
-				let sinceLastDraw = performance.now() - draw.fps._lastTick_;
-				let fpsMs = 1000/(draw.serverFps);
-				if(  (sinceLastDraw) >= (fpsMs) ){
-					// console.log(`DRAW: YES: DIFF:${(sinceLastDraw-fpsMs).toFixed(8).padStart(14, " ")}, fpsMs:${fpsMs.toFixed(2).padStart(7, " ")}, sinceLastDraw:${sinceLastDraw.toFixed(2).padStart(7, " ")}`);
-					draw.fps.tick();
-					draw.lastDraw = performance.now();
-					return true;
-				}
-				else{
-					// console.log(`DRAW: NO : DIFF:${(sinceLastDraw-fpsMs).toFixed(8).padStart(14, " ")}, fpsMs:${fpsMs.toFixed(2).padStart(7, " ")}, sinceLastDraw:${sinceLastDraw.toFixed(2).padStart(7, " ")}`);
-					return false;
-				}
-			};
 			let updateLayerCanvases = function(){
-				let tileWidth = draw.configs.config.lcd.tileset.tileWidth;
+				let tileWidth  = draw.configs.config.lcd.tileset.tileWidth;
+				let tileHeight = draw.configs.config.lcd.tileset.tileHeight;
+				let tileCanvas, dx, dy, ctx;
+				let ctx_all = draw.canvases["vram_all"];
+
+				// console.log(_changesFull);
+				for(let i=0; i<_changesFull.length; i+=4){
+					let rec = {
+						l:_changesFull[i+0],
+						x:_changesFull[i+1],
+						y:_changesFull[i+2],
+						t:_changesFull[i+3],
+					};
+
+					// Determine destination x and y on the canvas.
+					dx = rec.x*tileWidth;
+					dy = rec.y*tileHeight;
+	
+					// Get the tile image from cache.
+					tileCanvas = draw.tilesCache[rec.t];
+	
+					// Determine which canvas needed to be drawn to.
+					if     (rec.l==0){ ctx = draw.canvases["vram_l1"]; }
+					else if(rec.l==1){ ctx = draw.canvases["vram_l2"]; }
+					else if(rec.l==2){ ctx = draw.canvases["vram_l3"]; }
+	
+					// Draw to the all canvas.
+					// ctx_all.clearRect(dx, dy, tileWidth, tileHeight);
+					// ctx_all.drawImage(tileCanvas, dx, dy); 
+	
+					// Draw to the matching canvas.
+					ctx.clearRect(dx, dy, tileWidth, tileHeight);
+					ctx.drawImage(tileCanvas, dx, dy); 
+
+					// Update VRAM.
+					draw._VRAM_prev[draw.configs.indexByCoords[rec.y][rec.x] + rec.l] = rec.t;
+				}
+
+				// Combine the canvas layers into the ALL canvas.
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
+			};
+			
+			draw.isDrawing=true;
+			draw.fps.tick();
+			draw.lastDraw = performance.now();
+
+			// Init _VRAM_prev if needed.
+			if(!draw._VRAM_prev.length || !ArrayBuffer.isView(draw._VRAM_prev)){
+				let rows       = draw.configs.config.lcd.tileset.rows;
+				let cols       = draw.configs.config.lcd.tileset.cols;
+				let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
+				draw._VRAM_prev =  new Uint8Array( rows * cols * tilesInCol );
+				draw._VRAM_prev.fill(0);
+			}
+
+			updateLayerCanvases();
+			let oldTime = draw.DOM.info_lastDraw.innerText;
+			let newTime = draw.getTime();
+			if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
+			draw.draws += 1;
+			draw.DOM.info_draws.innerText = draw.draws;
+			draw.fps.updateDisplay();
+			draw.isDrawing=false;
+		});
+	},
+
+	// Draws the entire specified VRAM. (Expects Uint8Array)
+	drawVram_FULL: async function(_VRAM_new, drawOverride=false){
+		window.requestAnimationFrame(function(){
+			let updateLayerCanvases = function(){
+				let tileWidth  = draw.configs.config.lcd.tileset.tileWidth;
 				let tileHeight = draw.configs.config.lcd.tileset.tileHeight;
 				let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
-				let x,y,tileId,tileImage,dx,dy;
+				let x, y, tileId, tileCanvas, dx, dy, ctx, VRAM_index;
 					
-				// draw.clearAllCanvases();
-
 				for(let index=0; index<draw.configs.coordsByIndex.length; index+=1){
 					x = draw.configs.coordsByIndex[index][0];
 					y = draw.configs.coordsByIndex[index][1];
 
 					for(let v=0; v<tilesInCol; v+=1){
-						// Get the tile id.
-						tileId_old = draw._VRAM_prev[(index*tilesInCol)+v];
-						tileId = _VRAM_new[(index*tilesInCol)+v];
+						// Get the tile id and make sure array bounds are respected.
+						VRAM_index = (index*tilesInCol)+v;
+						if(VRAM_index >= draw._VRAM_prev.length){ tileId_old = undefined; }
+						else{ tileId_old = draw._VRAM_prev[VRAM_index]; }
+						tileId     = _VRAM_new[VRAM_index];
 
 						// Skip the drawing of any tile that has not changed.
-						if(tileId == tileId_old){ continue; }
+						if(tileId == tileId_old && !drawOverride){ continue; }
 
 						// Get the tile image from cache.
-						tileImage = draw.tilesCache[tileId];
+						tileCanvas = draw.tilesCache[tileId];
 
 						// Determine destination x and y on the canvas.
 						dx = x*tileWidth;
 						dy = y*tileHeight;
 
+						// Determine which canvas needed to be drawn to.
+						if     (v==0){ ctx = draw.canvases["vram_l1"]; }
+						else if(v==1){ ctx = draw.canvases["vram_l2"]; }
+						else if(v==2){ ctx = draw.canvases["vram_l3"]; }
+						
 						// Draw to the matching canvas.
-						if     (v==0){ 
-							draw.canvases["vram_l1"].clearRect(dx, dy, tileWidth, tileHeight);
-							draw.canvases["vram_l1"].drawImage(tileImage, dx, dy); 
-						}
-						else if(v==1){ 
-							draw.canvases["vram_l2"].clearRect(dx, dy, tileWidth, tileHeight);
-							draw.canvases["vram_l2"].drawImage(tileImage, dx, dy); 
-						}
-						else if(v==2){ 
-							draw.canvases["vram_l3"].clearRect(dx, dy, tileWidth, tileHeight);
-							draw.canvases["vram_l3"].drawImage(tileImage, dx, dy); 
-						}
+						ctx.clearRect(dx, dy, tileWidth, tileHeight);
+						ctx.drawImage(tileCanvas, dx, dy); 
 					}
 				}
 				// Combine the canvas layers into the ALL canvas.
@@ -423,30 +478,35 @@ let draw = {
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
 			};
 			let saveNew_VRAM = function(){
-				// Save new to prev.
-				draw._VRAM_prev = new Uint8Array( Array.from(_VRAM_new) );
+				// Init the array if needed. Save new to prev.
+				if(!draw._VRAM_prev.length || !ArrayBuffer.isView(draw._VRAM_prev)){
+					draw._VRAM_prev =  new Uint8Array(_VRAM_new.length);
+					draw._VRAM_prev.set(_VRAM_new, 0);
+				}
+				else{
+					draw._VRAM_prev.set(_VRAM_new, 0);
+				}
 			};
 			let end = function(drawn=true){
+				let oldTime = draw.DOM.info_lastDraw.innerText;
+				let newTime = draw.getTime();
+				if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
+				draw.draws += 1;
+				draw.DOM.info_draws.innerText = draw.draws;
+				draw.fps.updateDisplay();	
 				draw.isDrawing=false;
-				if(drawn){
-					let oldTime = draw.DOM.info_lastDraw.innerText;
-					let newTime = draw.getTime();
-					if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
-					draw.draws += 1;
-					draw.DOM.info_skippedDraws.innerText = draw.skippedDraws;
-					draw.DOM.info_draws.innerText = draw.draws;
-					draw.fps.updateDisplay();
-				}
 			};
 
 			draw.isDrawing=true;
-			if( !runCheck() ){ end(false); return; };
+			draw.fps.tick();
+			draw.lastDraw = performance.now();
 			updateLayerCanvases();
 			updateMainCanvas();
 			saveNew_VRAM();
 			end(true);
 		});
 	},
+
 	getTime: function(){
 		var d = new Date(); // for now
 		let h = d.getHours();
@@ -572,6 +632,7 @@ let draw = {
 	},
 
 	getVram: async function(type){
+		// Draw the new VRAM.
 		if(type=="ws" && websocket.activeWs){
 			if(websocket.activeWs){
 				websocket.activeWs.send(JSON.stringify({"mode":"GET_VRAM", "data":""}));
@@ -579,9 +640,18 @@ let draw = {
 		}
 		else if(type=="post"){
 			if(!draw.isDrawing){
-				draw.drawVram( await http.post("GET_VRAM", {}) );
-			}
-			else{ draw.skippedDraws += 1; }
+				let data = await http.post("GET_VRAM", {});
+				let type = Array.from(new Uint8Array(data.slice(-4))).map(d=>String.fromCharCode(d)).join("");
+
+				// Strip off the last 4 bytes.
+				if(type == "FULL"){
+					draw.drawVram_FULL(new Uint8Array( data.slice(0, -4) )) ;
+				}
+				else{
+					console.log(type);
+				}
+
+			} else{ console.log("ALREADY IN A DRAW"); }
 		}
 	},	
 };
@@ -594,6 +664,15 @@ let buttons = {
 		buttons.DOM["ws_connect"]           = document.getElementById("ws_connect");
 		buttons.DOM["ws_disconnect"]        = document.getElementById("ws_disconnect");
 
+		buttons.DOM["post_up"]                = document.getElementById("post_up");
+		buttons.DOM["post_down"]              = document.getElementById("post_down");
+		buttons.DOM["post_left"]              = document.getElementById("post_left");
+		buttons.DOM["post_right"]             = document.getElementById("post_right");
+		buttons.DOM["post_press"]             = document.getElementById("post_press");
+		buttons.DOM["post_b1"]                = document.getElementById("post_b1");
+		buttons.DOM["post_b2"]                = document.getElementById("post_b2");
+		buttons.DOM["post_b3"]                = document.getElementById("post_b3");
+
 		buttons.DOM["ws_up"]                = document.getElementById("ws_up");
 		buttons.DOM["ws_down"]              = document.getElementById("ws_down");
 		buttons.DOM["ws_left"]              = document.getElementById("ws_left");
@@ -605,6 +684,7 @@ let buttons = {
 		buttons.DOM["ws_requestVramDraw"]   = document.getElementById("ws_requestVramDraw");
 
 		buttons.DOM["post_requestVramDraw"] = document.getElementById("post_requestVramDraw");
+		buttons.DOM["post_requestDrawFlags"] = document.getElementById("post_requestDrawFlags");
 
 		// Add listeners for each button.
 		// buttons.DOM["ws_status"];
@@ -614,6 +694,15 @@ let buttons = {
 			buttons.DOM.ws_autoReconnect.checked = false;
 			websocket.ws_utilities.wsCloseAll(false); 
 		}, false);
+
+		buttons.DOM["post_up"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY_UP_PIN");}, false);
+		buttons.DOM["post_down"] .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY_DOWN_PIN");}, false);
+		buttons.DOM["post_left"] .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY_LEFT_PIN");}, false);
+		buttons.DOM["post_right"].addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY_RIGHT_PIN");}, false);
+		buttons.DOM["post_press"].addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY_PRESS_PIN");}, false);
+		buttons.DOM["post_b1"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY1_PIN");}, false);
+		buttons.DOM["post_b2"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY2_PIN");}, false);
+		buttons.DOM["post_b3"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("post", "KEY3_PIN");}, false);
 
 		buttons.DOM["ws_up"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_UP_PIN");}, false);
 		buttons.DOM["ws_down"] .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY_DOWN_PIN");}, false);
@@ -626,22 +715,33 @@ let buttons = {
 		buttons.DOM["ws_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('ws');}, false);
 
 		buttons.DOM["post_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('post');}, false);
+		buttons.DOM["post_requestDrawFlags"].addEventListener("click", async ()=>{
+			let data = await http.post("GET_DRAW_FLAGS", {});
+			console.log( 
+				JSON.stringify(data, null, 1) 
+			);
+		}, false);
 	},
 
 	// REQUESTS
 	PRESS_BUTTONS: function(type, buttonKey){
-		if(websocket.activeWs){
-			let obj = {
-				KEY_UP_PIN   : buttonKey == "KEY_UP_PIN",
-				KEY_DOWN_PIN : buttonKey == "KEY_DOWN_PIN",
-				KEY_LEFT_PIN : buttonKey == "KEY_LEFT_PIN",
-				KEY_RIGHT_PIN: buttonKey == "KEY_RIGHT_PIN",
-				KEY_PRESS_PIN: buttonKey == "KEY_PRESS_PIN",
-				KEY1_PIN     : buttonKey == "KEY1_PIN",
-				KEY2_PIN     : buttonKey == "KEY2_PIN",
-				KEY3_PIN     : buttonKey == "KEY3_PIN",
+		let obj = {
+			KEY_UP_PIN   : buttonKey == "KEY_UP_PIN",
+			KEY_DOWN_PIN : buttonKey == "KEY_DOWN_PIN",
+			KEY_LEFT_PIN : buttonKey == "KEY_LEFT_PIN",
+			KEY_RIGHT_PIN: buttonKey == "KEY_RIGHT_PIN",
+			KEY_PRESS_PIN: buttonKey == "KEY_PRESS_PIN",
+			KEY1_PIN     : buttonKey == "KEY1_PIN",
+			KEY2_PIN     : buttonKey == "KEY2_PIN",
+			KEY3_PIN     : buttonKey == "KEY3_PIN",
+		}
+		if(type=="ws"){
+			if(websocket.activeWs){
+				websocket.activeWs.send(JSON.stringify({"mode":"PRESS_BUTTONS", "data":obj}));
 			}
-			websocket.activeWs.send(JSON.stringify({"mode":"PRESS_BUTTONS", "data":obj}));
+		}
+		else if(type=="post"){
+			http.post("PRESS_BUTTONS", obj) ;
 		}
 	},
 	populateFpsValues: function(){
@@ -710,9 +810,15 @@ let buttons = {
 	},
 
 	// SUBSCRIPTIONS
+	getCheckboxState: function(key){
+		// buttons.getCheckboxState("VRAM_FULL")
+		// buttons.getCheckboxState("VRAM_CHANGES")
+		let checkbox = document.getElementById("controls_bottom1").querySelector(`input[type='checkbox'][key='${key}'`);
+		return checkbox.checked;
+	},
 	updateSubscriptionList: function(data){
 		// Get the list of subscription checkboxes. 
-		let checkboxes = document.getElementById("controls_bottom1").querySelectorAll("input[type='checkbox']");
+		let checkboxes = document.getElementById("controls_bottom1").querySelectorAll(`input[type='checkbox']`);
 
 		// Loop through each checkbox. 
 		for(let i=0; i<checkboxes.length; i+=1){
@@ -780,7 +886,6 @@ window.onload = async function(){
 	
 	draw.DOM.info_fps          = document.getElementById("info_fps");
 	draw.DOM.info_draws        = document.getElementById("info_draws");
-	draw.DOM.info_skippedDraws = document.getElementById("info_skippedDraws");
 	draw.DOM.info_lastDraw     = document.getElementById("info_lastDraw");
 	draw.DOM.info_changeFps    = document.getElementById("info_changeFps");
 	

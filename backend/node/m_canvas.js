@@ -1,6 +1,4 @@
 const fs = require('fs');
-// const path = require('path');
-// const os   = require('os');
 const {createCanvas, loadImage } = require("canvas");
 
 let _APP = null;
@@ -25,7 +23,7 @@ let _MOD = {
 				_APP.consolelog("generateTileCaches", 2);
 				await _MOD.init.generateTileCaches();
 				
-				// _APP.consolelog("getFramebuffer", 2);
+				_APP.consolelog("getFramebuffer", 2);
 				_MOD.init.getFramebuffer();
 
 				// Add routes.
@@ -35,6 +33,7 @@ let _MOD = {
 				_MOD.moduleLoaded = true;
 			}
 
+			// End.
 			resolve();
 		});
 	},
@@ -44,56 +43,50 @@ let _MOD = {
 	},
 
 	// ******
+
 	layers   : []  , // Output layers. Last layer is the combined layer.
 	fb       : null, // Handle to the output framebuffer.
 	rawBuffer: null, // Saved as to not need to reallocate memory each draw.
 	tileCache: []  , // Cache of all tiles.
 
-	drawLayersUpdateFramebuffer: async function(_changes){
+	// Draws to the LCD framebuffer based on the passed changes.
+	drawLayersUpdateFramebuffer: async function(_changesFullFlat){
 		return new Promise(async function(resolve,reject){
-			// Get the LCD config.
-			let conf = _APP.m_config.config.lcd;
-			let ts = conf.tileset;
+			// Get the width and the height of a tile.
+			let tileWidth  = _APP.m_config.config.lcd.tileset.tileWidth;
+			let tileHeight = _APP.m_config.config.lcd.tileset.tileHeight;
 
-			// For each layer:
-			for(let layer_i=0; layer_i<_APP.m_draw._VRAM_changes.length; layer_i+=1){
-				// For each change to a layer's coord:
-				let rec;
-				let layer = _APP.m_draw._VRAM_changes[layer_i];
-				let layerCtx = _MOD.layers[layer_i].ctx;
-				
-				// Get the changes for this layer.
-				let changes = [];
-				if(!_changes){
-					console.log("_changes was NOT supplied.");
-					if(_APP.m_draw._VRAM_updateStats[layer_i].updates){
-						changes = Object.keys(layer).filter(function(d){ return layer[d].c; });
-					}
-				}
-				else{
-					changes = _changes[layer_i];
-				}
-				
-				// Go through each change. 
-				for(let coordKey of changes){
-					// Skip if the changed key is false.
-					if(! layer[coordKey].c){ continue; }
+			for(let i=0; i<_changesFullFlat.length; i+=4){
+				// Create the record object.
+				let rec = {
+					l:_changesFullFlat[i+0],
+					x:_changesFullFlat[i+1],
+					y:_changesFullFlat[i+2],
+					t:_changesFullFlat[i+3],
+				};
 
-					// Get the change record.
-					rec = layer[coordKey];
-					
-					// Get the new tile canvas.
-					let newTileCanvas = _MOD.tileCache[rec.t].canvas;
+				// Determine destination x and y on the canvas.
+				dx = rec.x*tileWidth;
+				dy = rec.y*tileHeight;
 
-					// Clear the region to which this tile will be drawn.
-					layerCtx.clearRect(rec.x*ts.tileWidth, rec.y*ts.tileHeight, newTileCanvas.width, newTileCanvas.height);
+				// Get the new tile canvas.
+				let newTileCanvas = _MOD.tileCache[rec.t].canvas;
+			
+				// Determine which canvas needed to be drawn to.
+				if     (rec.l==0){ ctx = _MOD.layers[rec.l].ctx }
+				else if(rec.l==1){ ctx = _MOD.layers[rec.l].ctx }
+				else if(rec.l==2){ ctx = _MOD.layers[rec.l].ctx }
 
-					// Draw the tile to this layer.
-					layerCtx.drawImage(newTileCanvas, rec.x*ts.tileWidth, rec.y*ts.tileHeight);
-				}
+				// Clear the region to which this tile will be drawn.
+				ctx.clearRect(rec.x*tileWidth, rec.y*tileHeight, newTileCanvas.width, newTileCanvas.height);
 
-				// Draw this layer (updated or not) to the last layer.
-				_MOD.layers[_MOD.layers.length-1].ctx.drawImage(layerCtx.canvas, 0, 0);
+				// Draw the tile to this layer.
+				ctx.drawImage(newTileCanvas, rec.x*tileWidth, rec.y*tileHeight);
+			}
+
+			// Combine the canvas layers.
+			for(let i=0; i<_MOD.layers.length; i+=1){
+				_MOD.layers[_MOD.layers.length-1].ctx.drawImage(_MOD.layers[i].canvas, 0, 0);
 			}
 
 			// Create a raw buffer from the last layer. 
@@ -102,27 +95,21 @@ let _MOD = {
 			// Send the raw buffer to update the LCD screen.
 			fs.writeSync(_MOD.fb, _MOD.rawBuffer, 0, _MOD.rawBuffer.bytelength, 0);
 
-			// Reset the draw flags.
-			_APP.m_draw.clearDrawingFlags();
-
-			// Update the timeIt stamps.
-			_APP.timeIt("DISPLAY", "e");
-			_APP.timeIt("FULLLOOP", "e");
-
-			// Schedule the next appLoop.
-			_APP.schedule_appLoop(0);
-
+			// End.
 			resolve();
 		});
 	},
 
+	// Initialization functions.
 	init: {
+		// Create the canvas layers. 
 		createCanvasLayers: function(){
 			return new Promise(async function(resolve,reject){
 				// Get the LCD config.
 				let conf = _APP.m_config.config.lcd;
-				let ts = conf.tileset;
+				let ts   = conf.tileset;
 
+				// Create the layers.
 				let layerCount = ts.tilesInCol + 1;
 				for(let i=0; i<layerCount; i+=1){
 					// Create the canvas. 
@@ -136,12 +123,16 @@ let _MOD = {
 					ctx.webkitImageSmoothingEnabled = false; //
 					ctx.msImageSmoothingEnabled     = false; //
 
+					// Add this layer.
 					_MOD.layers.push( { canvas:canvas, ctx:ctx } );
 				}
 
+				// End.
 				resolve();
 			});
 		},
+
+		// Create and return a canvas for the tileset image.
 		createTileSetCanvas: async function(){
 			return new Promise(async function(resolve,reject){
 				// Get the LCD config.
@@ -166,13 +157,16 @@ let _MOD = {
 				
 				// Draw the image to the new canvas. 
 				canvasTilesetCtx.drawImage(img, 0, 0);
-
+				
+				// Resolve and return the data.
 				resolve( {
 					canvas : canvasTileset, 
 					ctx    : canvasTilesetCtx,
 				} );
 			});
 		},
+
+		// Create the canvas cache for each tile in the tileset.
 		generateTileCaches: async function(){
 			return new Promise(async function(resolve,reject){
 				// Get the LCD config.
@@ -194,9 +188,11 @@ let _MOD = {
 					);
 				}
 
+				// End.
 				resolve();
 			});
 		},
+
 		genTile : function(key, coord, canvasTileset){
 			return new Promise(async function(resolve,reject){
 				// Get the LCD config.
@@ -235,12 +231,15 @@ let _MOD = {
 					"index"     : _MOD.tileCache.length, // tileId.
 				});
 
+				// End.
 				resolve();
 			})
 		},
+
+		// Get a handle to the framebuffer used by the LCD.
 		getFramebuffer: function(){
 			// OPEN/STORE A HANDLE TO THE FRAMEBUFFER.
-			_MOD.fb = fs.openSync("/dev/fb0", "w");
+			_MOD.fb = fs.openSync(_APP.m_config.config.lcd.fb, "w");
 		},
 	},
 };

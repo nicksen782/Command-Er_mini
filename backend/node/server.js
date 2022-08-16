@@ -183,7 +183,9 @@ let _APP;
 
 			_APP.fps.init( _APP.m_config.config.node.fps );
 			_APP.stats.setFps( _APP.m_config.config.node.fps );
-			_APP.schedule_appLoop(0);
+
+			// Start a new AppLoop.
+			_APP.m_drawLoop.startAppLoop();
 		});
 	})();
 

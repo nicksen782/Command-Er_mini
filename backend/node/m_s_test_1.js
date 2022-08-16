@@ -95,31 +95,27 @@ let screen = {
 		let conf = _APP.m_config.config.lcd;
 		let ts = conf.tileset;
 
+		// Top rows.
 		_APP.m_draw.fillTile("tile3"         , 0, 0, ts.cols, 1); 
 		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
+
+		// Bottom row.
 		_APP.m_draw.fillTile("tile3"         , 0, ts.rows-1, ts.cols, 1); 
 		
-		_APP.m_draw.print(` 0123456789!@#$%^&*()-=_+[` , 0 , 3);
-		_APP.m_draw.print(`ABCDEFGHIJKLMNOPQRSTUVWXYZ` , 0 , 4);
-		_APP.m_draw.print(`]{}|;:'",.<>/?\\`           , 0 , 5);
-		// _APP.m_draw.print(`....X....X....X....X....X....X`           , 0 , 6);
+		_APP.m_draw.print(`]{}|;:'",.<>/?\\^&*()-=_+[$%`, 0 , 4);
+		_APP.m_draw.print(`ABCDEFGHIJKLMNOPQRSTUVWXYZ`  , 0 , 5);
+		_APP.m_draw.print(` 0123456789!@#`              , 0 , 6);
 		
 		// _APP.m_websocket_python.wsClient.send("GET_BATTERY");
 		_APP.m_websocket_python.getBatteryUpdate();
 
+		// Initial drawing of the battery and time.
 		thisScreen.shared.time.display(0, 29, "tile3");
 		thisScreen.shared.battery.display(23, 29, "tile3");
-
 		thisScreen.timeUpdateMs = thisScreen.shared.secondsToFramesToMs(thisScreen.timeUpdateSeconds);
 		thisScreen.batteryUpdateMs = thisScreen.shared.secondsToFramesToMs(thisScreen.batteryUpdateSeconds);
-
-		// Battery - Initial debug tile.
-		// _APP.m_draw.setTile("tile_blue", 21, 29);
-
-		// Time - Initial debug tile.
-		// _APP.m_draw.setTile("tile_blue", 11, 29);
 
 		// Set the inited flag.
 		thisScreen.inited = true;
@@ -143,13 +139,14 @@ let screen = {
 
 			thisScreen.lines2=[];
 			
-			let y=6;
-			thisScreen.lines2.push(`${"*".repeat(29)}`);
+			let y=7;
+			let isOver = (_APP.stats.lastDiff) > _APP.stats.interval;
+			thisScreen.lines2.push(`${"*".repeat(30)}`);
 			thisScreen.lines2.push(`FPS AVG/CONF: ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(7, " ")}` + `${("("+(_APP.fps._index_+1).toFixed(0) +"/"+ (_APP.fps.sampleSize-0).toFixed(0) +")").padStart(8, " ")}`);
 			thisScreen.lines2.push(`SET MS/FRAME: ${_APP.stats.interval.toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`MS DELTA    : ${_APP.stats.delta   .toFixed(2).padStart(7, " ")}`);
-			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ")}`);
-			thisScreen.lines2.push(`${"*".repeat(29)}`);
+			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ") + (isOver?" OVER":"     ") }`);
+			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
 			let totalTime = _APP.timeIt_timings_prev["FULLLOOP"].t;
 			let gpio          = _APP.timeIt_timings_prev["GPIO"].t;          let gpio_p          = ((gpio          / totalTime)*100).toFixed(2);
@@ -159,7 +156,7 @@ let screen = {
 			thisScreen.lines2.push( `LOGIC   :${logic        .toFixed(2).padStart(6, " ")} / ${(logic_p         + '%').padStart(8, " ")}` );
 			thisScreen.lines2.push( `DISPLAY :${displayupdate.toFixed(2).padStart(6, " ")} / ${(displayupdate_p + '%').padStart(8, " ")}` );
 			thisScreen.lines2.push(`FULLLOOP:${totalTime     .toFixed(2).padStart(6, " ")}`);
-			thisScreen.lines2.push(`${"*".repeat(29)}`);
+			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
 			let t1a = ((performance.now()-thisScreen.lastTimeUpdate)/1000)   .toFixed(1).toString().padStart(3, " ");
 			let t1b = ((thisScreen.timeUpdateMs)/1000)                  .toFixed(1).toString().padStart(3, " ");;
@@ -167,38 +164,15 @@ let screen = {
 			let t2b = ((thisScreen.batteryUpdateMs)/1000)               .toFixed(1).toString().padStart(3, " ");;
 			thisScreen.lines2.push(`TIME UPDATES: ${t1a}/${t1b} (${thisScreen.flag2 ? "1" : "0"})`);
 			thisScreen.lines2.push(`BATT UPDATES: ${t2a}/${t2b} (${thisScreen.flag3 ? "1" : "0"})`);
-			thisScreen.lines2.push(`${"*".repeat(29)}`);
+			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
-			// thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFrames    (1.0) .toFixed(1).toString().padStart(8, " ") +" FRAMES ");
-			// thisScreen.lines2.push(" 5.0s: " + thisScreen.shared.secondsToFrames    (5.0) .toFixed(1).toString().padStart(8, " ") +" FRAMES ");
-			// thisScreen.lines2.push("10.0s: " + thisScreen.shared.secondsToFrames    (10.0).toFixed(1).toString().padStart(8, " ") +" FRAMES ");
-			// thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFramesToMs(1.0) .toFixed(1).toString().padStart(8, " ") +" MS     ");
-			// thisScreen.lines2.push(" 5.0s: " + thisScreen.shared.secondsToFramesToMs(5.0) .toFixed(1).toString().padStart(8, " ") +" MS     ");
-			// thisScreen.lines2.push("10.0s: " + thisScreen.shared.secondsToFramesToMs(10.0).toFixed(1).toString().padStart(8, " ") +" MS     ");
-			// thisScreen.lines2.push(`${"*".repeat(29)}`);
+			thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFrames    (1.0) .toFixed(1).toString().padStart(8, " ") +" FRAMES ");
+			thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFramesToMs(1.0) .toFixed(1).toString().padStart(8, " ") +" MS     ");
+			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
-			// for(let v of thisScreen.lines2){ _APP.m_draw.print(" ".repeat(ts.cols) , 0 , y); _APP.m_draw.print(v , 0 , y++); }
 			for(let v of thisScreen.lines2){ _APP.m_draw.print(v , 0 , y++); }
 
-			// setTile toggle tile set.
-			// if(thisScreen.flag1){ _APP.m_draw.setTile("tile_red", 29, 0); }
-			// else{ _APP.m_draw.setTile("tile_green", 29, 0); }
-			// thisScreen.flag1 = !thisScreen.flag1;
-
-			// Counting test.
-			// _APP.m_draw.print(thisScreen.counter.toString().padStart(2, "0"), 14 , 29);
-			// thisScreen.counter +=1;
-			// if(thisScreen.counter > 20){ thisScreen.counter = 0; }
-			
-			// Update the time data section on a counter. 
-			// if(_APP.m_gpio.isPress("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
-			// if(_APP.m_gpio.isPrev ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
-			// if(_APP.m_gpio.isHeld ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
-			// if(_APP.m_gpio.isRele ("KEY_UP_PIN")){ _APP.m_draw.setTile("btn_u_active", 12, 29); }
-			// else{ _APP.m_draw.setTile("btn_u", 12, 29); }
-			
 			let x;
-			y++;
 
 			x=15;
 			_APP.m_draw.print(`PRES: ${_APP.m_gpio.states_pressed .toString(2).padStart(8, "0")}`  , 0 , y); 
@@ -248,6 +222,8 @@ let screen = {
 			if( _APP.m_gpio.isRele ("KEY2_PIN")      ){ _APP.m_draw.setTile("btn_b_active", x++, y); } else{ _APP.m_draw.setTile("btn_b", x++, y); }
 			if( _APP.m_gpio.isRele ("KEY3_PIN")      ){ _APP.m_draw.setTile("btn_c_active", x++, y); } else{ _APP.m_draw.setTile("btn_c", x++, y); }
 			y++;
+			_APP.m_draw.print(`${"*".repeat(30)}` , 0 , y++);
+
 			if(performance.now() - thisScreen.lastTimeUpdate >= thisScreen.timeUpdateMs ){
 				thisScreen.shared.time.display(0, 29, "tile3");
 				
