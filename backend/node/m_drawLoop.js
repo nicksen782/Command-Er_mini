@@ -72,10 +72,6 @@ let _MOD = {
 
 			// Go through each _VRAM_changes layer. 
 			for(let layer_i=0; layer_i<_APP.m_draw._VRAM_changes.length; layer_i+=1){
-				// Reset the _VRAM_updateStats for real and overwrites. 
-				_APP.m_draw._VRAM_updateStats[layer_i].real       = 0;
-				_APP.m_draw._VRAM_updateStats[layer_i].overwrites = 0;
-
 				// Get the layer.
 				let layer = _APP.m_draw._VRAM_changes[layer_i];
 				
@@ -93,12 +89,11 @@ let _MOD = {
 
 						// Add the change to _changesFullFlat.
 						_changesFullFlat.push( layer[key].l, layer[key].x, layer[key].y, layer[key].t );
-
-						// Update _VRAM_updateStats for real and overwrites.
-						_APP.m_draw._VRAM_updateStats[layer_i].real       += 1;
-						_APP.m_draw._VRAM_updateStats[layer_i].overwrites += 1;
 					}
 				}
+
+				// Update _VRAM_updateStats for real and overwrites.
+				_APP.m_draw._VRAM_updateStats[layer_i].overwrites = _APP.m_draw._VRAM_updateStats[layer_i].updates - _APP.m_draw._VRAM_updateStats[layer_i].real;
 			}
 
 			return {

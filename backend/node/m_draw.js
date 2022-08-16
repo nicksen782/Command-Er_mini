@@ -124,8 +124,13 @@ let _MOD = {
 			_MOD._VRAM_inited = true;
 
 			// Init _MOD._VRAM_updateStats
-			for(let i=0; i<ts.tilesInCol; i+=1){
-				_MOD._VRAM_updateStats[i] = { "layer": i, "updates": 0 }
+			for(let layer_i=0; layer_i<ts.tilesInCol; layer_i+=1){
+				_MOD._VRAM_updateStats[layer_i] = { 
+					"layer"     : layer_i, 
+					"updates"   : 0, 
+					"real"      : 0 ,
+					"overwrites": 0
+				}
 			}
 
 			// Set the lcdUpdateNeeded flag.
@@ -193,15 +198,18 @@ let _MOD = {
 		// Get the index via the x,y coords.
 		let index = _APP.m_config.indexByCoords[y][x];
 		
+		// Update stats.
+		_MOD._VRAM_updateStats[xcolLayer].updates += 1;
+		
 		// Don't update a tile with the same tile. 
 		let tile_old = _MOD._VRAM_view[index+xcolLayer];
 		let tile_new = _APP.m_config.tileIdsByTilename[tileName];
 		if(tile_old != tile_new){
 			// Update the vram entry.
 			_MOD._VRAM_view[index+xcolLayer] = tile_new;
-
+			
 			// Update stats.
-			_MOD._VRAM_updateStats[xcolLayer].updates += 1;
+			_MOD._VRAM_updateStats[xcolLayer].real += 1;
 
 			// Add to changes.
 			_MOD.addTo_VRAM_changes(xcolLayer, x, y, tile_new, xcolLayer);
@@ -280,8 +288,11 @@ let _MOD = {
 		_MOD.lcdUpdateNeeded = false;
 
 		// Clear the update stats.
-		for(let i=0; i<ts.tilesInCol; i+=1){
-			_MOD._VRAM_updateStats[i].updates = 0;
+		for(let layer_i=0; layer_i<ts.tilesInCol; layer_i+=1){
+			_MOD._VRAM_updateStats[layer_i].layer      = layer_i;
+			_MOD._VRAM_updateStats[layer_i].updates    = 0;
+			_MOD._VRAM_updateStats[layer_i].real       = 0;
+			_MOD._VRAM_updateStats[layer_i].overwrites = 0;
 		}
 
 		// Clear the changes.

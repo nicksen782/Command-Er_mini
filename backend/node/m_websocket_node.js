@@ -11,9 +11,9 @@ let _MOD = {
 	ws:null,
 	subscriptionKeys: [
 		"VRAM_FULL",
+		"VRAM_CHANGES",
 		"STATS1",
 		"STATS2",
-		"VRAM_CHANGES",
 	],
 
 	// Init this module.
@@ -51,7 +51,6 @@ let _MOD = {
 	addRoutes: function(app, express){
 		_APP.addToRouteList({ path: "GET_VRAM"         , method: "ws", args: [], file: __filename, desc: "(JSON): Return _VRAM buffer" });
 		_APP.addToRouteList({ path: "CHANGE_FPS"       , method: "ws", args: [], file: __filename, desc: "(JSON): Change FPS" });
-		_APP.addToRouteList({ path: "CLEAR_LAYER"      , method: "ws", args: [], file: __filename, desc: "(JSON): Clear selected VRAM layer." });
 		_APP.addToRouteList({ path: "SUBSCRIBE"        , method: "ws", args: [], file: __filename, desc: "(JSON): Subscript to event." });
 		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unubscript from event." });
 		_APP.addToRouteList({ path: "PRESS_BUTTONS"    , method: "ws", args: [], file: __filename, desc: "(JSON): PRESS_BUTTONS" });
@@ -117,13 +116,6 @@ let _MOD = {
 
 				// Start a new AppLoop.
 				// if(_APP.drawLoop) { _APP.m_drawLoop.startAppLoop(); }
-			},
-			// Expected origin: Web client by request.
-			CLEAR_LAYER:    async function(ws, data){
-				// console.log(data.mode, data.data);
-				// console.log(data.data);
-				// if(data.data == "ALL"){ _APP.m_draw.clearLayers(" "); }
-				// else{                   _APP.m_draw.clearLayer(" ", data.data ); }
 			},
 			SUBSCRIBE:      async function(ws, data){
 				_MOD.ws_utilities.addSubscription(ws, data.data);
@@ -321,9 +313,9 @@ let _MOD = {
 			// Add subscriptions array to this connection. 
 			clientWs.subscriptions = [];
 			// _MOD.ws_utilities.addSubscription(clientWs, "VRAM_FULL");
+			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_CHANGES");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS2");
-			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_CHANGES");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
 

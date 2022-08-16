@@ -78,19 +78,63 @@ let websocket = {
 
 			// VRAM UPDATES
 			STATS1: function(data){
-				// console.log(`mode: ${data.mode}, data:`,data.data);
+				let table = draw.DOM.info_VRAM_UPDATESTATS.querySelector("table");
+				let numRows = table.rows.length;
+				
+				// Create the table rows if needed.
+				let layers = Object.keys(data.data);
+				let keys = Object.keys(data.data[0]);
+				let cnt = 0;
+				if(numRows != layers.length + 1 ){
+					// Add the headers row.
+					let tr = table.insertRow(-1);
+					for(let k=0; k<keys.length; k+=1){
+						let key = keys[k];
+						// tr.insertCell(-1).outerHTML = `<th>${key.toUpperCase()}</th>`;
+						tr.insertCell(-1).outerHTML = `<th title="${key}">${key.substring(0,1).toUpperCase()}</th>`;
+						// td.setAttribute("name", "updates_" + key);
+					}
+
+					// Add the data rows.
+					while(numRows-1 != layers.length && cnt < layers.length){
+						// console.log("numRows-1:", numRows-1, "layers.length:", layers.length, "cnt:", cnt);
+						let tr = table.insertRow(-1);
+						for(let k=0; k<keys.length; k+=1){
+							let key = keys[k];
+							let td = tr.insertCell(-1);
+							td.setAttribute("name", "updates_" + key);
+						}
+
+						// Update the row count.
+						numRows = table.rows.length;
+						cnt+=1;
+					}
+				}
+
+				for(let r=1; r<table.rows.length; r+=1){
+					let row = table.rows[r];
+					for(let k=0; k<keys.length; k+=1){
+						let key = keys[k];
+						let td = row.querySelector(`[name='updates_${key}']`);
+						// console.log(r, row, key, td);
+						td.innerText = data.data[r-1][key].toString();
+						console.log(key);
+					}
+				}
+
 				let outputText = "";
 				for(let key in data.data){
 					let rec = data.data[key];
 					outputText += `` +
 					`L:${rec.layer}, ` +
-					`U:${rec.updates   .toString().padStart(3, " ")}, ` +
+					`U:${rec.updates   .toString().padStart(4, " ")}, ` +
+					`O:${rec.overwrites.toString().padStart(4, " ")}  ` + 
 					`R:${rec.real      .toString().padStart(3, " ")}, ` +
-					`O:${rec.overwrites.toString().padStart(3, " ")}  ` + 
 					// ``;
 					`\n`;
+					console.log(rec);
 				}
-				draw.DOM.info_VRAM_UPDATESTATS.innerText = outputText;
+				// console.log(outputText);
 			},
 			STATS2: function(data){
 				// console.log(data);
@@ -236,17 +280,21 @@ let websocket = {
 			else if(tests.isArrayBuffer){
 				// Draw the new VRAM.
 				if(!draw.isDrawing){
-					// Strip off the last 4 bytes and convert each to one string.
-					let view = new Uint8Array(data.slice(0, -4));
-					let type = Array.from(new Uint8Array(data.slice(-4))).map(d=>String.fromCharCode(d)).join("");
+					// Apply view to the ArrayBuffer.
+					data = new Uint8Array(data);
+
+					// Strip off the last 4 bytes and convert to string.
+					let type = data.slice(-4).reduce((p,c) => p + String.fromCharCode(c), "");
+
+					// Separate out the actual data.
+					data = data.slice(0, -4);
 
 					// Run the correct drawing function based on the value of part.
-					if(type == "FULL"){
-						draw.drawVram_FULL(view) ;
-					}
-					else if(type == "PART"){
-						draw.drawVram_CHANGES(view) ;
-					}
+					switch(type){
+						case "FULL": { draw.drawVram_FULL(data); break; }
+						case "PART": { draw.drawVram_CHANGES(data); break; }
+						default    : { console.log("Unknown type:", type); break; }
+					};
 				} else{ console.log("ALREADY IN A DRAW"); }
 			}
 			
@@ -641,16 +689,22 @@ let draw = {
 		else if(type=="post"){
 			if(!draw.isDrawing){
 				let data = await http.post("GET_VRAM", {});
-				let type = Array.from(new Uint8Array(data.slice(-4))).map(d=>String.fromCharCode(d)).join("");
 
-				// Strip off the last 4 bytes.
-				if(type == "FULL"){
-					draw.drawVram_FULL(new Uint8Array( data.slice(0, -4) )) ;
-				}
-				else{
-					console.log(type);
-				}
+				// Apply view to the ArrayBuffer.
+				data = new Uint8Array(data);
 
+				// Strip off the last 4 bytes and convert to string.
+				let type = data.slice(-4).reduce((p,c) => p + String.fromCharCode(c), "");
+
+				// Separate out the actual data.
+				data = data.slice(0, -4);
+
+				// Run the correct drawing function based on the value of part.
+				switch(type){
+					case "FULL": { draw.drawVram_FULL(data); break; }
+					case "PART": { draw.drawVram_CHANGES(data); break; }
+					default    : { console.log("Unknown type:", type); break; }
+				};
 			} else{ console.log("ALREADY IN A DRAW"); }
 		}
 	},	
@@ -753,7 +807,7 @@ let buttons = {
 		for(let i=1; i<=60; i+=1){
 			option = document.createElement("option");
 			option.value = i;
-			option.innerText = `${i} ${i==configFps ? "(conf)" : ""}`;
+			option.innerText = `${i} ${i==configFps ? "(D)" : ""}`;
 			frag.appendChild(option);
 		}
 		select.options.length=0;
@@ -766,11 +820,13 @@ let buttons = {
 		let frag = document.createDocumentFragment();
 		for(let i=0; i<subscriptionKeys.length; i+=1){
 			let key = subscriptionKeys[i];
-			let div   = document.createElement("div");
-			div.classList.add("inlineBlock");
-			div.classList.add("subscriptionDiv");
+			// let div   = document.createElement("div");
+			// div.classList.add("inlineBlock");
+			// div.classList.add("subscriptionDiv");
 			let label = document.createElement("label");
-			label.innerText = key;
+			label.classList.add("subscriptionContainer");
+			let span = document.createElement("span");
+			span.innerText = key;
 			let input = document.createElement("input");
 			input.type="checkbox";
 			input.setAttribute("key", key);
@@ -783,11 +839,13 @@ let buttons = {
 				}
 			};
 
-			label.append(input);
-			div.append(label);
-			frag.append(div);
+			// label.append(span, input);
+			label.append(input, span);
+			// div.append(label);
+			// frag.append(div);
+			frag.append(label);
 		}
-		document.getElementById("controls_bottom1").append(frag);
+		document.getElementById("info_subscriptionsDiv").append(frag);
 		// document.body.append(frag);
 	},
 	changeFps: function(type, newFps){
@@ -799,26 +857,17 @@ let buttons = {
 		else if(type=="post"){
 		}
 	},
-	clearLayer: function(type, layer){
-		if(type=="ws"){
-			if(websocket.activeWs){
-				websocket.activeWs.send(JSON.stringify({"mode":"CLEAR_LAYER", "data":layer}));
-			}
-		}
-		else if(type=="post"){
-		}
-	},
 
 	// SUBSCRIPTIONS
 	getCheckboxState: function(key){
 		// buttons.getCheckboxState("VRAM_FULL")
 		// buttons.getCheckboxState("VRAM_CHANGES")
-		let checkbox = document.getElementById("controls_bottom1").querySelector(`input[type='checkbox'][key='${key}'`);
+		let checkbox = document.getElementById("info_subscriptionsDiv").querySelector(`input[type='checkbox'][key='${key}'`);
 		return checkbox.checked;
 	},
 	updateSubscriptionList: function(data){
 		// Get the list of subscription checkboxes. 
-		let checkboxes = document.getElementById("controls_bottom1").querySelectorAll(`input[type='checkbox']`);
+		let checkboxes = document.getElementById("info_subscriptionsDiv").querySelectorAll(`input[type='checkbox']`);
 
 		// Loop through each checkbox. 
 		for(let i=0; i<checkboxes.length; i+=1){
@@ -889,17 +938,8 @@ window.onload = async function(){
 	draw.DOM.info_lastDraw     = document.getElementById("info_lastDraw");
 	draw.DOM.info_changeFps    = document.getElementById("info_changeFps");
 	
-	draw.DOM.info_clearLayer0    = document.getElementById("info_clearLayer0");
-	draw.DOM.info_clearLayer1    = document.getElementById("info_clearLayer1");
-	draw.DOM.info_clearLayer2    = document.getElementById("info_clearLayer2");
-	draw.DOM.info_clearLayerAll    = document.getElementById("info_clearLayerAll");
-	draw.DOM.info_clearLayer0.addEventListener("click", function(){ buttons.clearLayer("ws", 0); }, false);
-	draw.DOM.info_clearLayer1.addEventListener("click", function(){ buttons.clearLayer("ws", 1); }, false);
-	draw.DOM.info_clearLayer2.addEventListener("click", function(){ buttons.clearLayer("ws", 2); }, false);
-	draw.DOM.info_clearLayerAll.addEventListener("click", function(){ buttons.clearLayer("ws", "ALL"); }, false);
-	
 	draw.DOM.info_VRAM_UPDATESTATS    = document.getElementById("info_VRAM_UPDATESTATS");
-	draw.DOM.info_VRAM_UPDATESTATS.innerText = "\n\n\n";
+	// draw.DOM.info_VRAM_UPDATESTATS.innerText = "\n\n\n";
 
 	draw.DOM.info_serverFps    = document.getElementById("info_serverFps");
 
