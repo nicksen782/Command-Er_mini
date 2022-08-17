@@ -8,7 +8,6 @@ for(let i=0; i<lines.length; i+=1){
 	console.log("\x1b[40m" + "\x1b[1;31m" + lines[i].padEnd(27, " ") + "\x1b[0m");
 }
 console.log("");
-// process.exit();
 
 // OS/Filesystem requires. 
 const os       = require('os');
@@ -43,10 +42,155 @@ const compressionObj = {
 // Modules (routes are added per module via their module_init method.)
 let _APP;
 
+// Set the error handlers.
+let setErrorHandlers = function(){
+	// Created after reading this: https://blog.heroku.com/best-practices-nodejs-errors
+	let cleanUpHasRan = false;
+
+	let cleanUp = function(byWhat){
+		// Only run once. 
+		if(cleanUpHasRan){ return; }
+
+		let funcs = [
+			function appLoopCleanup(){
+				if(_APP && _APP.drawLoop){
+					// Remove the child process if it is set.
+					try{
+						if(_APP.drawLoop){ 
+							console.log(`  cleanUp: (via: ${byWhat}): appLoopCleanup...`);
+							_APP.drawLoop.pause();
+							_APP.drawLoop.stop();
+							_APP.drawLoop = null; 
+							console.log(`  cleanUp: (via: ${byWhat}): appLoopCleanup... DONE`);
+						}
+					}
+					catch(e){
+						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+					}
+				}
+			},
+			function displayCleanup(){
+				if(_APP && _APP.m_websocket_python){
+					// Remove the child process if it is set.
+					try{
+						if(_APP.m_websocket_python.cp_child){ 
+							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup...`);
+							// _APP.m_websocket_python.cp_child.kill('SIGTERM'); 
+							_APP.m_websocket_python.cp_child.kill('SIGINT'); 
+							_APP.m_websocket_python.cp_child = null; 
+							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup... DONE`);
+						}
+					}
+					catch(e){
+						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+					}
+				}
+			},
+			function pythonCleanup(){
+				if(_APP && _APP.m_websocket_python){
+					// Remove the child process if it is set.
+					try{
+						if(_APP.m_websocket_python.cp_child){ 
+							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup...`);
+							// _APP.m_websocket_python.cp_child.kill('SIGTERM'); 
+							_APP.m_websocket_python.cp_child.kill('SIGINT'); 
+							_APP.m_websocket_python.cp_child = null; 
+							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup... DONE`);
+						}
+					}
+					catch(e){
+						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+					}
+				}
+			},
+			function serverCleanup(){
+				if(_APP && _APP.m_websocket_node){
+					// Remove the child process if it is set.
+					try{
+						if(_APP.m_websocket_node.ws){ 
+							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: websocket...`);
+							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: websocket... DONE`);
+							_APP.m_websocket_node.ws.close();
+							_APP.m_websocket_node.ws = null;
+						}
+						if(_APP.server){
+							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: server...`);
+							_APP.server.close();
+							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: server... DONE`);
+						}
+					}
+					catch(e){
+						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+					}
+				}
+			},
+		];
+		
+		for(let i=0; i<funcs.length; i+=1){ funcs[i](); }
+
+		// Set the cleanUpHasRan flag.
+		cleanUpHasRan = true;
+	};
+
+	process.on('beforeExit', code => {
+		// Can make asynchronous calls
+		console.log("\nHANDLER: beforeExit");
+		cleanUp("beforeExit");
+		// setTimeout(() => {
+			console.log(`  Process will exit with code: ${code}`);
+			process.exit(code)
+		// }, 100)
+	})
+
+	process.on('exit', code => {
+		// Only synchronous calls
+		console.log("\nHANDLER: exit");
+		cleanUp("exit");
+		console.log(`  Process exited with code: ${code}`);
+	})
+
+	process.on('SIGTERM', signal => {
+		console.log("\nHANDLER: SIGTERM");
+		cleanUp("SIGTERM");
+		console.log(`  Process ${process.pid} received a SIGTERM signal`);
+		process.exit(0)
+	})
+
+	process.on('SIGINT', signal => {
+		console.log("\nHANDLER: SIGINT");
+		cleanUp("SIGINT");
+		console.log(`  Process ${process.pid} has been interrupted`)
+		process.exit(0)
+	})
+
+	process.on('uncaughtException', err => {
+		console.log("\nHANDLER: uncaughtException");
+		cleanUp("uncaughtException");
+		console.log(`  Uncaught Exception:`, err);
+		process.exit(1)
+	})
+	
+	process.on('unhandledRejection', (reason, promise) => {
+		console.log("\nHANDLER: unhandledRejection");
+		cleanUp("unhandledRejection");
+		console.log('  Unhandled rejection at ', promise, `reason: `, reason);
+		process.exit(1)
+	})	
+};
+
 // START THE SERVER.
 (async function startServer(){
+	// Set the error handlers.
+	setErrorHandlers();
+
+	// Create _APP.
 	_APP   = await require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
+	
+	//
 	_APP.timeIt("_STARTUP_", "s");
+
+	// Init _APP.
+	_APP.module_init(_APP);
 
 	let printRoutes = function(){
 		let routes = _APP.getRoutePaths("manual", app).manual;
@@ -134,7 +278,7 @@ let _APP;
 	// Remove the process if it already exists.
 	let responses = await _APP.removeProcessByPort( [ _APP.m_config.config.node.http.port ], true );
 	for(let i=0; i<responses.length; i+=1){ _APP.consolelog(responses[i], 4); }
-
+	
 	(async function startServer(){
 		server.listen(conf, async function () {
 			_APP.timeIt("expressServerStart", "e");
@@ -147,6 +291,9 @@ let _APP;
 			// console.log("-".repeat(45));
 			// console.log("");
 			
+			// Display system data (and time it.)
+			_APP.displaySysData_init();
+
 			let appTitle = "Command-Er_Mini";
 			process.title = appTitle;
 			
@@ -181,11 +328,15 @@ let _APP;
 			}
 			console.log("");
 
+			// Start a new AppLoop.
 			_APP.fps.init( _APP.m_config.config.node.fps );
 			_APP.stats.setFps( _APP.m_config.config.node.fps );
-
-			// Start a new AppLoop.
 			_APP.m_drawLoop.startAppLoop();
+
+			// setTimeout(async function(){ 
+			// 	await _APP.m_canvas.displayMessage("TEST 0123456789", 1,4,19,5); 
+			// 	try{ _APP.drawLoop.pause(); } catch(e){ console.log("Cannot pause", "server.js"); }
+			// }, 1500);
 		});
 	})();
 

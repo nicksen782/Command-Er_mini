@@ -61,12 +61,6 @@ let websocket = {
 				// console.log(`mode: ${data.mode}, data:`,data.data);
 			},
 
-			// SUBSCRIPTIONS
-			// GET_SUBSCRIPTIONS: function(data){
-				// console.log(`mode: ${data.mode}, data:`,data.data);
-				// buttons.updateSubscriptionList(data.data);
-			// },
-
 			SUBSCRIBE: function(data){
 				// console.log(`mode: ${data.mode}, data:`,data.data);
 				buttons.updateSubscriptionList(data.data);
@@ -90,14 +84,11 @@ let websocket = {
 					let tr = table.insertRow(-1);
 					for(let k=0; k<keys.length; k+=1){
 						let key = keys[k];
-						// tr.insertCell(-1).outerHTML = `<th>${key.toUpperCase()}</th>`;
 						tr.insertCell(-1).outerHTML = `<th title="${key}">${key.substring(0,1).toUpperCase()}</th>`;
-						// td.setAttribute("name", "updates_" + key);
 					}
 
 					// Add the data rows.
 					while(numRows-1 != layers.length && cnt < layers.length){
-						// console.log("numRows-1:", numRows-1, "layers.length:", layers.length, "cnt:", cnt);
 						let tr = table.insertRow(-1);
 						for(let k=0; k<keys.length; k+=1){
 							let key = keys[k];
@@ -111,43 +102,22 @@ let websocket = {
 					}
 				}
 
+				// Update the data rows.
 				for(let r=1; r<table.rows.length; r+=1){
 					let row = table.rows[r];
 					for(let k=0; k<keys.length; k+=1){
 						let key = keys[k];
 						let td = row.querySelector(`[name='updates_${key}']`);
-						// console.log(r, row, key, td);
 						td.innerText = data.data[r-1][key].toString();
-						console.log(key);
 					}
 				}
-
-				let outputText = "";
-				for(let key in data.data){
-					let rec = data.data[key];
-					outputText += `` +
-					`L:${rec.layer}, ` +
-					`U:${rec.updates   .toString().padStart(4, " ")}, ` +
-					`O:${rec.overwrites.toString().padStart(4, " ")}  ` + 
-					`R:${rec.real      .toString().padStart(3, " ")}, ` +
-					// ``;
-					`\n`;
-					console.log(rec);
-				}
-				// console.log(outputText);
 			},
 			STATS2: function(data){
-				// console.log(data);
-				// console.log("update fps", draw.serverFps, data.data);
 				if(draw.serverFps != data.data){
 					draw.serverFps = data.data;
 					draw.DOM.info_serverFps.innerText = data.data;
 				}
 			},
-			
-			// GET_SUBSCRIPTIONS_LIST: function(data){
-				// console.log("GET_SUBSCRIPTIONS_LIST", data);
-			// },
 		},
 		TEXT  : {
 		},
@@ -358,7 +328,15 @@ let websocket = {
 // VRAM DRAWING
 let draw = {
 	DOM: {},
-	configs: {},
+	configs: {
+		// config            {}, //
+		// coordsByIndex     {}, // UNUSED
+		// indexByCoords     {}, // (drawVram_CHANGES)
+		// tileCoords        {}, // (getGraphics)
+		// tileIdsByTilename {}, // UNUSED
+		// tilenamesByIndex  {}, // UNUSED
+		// subscriptionKeys  {}, // (populateSubscriptionKeys)
+	},
 	tilesetCanvas:null,
 	tilesCache:[],
 	canvases : {
@@ -451,8 +429,9 @@ let draw = {
 			};
 			
 			draw.isDrawing=true;
-			draw.fps.tick();
-			draw.lastDraw = performance.now();
+			let now = performance.now();
+			draw.fps.tick(now);
+			draw.lastDraw = now;
 
 			// Init _VRAM_prev if needed.
 			if(!draw._VRAM_prev.length || !ArrayBuffer.isView(draw._VRAM_prev)){
@@ -546,8 +525,9 @@ let draw = {
 			};
 
 			draw.isDrawing=true;
-			draw.fps.tick();
-			draw.lastDraw = performance.now();
+			let now = performance.now();
+			draw.fps.tick(now);
+			draw.lastDraw = now;
 			updateLayerCanvases();
 			updateMainCanvas();
 			saveNew_VRAM();
@@ -577,14 +557,15 @@ let draw = {
 		_sample_ : [],
 		_index_ : 0,
 		_lastTick_: false,
-		tick : function(){
+		tick : function(now){
 			// if is first tick, just set tick timestamp and return
 			if( !this._lastTick_ ){
-				this._lastTick_ = performance.now();
+				// this._lastTick_ = performance.now();
+				this._lastTick_ = now;
 				return 0;
 			}
 			// calculate necessary values to obtain current tick FPS
-			let now = performance.now();
+			// let now = performance.now();
 			let delta = (now - this._lastTick_)/1000;
 			let fps = 1/delta;
 			// add to fps samples, current tick fps value 
@@ -884,9 +865,6 @@ let buttons = {
 			else{ rec.checked = false; }
 		}
 	},
-	// getSubscriptions  : function()   { 
-	// 	if(websocket.activeWs){ websocket.activeWs.send("GET_SUBSCRIPTIONS"); }
-	// },
 	addSubscription   : function(key){ 
 		if(websocket.activeWs){ websocket.activeWs.send(JSON.stringify({mode:"SUBSCRIBE", data:key})); }
 	},

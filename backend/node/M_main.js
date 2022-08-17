@@ -1,5 +1,6 @@
 // Packages for THIS module.
 const fs   = require('fs');
+const os       = require('os');
 const path = require('path'); 
 
 // Modules saved within THIS module.
@@ -36,7 +37,11 @@ let _APP = {
 	// Init this module.
 	module_init: function(parent){
 		return new Promise(async function(resolve,reject){
-			// _APP.consolelog("add modules", 2);
+			let key = path.basename(__filename, '.js');
+			_APP.consolelog(".".repeat(54), 0);
+			_APP.consolelog(`START: module_init: ${key} :`, 0);
+			_APP.timeIt(`${key}`, "s"); 
+			
 			_APP.consolelog("add modules", 2);
 			for(let i=0; i<m_modules.length; i+=1){
 				let key = path.basename(m_modules[i], '.js');
@@ -56,6 +61,14 @@ let _APP = {
 			// Add routes.
 			_APP.consolelog("addRoutes", 2);
 			_APP.addRoutes(_APP.app, _APP.express);
+
+			_APP.timeIt(`${key}`, "e");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+			_APP.consolelog(".".repeat(54), 0);
+			_APP.consolelog("", 0);
+
+			//
+			await _APP.m_config.get_configs();
 
 			resolve();
 		});
@@ -168,6 +181,276 @@ let _APP = {
 
 	// *****************
 
+	// DEBUG: Used to measure how long something takes.
+	timeIt_timings : { },
+	timeIt_timings_prev : { },
+	timeIt: function(key, type){
+		if(type == "s"){
+			_APP.timeIt_timings[key] = { s: performance.now(), e: 0, t: 0, };
+		}
+		else if(type == "e"){
+			if(_APP.timeIt_timings[key]){
+				_APP.timeIt_timings[key].e = performance.now();
+				_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
+
+				// Add to prev
+				_APP.timeIt_timings_prev[key] = {
+					s: _APP.timeIt_timings[key].s,
+					e: _APP.timeIt_timings[key].e,
+					t: _APP.timeIt_timings[key].t,
+				}
+			}
+		}
+		else if(type == "t"){
+			if(_APP.timeIt_timings[key]){
+				return _APP.timeIt_timings[key].t;
+			}
+			return -1;
+		}
+	},
+
+	removeProcessByPort : function(ports, display=false){
+		// Remove any potential duplicates in the ports list. 
+		ports = [...new Set(ports)] ;
+	
+		// _APP.consolelog(`Removing processes using ports: ${ports}`, 2);
+	
+		//
+		let closed = [];
+		return new Promise(async function(resolve,reject){
+			// Add promises for each removal.
+			let proms = [];
+			let responses = [];
+			for(let i=0; i<ports.length; i+=1){
+				proms.push(
+					new Promise(function(res,rej){
+						let resp; 
+						let port = ports[i];
+						try{ 
+							resp = _APP.rpbp(port).catch( (e)=>{throw e;});
+							resp.then(function(data){
+								// Add to the removed ports.
+								if(data.removed){ closed.push(port); }
+
+								// Normal run? 
+								if(data.success){
+									if(data.removed){ 
+										if(closed.length){
+											if(display){ 
+												// _APP.consolelog(`${data.text}`, 2); 
+												responses.push(data.text);
+											} 
+										}
+									}
+								}
+								
+								// Error.
+								else{ 
+									// _APP.consolelog(`ERROR: ${data}`, 4); 
+									responses.push(data);
+								}
+								res(data);
+							});
+						} 
+						catch(e){ 
+							resp = e; 
+							console.log("   ERROR:", e);
+							rej(resp);
+						} 
+					})
+				);
+			}
+
+			// Wait for all promises to resolve.
+			await Promise.all(proms);
+
+			// Output the results. 
+			if(closed.length){
+				// _APP.consolelog(`Processes were removed on these ports: ${closed}`, 2);
+				resolve(responses);
+			}
+			else{
+				// _APP.consolelog(`No matching processes were found.`, 2);
+				resolve(responses);
+			}
+
+			// resolve();
+		})
+	},
+
+	consolelog: function(str, indent=2){
+		// m_config isn't loaded yet. Print the message anyway.
+		let prefix = "[LOG]  :";
+
+		if(!_APP.m_config ){ 
+			console.log(`${prefix}${" ".repeat(indent)}`, str);
+			return; 
+		}
+		// m_config is loaded but not inited yet. Print the message anyway.
+		else if(_APP.m_config.config && !_APP.m_config.config.toggles){ 
+			console.log(`${prefix}${" ".repeat(indent)}`, str);
+			return; 
+		}
+		// Do the normal checks. 
+		else{
+			try{
+				if(_APP.m_config.config.toggles.show_APP_consolelog){
+					prefix = "[LOG] ::";
+					console.log(`${prefix}${" ".repeat(indent)}`, str);
+				}
+			}
+			catch(e){
+				console.log(e);
+				// console.log(`${prefix}${" ".repeat(indent)}`, str);
+			}
+		}
+	},
+
+	// Calculates the average frames per second.
+	fps : {
+		// colxi: https://stackoverflow.com/a/55644176/2731377
+		sampleSize : 60,    
+		value   : 0, // Value and average are the same value.
+		average : 0, // Value and average are the same value.
+		_sample_ : [],
+		_index_ : 0,
+		_lastTick_: performance.now(),
+		tick : function(now){
+			// if is first tick, just set tick timestamp and return
+			if( !this._lastTick_ ){
+				// this._lastTick_ = performance.now();
+				this._lastTick_ = now;
+				return 0;
+			}
+			// calculate necessary values to obtain current tick FPS
+			// let now = performance.now();
+			let delta = (now - this._lastTick_)/1000;
+			let fps = 1/delta;
+			// add to fps samples, current tick fps value 
+			this._sample_[ this._index_ ] = Math.round(fps);
+			// this._sample_[ this._index_ ] = Math.floor(fps);
+			// this._sample_[ this._index_ ] = Math.ceil(fps);
+			
+			// iterate samples to obtain the average
+			let average = 0;
+			for(i=0; i<this._sample_.length; i++) average += this._sample_[ i ];
+			// average = Math.round( average / this._sample_.length);
+			average = Math.round( average / this.sampleSize);
+			// average = Math.floor( average / this.sampleSize);
+			// average = Math.ceil( average / this.sampleSize);
+	
+			// set new FPS
+			this.value = average;
+			this.average = average;
+
+			// store current timestamp
+			this._lastTick_ = now;
+
+			// increase sample index counter, and reset it
+			// to 0 if exceded maximum sampleSize limit
+			this._index_++;
+			if( this._index_ === this.sampleSize) this._index_ = 0;
+			
+			return this.value;
+		},
+		init: function(sampleSize){
+			// Set the values. 
+			this.sampleSize = sampleSize;
+			// this.sampleSize = 60;
+
+			// Create new samples array (typed.)
+			this._sample_ = new Uint8Array( new ArrayBuffer(this.sampleSize) )
+			// for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = this.sampleSize; }
+			for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = sampleSize; }
+			// for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = 0; }
+			
+			this._index_    = 0 ;
+			this.value      = sampleSize ;
+			this.average    = sampleSize ;
+			this._lastTick_ = false ;
+		},
+	},	
+
+	// Used by APP LOOP.
+	stats : {
+		now      : performance.now(),
+		_then    : performance.now(),
+		delta    : 0,
+		fps      : 0,
+		interval : 0,
+		lastDiff : 0,
+	
+		setFps: function(newFPS){
+			if(!newFPS){ 
+				console.log("setFps: Invalid newFPS. Assigning it to 1");
+				newFPS = 1; 
+			}
+
+			// Ensure only integers will be used.
+			newFPS = Math.floor(newFPS);
+
+			// If FPS is 60 (max) then there is no time between frames which will block anything that is outside of the main game loop such as debug.)
+			// if(newFPS >= 60){ newFPS=59; }
+			
+			// Make sure at least 1 fps is set. 
+			if(newFPS <= 0){ newFPS=1; }
+
+			// Set the values
+			_APP.stats.fps      = newFPS;
+			_APP.stats.interval = 1000/newFPS;
+		},
+	},
+
+	// Displays system data (using during application init.)
+	displaySysData_init: function(){
+		// Display system data.
+		_APP.consolelog(".".repeat(54), 0);
+		_APP.consolelog(`START: sysData :`, 0);
+		_APP.timeIt(`sysData`, "s"); 
+		let sysData = _APP.getSysData();
+		for(let key in sysData){
+			let line1 = `${key.toUpperCase()}`.padEnd(12, " ") +": "+ `${JSON.stringify(sysData[key],null,0)}`;
+			_APP.consolelog(line1, 2);
+		}
+		_APP.timeIt(`sysData`, "e"); 
+		_APP.consolelog(`END  : TIME: ${_APP.timeIt(`sysData`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+		_APP.consolelog(".".repeat(54), 0);
+		_APP.consolelog("");
+	},
+
+	// Returns system data.
+	getSysData :function(){ 
+		return {
+			platform  : os.platform(),
+			type      : os.type(),
+			release   : os.release(),
+			arch      : os.arch(),
+			cpus      : os.cpus().map( d=> { return {model: d.model, speed: d.speed }; } ) ,
+			endianness: os.endianness(),
+			memory    : { freemem: os.freemem().toLocaleString(), totalmem: os.totalmem().toLocaleString() },
+			network   : (()=>{
+				let data = os.networkInterfaces();
+				let resp = [];
+				for(let key in data){
+					// console.log("**", key);
+					for(let key2 in data[key]){
+						let rec = data[key][key2];
+						if(!rec.internal && rec.family == "IPv4"){ resp.push({"iface": key, "cidr": rec.cidr}); }
+					}
+				}
+				return resp;
+			})(), 
+			userInfo  : (()=>{
+				let data = os.userInfo();
+				return {"username": data.username, "homedir": data.homedir, "shell": data.shell} ;
+			})(),
+			cwd       : process.cwd(),
+			tmpdir    : os.tmpdir(),
+		};
+	},
+
+	// *****************
+	
 	screens: [], // Populated by this module_init.
 	// currentScreen : "m_s_test_1",
 	currentScreen : "m_s_title",
@@ -320,223 +603,6 @@ let _APP = {
 		},
 		screens: {},
 	},
-
-	// DEBUG: Used to measure how long something takes.
-	timeIt_timings : { },
-	timeIt_timings_prev : { },
-	timeIt: function(key, type){
-		if(type == "s"){
-			_APP.timeIt_timings[key] = { s: performance.now(), e: 0, t: 0, };
-		}
-		else if(type == "e"){
-			if(_APP.timeIt_timings[key]){
-				_APP.timeIt_timings[key].e = performance.now();
-				_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
-
-				// Add to prev
-				_APP.timeIt_timings_prev[key] = {
-					s: _APP.timeIt_timings[key].s,
-					e: _APP.timeIt_timings[key].e,
-					t: _APP.timeIt_timings[key].t,
-				}
-			}
-		}
-		else if(type == "t"){
-			if(_APP.timeIt_timings[key]){
-				return _APP.timeIt_timings[key].t;
-			}
-			return -1;
-		}
-	},
-
-	removeProcessByPort : function(ports, display=false){
-		// Remove any potential duplicates in the ports list. 
-		ports = [...new Set(ports)] ;
-	
-		// _APP.consolelog(`Removing processes using ports: ${ports}`, 2);
-	
-		//
-		let closed = [];
-		return new Promise(async function(resolve,reject){
-			// Add promises for each removal.
-			let proms = [];
-			let responses = [];
-			for(let i=0; i<ports.length; i+=1){
-				proms.push(
-					new Promise(function(res,rej){
-						let resp; 
-						let port = ports[i];
-						try{ 
-							resp = _APP.rpbp(port).catch( (e)=>{throw e;});
-							resp.then(function(data){
-								// Add to the removed ports.
-								if(data.removed){ closed.push(port); }
-
-								// Normal run? 
-								if(data.success){
-									if(data.removed){ 
-										if(closed.length){
-											if(display){ 
-												// _APP.consolelog(`${data.text}`, 2); 
-												responses.push(data.text);
-											} 
-										}
-									}
-								}
-								
-								// Error.
-								else{ 
-									// _APP.consolelog(`ERROR: ${data}`, 4); 
-									responses.push(data);
-								}
-								res(data);
-							});
-						} 
-						catch(e){ 
-							resp = e; 
-							console.log("   ERROR:", e);
-							rej(resp);
-						} 
-					})
-				);
-			}
-
-			// Wait for all promises to resolve.
-			await Promise.all(proms);
-
-			// Output the results. 
-			if(closed.length){
-				// _APP.consolelog(`Processes were removed on these ports: ${closed}`, 2);
-				resolve(responses);
-			}
-			else{
-				// _APP.consolelog(`No matching processes were found.`, 2);
-				resolve(responses);
-			}
-
-			// resolve();
-		})
-	},
-
-	consolelog: function(str, indent=2){
-		// m_config isn't loaded yet. Print the message anyway.
-		let prefix = "[LOG] ::";
-
-		if(!_APP.m_config ){ 
-			console.log(`${prefix} ${" ".repeat(indent)}${str}`);
-			return; 
-		}
-		// m_config is loaded but not inited yet. Print the message anyway.
-		else if(_APP.m_config.config && !_APP.m_config.config.toggles){ 
-			console.log(`${prefix} ${" ".repeat(indent)}${str}`);
-			return; 
-		}
-		// Do the normal checks. 
-		else{
-			try{
-				if(_APP.m_config.config.toggles.show_APP_consolelog){
-					prefix = "[LOG] : ";
-					console.log(`${prefix} ${" ".repeat(indent)}${str}`);
-				}
-			}
-			catch(e){
-				console.log(e);
-				// console.log(`${prefix} ${" ".repeat(indent)}${str}`);
-			}
-		}
-	},
-
-	// Calculates the average frames per second.
-	fps : {
-		// colxi: https://stackoverflow.com/a/55644176/2731377
-		sampleSize : 60,    
-		value   : 0, // Value and average are the same value.
-		average : 0, // Value and average are the same value.
-		_sample_ : [],
-		_index_ : 0,
-		_lastTick_: performance.now(),
-		tick : function(){
-			// if is first tick, just set tick timestamp and return
-			if( !this._lastTick_ ){
-				this._lastTick_ = performance.now();
-				return 0;
-			}
-			// calculate necessary values to obtain current tick FPS
-			let now = performance.now();
-			let delta = (now - this._lastTick_)/1000;
-			let fps = 1/delta;
-			// add to fps samples, current tick fps value 
-			this._sample_[ this._index_ ] = Math.round(fps);
-			// this._sample_[ this._index_ ] = Math.floor(fps);
-			// this._sample_[ this._index_ ] = Math.ceil(fps);
-			
-			// iterate samples to obtain the average
-			let average = 0;
-			for(i=0; i<this._sample_.length; i++) average += this._sample_[ i ];
-			// average = Math.round( average / this._sample_.length);
-			average = Math.round( average / this.sampleSize);
-			// average = Math.floor( average / this.sampleSize);
-			// average = Math.ceil( average / this.sampleSize);
-	
-			// set new FPS
-			this.value = average;
-			this.average = average;
-
-			// store current timestamp
-			this._lastTick_ = now;
-
-			// increase sample index counter, and reset it
-			// to 0 if exceded maximum sampleSize limit
-			this._index_++;
-			if( this._index_ === this.sampleSize) this._index_ = 0;
-			
-			return this.value;
-		},
-		init: function(sampleSize){
-			// Set the values. 
-			this.sampleSize = sampleSize;
-			// this.sampleSize = 60;
-
-			// Create new samples array (typed.)
-			this._sample_ = new Uint8Array( new ArrayBuffer(this.sampleSize) )
-			// for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = this.sampleSize; }
-			for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = sampleSize; }
-			// for (let i=0; i<this.sampleSize; ++i) { this._sample_[i] = 0; }
-			
-			this._index_    = 0    ;
-			this._lastTick_ = false;
-		},
-	},	
-
-	// APP LOOP.
-	stats : {
-		now      : performance.now(),
-		_then    : performance.now(),
-		delta    : 0,
-		fps      : 0,
-		interval : 0,
-		lastDiff : 0,
-	
-		setFps: function(newFPS){
-			if(!newFPS){ 
-				console.log("setFps: Invalid newFPS. Assigning it to 1");
-				newFPS = 1; 
-			}
-
-			// Ensure only integers will be used.
-			newFPS = Math.floor(newFPS);
-
-			// If FPS is 60 (max) then there is no time between frames which will block anything that is outside of the main game loop such as debug.)
-			// if(newFPS >= 60){ newFPS=59; }
-			
-			// Make sure at least 1 fps is set. 
-			if(newFPS <= 0){ newFPS=1; }
-
-			// Set the values
-			_APP.stats.fps      = newFPS;
-			_APP.stats.interval = 1000/newFPS;
-		},
-	},
 };
 
 // Save app and express to _APP and then return _APP.
@@ -545,18 +611,6 @@ module.exports = async function(app, express, server){
 	_APP.app     = app;
 	_APP.express = express;
 	_APP.server  = server;
-
-	// Init this module.
-	let key = path.basename(__filename, '.js');
-	_APP.consolelog(".".repeat(54), 0);
-	_APP.consolelog(`START: module_init: ${key} :`, 0);
-	_APP.timeIt(`${key}`, "s"); await _APP.module_init(_APP); _APP.timeIt(`${key}`, "e");
-	_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
-	_APP.consolelog(".".repeat(54), 0);
-	_APP.consolelog("", 0);
-
-	//
-	await _APP.m_config.get_configs();
 
 	// Return a reference to _APP.
 	return _APP;

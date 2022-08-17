@@ -21,6 +21,7 @@ let _MOD = {
 				_APP.consolelog("addRoutes", 2);
 				_MOD.addRoutes(_APP.app, _APP.express);
 
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 
@@ -140,32 +141,50 @@ let screen = {
 			thisScreen.lines2=[];
 			
 			let y=7;
-			let isOver = (_APP.stats.lastDiff) > _APP.stats.interval;
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
 			thisScreen.lines2.push(`FPS AVG/CONF: ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(7, " ")}` + `${("("+(_APP.fps._index_+1).toFixed(0) +"/"+ (_APP.fps.sampleSize-0).toFixed(0) +")").padStart(8, " ")}`);
 			thisScreen.lines2.push(`SET MS/FRAME: ${_APP.stats.interval.toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`MS DELTA    : ${_APP.stats.delta   .toFixed(2).padStart(7, " ")}`);
-			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ") + (isOver?" OVER":"     ") }`);
+			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ") }`);
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
-
+			
 			let totalTime = _APP.timeIt_timings_prev["FULLLOOP"].t;
 			let gpio          = _APP.timeIt_timings_prev["GPIO"].t;          let gpio_p          = ((gpio          / totalTime)*100).toFixed(2);
 			let logic         = _APP.timeIt_timings_prev["LOGIC"].t;         let logic_p         = ((logic         / totalTime)*100).toFixed(2);
 			let displayupdate = _APP.timeIt_timings_prev["DISPLAY"].t; let displayupdate_p = ((displayupdate / totalTime)*100).toFixed(2);
-			thisScreen.lines2.push( `GPIO    :${gpio         .toFixed(2).padStart(6, " ")} / ${(gpio_p          + '%').padStart(8, " ")}` );
-			thisScreen.lines2.push( `LOGIC   :${logic        .toFixed(2).padStart(6, " ")} / ${(logic_p         + '%').padStart(8, " ")}` );
-			thisScreen.lines2.push( `DISPLAY :${displayupdate.toFixed(2).padStart(6, " ")} / ${(displayupdate_p + '%').padStart(8, " ")}` );
-			thisScreen.lines2.push(`FULLLOOP:${totalTime     .toFixed(2).padStart(6, " ")}`);
+			thisScreen.lines2.push( `GPIO    :${gpio         .toFixed(2).padStart(7, " ")} / ${(gpio_p          + '%').padStart(9, " ")}` );
+			thisScreen.lines2.push( `LOGIC   :${logic        .toFixed(2).padStart(7, " ")} / ${(logic_p         + '%').padStart(9, " ")}` );
+			thisScreen.lines2.push( `DISPLAY :${displayupdate.toFixed(2).padStart(7, " ")} / ${(displayupdate_p + '%').padStart(9, " ")}` );
+			// FULL LOOP line.
+			(
+				function(){
+					let isOver = Math.sign((totalTime) - _APP.stats.interval) == 1 ;
+					let line1="";
+					let line2="";
+
+					if(isOver){
+						let diff = (totalTime-_APP.stats.interval);
+						line1 = ` ! ${"+"+(diff.toFixed(0)).padStart(4)} MS`;
+					}
+
+					line2 += `FULLLOOP:`;
+					line2 += totalTime.toFixed(2).padStart(7, " ");
+					// line2 += line1;
+
+					thisScreen.lines2.push( (line2.padEnd(16, " ") + line1.padEnd(14, " ")));
+				}
+			)();
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
 			let t1a = ((performance.now()-thisScreen.lastTimeUpdate)/1000)   .toFixed(1).toString().padStart(3, " ");
-			let t1b = ((thisScreen.timeUpdateMs)/1000)                  .toFixed(1).toString().padStart(3, " ");;
+			let t1b = ((thisScreen.timeUpdateMs)/1000)                       .toFixed(1).toString().padStart(3, " ");
 			let t2a = ((performance.now()-thisScreen.lastBatteryUpdate)/1000).toFixed(1).toString().padStart(3, " ");
-			let t2b = ((thisScreen.batteryUpdateMs)/1000)               .toFixed(1).toString().padStart(3, " ");;
-			thisScreen.lines2.push(`TIME UPDATES: ${t1a}/${t1b} (${thisScreen.flag2 ? "1" : "0"})`);
-			thisScreen.lines2.push(`BATT UPDATES: ${t2a}/${t2b} (${thisScreen.flag3 ? "1" : "0"})`);
+			let t2b = ((thisScreen.batteryUpdateMs)/1000)                    .toFixed(1).toString().padStart(3, " ");
+			thisScreen.lines2.push(`TIME UPDATES: ${t1a} / ${t1b} (${thisScreen.flag2 ? "1" : "0"})`.padEnd(30, " "));
+			thisScreen.lines2.push(`BATT UPDATES: ${t2a} / ${t2b} (${thisScreen.flag3 ? "1" : "0"})`.padEnd(30, " "));
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
+			// Timing test.
 			thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFrames    (1.0) .toFixed(1).toString().padStart(8, " ") +" FRAMES ");
 			thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFramesToMs(1.0) .toFixed(1).toString().padStart(8, " ") +" MS     ");
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
@@ -196,7 +215,6 @@ let screen = {
 			if( _APP.m_gpio.isHeld ("KEY1_PIN")      ){ _APP.m_draw.setTile("btn_a_active", x++, y); } else{ _APP.m_draw.setTile("btn_a", x++, y); }
 			if( _APP.m_gpio.isHeld ("KEY2_PIN")      ){ _APP.m_draw.setTile("btn_b_active", x++, y); } else{ _APP.m_draw.setTile("btn_b", x++, y); }
 			if( _APP.m_gpio.isHeld ("KEY3_PIN")      ){ _APP.m_draw.setTile("btn_c_active", x++, y); } else{ _APP.m_draw.setTile("btn_c", x++, y); }
-			// resolve(); return; 
 			y++;
 			
 			x=15;
@@ -226,13 +244,7 @@ let screen = {
 
 			if(performance.now() - thisScreen.lastTimeUpdate >= thisScreen.timeUpdateMs ){
 				thisScreen.shared.time.display(0, 29, "tile3");
-				
-				if(thisScreen.flag2){ 
-				}
-				else{ 
-				}
 				thisScreen.flag2 = !thisScreen.flag2;
-
 				thisScreen.lastTimeUpdate = performance.now();
 			}
 			
@@ -240,6 +252,7 @@ let screen = {
 			thisScreen.shared.battery.display(23, 29, "tile3");
 			if(performance.now() - thisScreen.lastBatteryUpdate >= thisScreen.batteryUpdateMs ){
 				_APP.m_websocket_python.getBatteryUpdate();
+				thisScreen.flag3 = !thisScreen.flag3;
 				thisScreen.lastBatteryUpdate = performance.now();
 			}
 			

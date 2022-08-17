@@ -27,10 +27,6 @@ let _MOD = {
 				// Save reference to the parent module.
 				_APP = parent;
 		
-				// Add routes.
-				_APP.consolelog("addRoutes", 2);
-				_MOD.addRoutes(_APP.app, _APP.express);
-				
 				// Update local config.
 				_APP.consolelog("updateLocalConfig", 2);
 				_MOD.serverFile = _APP.m_config.config.python.file;
@@ -68,6 +64,12 @@ let _MOD = {
 				else{
 					_APP.consolelog("DISABLED IN CONFIG", 2);
 				}
+
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 			resolve();
@@ -250,8 +252,8 @@ let _MOD = {
 
 		// Start the server.
 		_MOD.cp_child = child_process.spawn(
-			// "python3", ["-u", _MOD.serverFile]
-			"python3", [_MOD.serverFile]
+			"python3", ["-u", _MOD.serverFile]
+			// "python3", [_MOD.serverFile]
 		);
 
 		// Add event handlers.

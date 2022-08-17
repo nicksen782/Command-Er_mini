@@ -18,11 +18,11 @@ let _MOD = {
 	
 	// Data"
 	config            : {},
-	coordsByIndex     : {},
-	indexByCoords     : {},
-	tileCoords        : {},
-	tileIdsByTilename : {},
-	tilenamesByIndex  : {},
+	coordsByIndex     : {}, // UNUSED
+	indexByCoords     : {}, // m_draw (_updateVramTile_flat)
+	tileCoords        : {}, // m_canvas (generateTileCaches)
+	tileIdsByTilename : {}, // m_draw (_initVram, _updateVramTile_flat)
+	tilenamesByIndex  : {}, // m_draw (setTile)
 	remoteConf        : [],
 
 	// Init this module.
@@ -40,6 +40,7 @@ let _MOD = {
 				_APP.consolelog("addRoutes", 2);
 				_MOD.addRoutes(_APP.app, _APP.express);
 
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 			resolve();

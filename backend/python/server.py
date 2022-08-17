@@ -1,6 +1,7 @@
 # SHARED
 import json
 import os
+import signal
 import sys
 # SHARED
 
@@ -16,7 +17,7 @@ class Server:
     c_battery=False
     c_websocketserver=False
     config=False
-	
+    
     def __init__(self):
         # print(f"SERVER START")
         
@@ -30,6 +31,8 @@ class Server:
 
         # Start servers/services. (The rest of the program is just responses from services.)
         if self.config['toggles']['isActive_pythonWsServer']:
+            signal.signal(signal.SIGINT, self.signal_handler)
+
             # Start the server.
             self.c_websocketserver.startServer()
             
@@ -38,6 +41,12 @@ class Server:
 
             # Serve forever.
             self.c_websocketserver.serverInstance.serve_forever()
+
+    def signal_handler(self, sig, frame):
+        # print('You pressed Ctrl+C!')
+        # self.c_websocketserver.serverInstance.server_close()
+        print(f"Python server closed")
+        sys.exit(0)
 
 # Start
 server = Server()

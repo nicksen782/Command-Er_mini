@@ -24,15 +24,16 @@ let _MOD = {
 			if(!_MOD.moduleLoaded){
 				// Save reference to the parent module.
 				_APP = parent;
-		
+				
+				// VRAM init.
+				_APP.consolelog("_initVram", 2);
+				_MOD.init._initVram(); // Init the _VRAM array. (Also clears it.)
+				
 				// Add routes.
 				_APP.consolelog("addRoutes", 2);
 				_MOD.addRoutes(_APP.app, _APP.express);
-				
-				// VRAM init.
-				_APP.consolelog("LCD VRAM init", 2);
-				await _MOD.init();
 
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 
@@ -89,54 +90,6 @@ let _MOD = {
 	// ***************
 
 	// Functions used for "drawing".
-
-	// Init the _VRAM array.
-	_initVram: function(){
-		if(!_MOD._VRAM_inited){
-			// Get the LCD config.
-			let conf = _APP.m_config.config.lcd;
-			let ts = conf.tileset;
-			let numIndexes = ( ts.rows*ts.cols) * ts.tilesInCol;
-			
-			// Create the _VRAM arraybuffer.
-			_MOD._VRAM = new ArrayBuffer(numIndexes);
-
-			// Create the _VRAM dataview.
-			_MOD._VRAM_view = new Uint8Array(_MOD._VRAM);
-
-			// Fill the _VRAM with the "space" tile (fully transparent and blank.)
-			_MOD._VRAM_view.fill( _APP.m_config.tileIdsByTilename["n "] );
-
-			// Init the _VRAM_changes array.
-			for(let i=0; i<ts.tilesInCol; i+=1){
-				_MOD._VRAM_changes.push( [] );
-				for(let y=0; y<ts.rows; y+=1){
-					for(let x=0; x<ts.cols; x+=1){
-						let key = `Y${y}_X${x}`;
-						let tileId = _APP.m_config.tileIdsByTilename["n "];
-						_MOD._VRAM_changes[i][key] = {y:y, x:x, t:tileId, c:false };
-					}
-				}
-			}
-			_MOD.clear_VRAM_changes();
-
-			// Set the inited flag.
-			_MOD._VRAM_inited = true;
-
-			// Init _MOD._VRAM_updateStats
-			for(let layer_i=0; layer_i<ts.tilesInCol; layer_i+=1){
-				_MOD._VRAM_updateStats[layer_i] = { 
-					"layer"     : layer_i, 
-					"updates"   : 0, 
-					"real"      : 0 ,
-					"overwrites": 0
-				}
-			}
-
-			// Set the lcdUpdateNeeded flag.
-			_MOD.lcdUpdateNeeded = true;
-		}
-	},
 
 	// Clear _VRAM_changes.
 	clear_VRAM_changes: function(){
@@ -300,13 +253,61 @@ let _MOD = {
 	},
 
 	//
-	init: async function(){
-		return new Promise(async function(resolve,reject){
-			// Init the _VRAM array. (Also clears it.)
-			_MOD._initVram();
-			
-			resolve(); return; 
-		});
+	init: {
+		// Init the _VRAM array.
+		_initVram: function(){
+			if(!_MOD._VRAM_inited){
+				// Get the LCD config.
+				let conf = _APP.m_config.config.lcd;
+				let ts = conf.tileset;
+				let numIndexes = ( ts.rows*ts.cols) * ts.tilesInCol;
+				
+				// Create the _VRAM arraybuffer.
+				_MOD._VRAM = new ArrayBuffer(numIndexes);
+
+				// Create the _VRAM dataview.
+				_MOD._VRAM_view = new Uint8Array(_MOD._VRAM);
+
+				// Fill the _VRAM with the "space" tile (fully transparent and blank.)
+				let tileId = _APP.m_config.tileIdsByTilename["n "];
+				// console.log("_initVram:", tileId);
+
+				// Init the _VRAM_changes array.
+				for(let i=0; i<ts.tilesInCol; i+=1){
+					_MOD._VRAM_changes.push( [] );
+					for(let y=0; y<ts.rows; y+=1){
+						for(let x=0; x<ts.cols; x+=1){
+							let key = `Y${y}_X${x}`;
+							_MOD._VRAM_changes[i][key] = {
+								x: x, 
+								y: y, 
+								t: tileId, 
+								c: false, 
+								l: i
+							};
+						}
+					}
+				}
+				_MOD.clear_VRAM_changes();
+
+				
+				// Init _MOD._VRAM_updateStats
+				for(let layer_i=0; layer_i<ts.tilesInCol; layer_i+=1){
+					_MOD._VRAM_updateStats[layer_i] = { 
+						"layer"     : layer_i, 
+						"updates"   : 0, 
+						"real"      : 0 ,
+						"overwrites": 0
+					}
+				}
+
+				// Set the inited flag.
+				_MOD._VRAM_inited = true;
+
+				// Set the lcdUpdateNeeded flag.
+				_MOD.lcdUpdateNeeded = true;
+			}
+		},
 	},
 
 };

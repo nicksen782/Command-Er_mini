@@ -23,10 +23,6 @@ let _MOD = {
 				// Save reference to the parent module.
 				_APP = parent;
 		
-				// Add routes.
-				_APP.consolelog("addRoutes", 2);
-				_MOD.addRoutes(_APP.app, _APP.express);
-				
 				_APP.consolelog("Node WebSockets Server", 2);
 				if(_APP.m_config.config.toggles.isActive_nodeWsServer){
 					_APP.consolelog("Create Server", 4);
@@ -40,6 +36,11 @@ let _MOD = {
 					_MOD.ws = null;
 				}
 
+				// Add routes.
+				_APP.consolelog("addRoutes", 2);
+				_MOD.addRoutes(_APP.app, _APP.express);
+
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 

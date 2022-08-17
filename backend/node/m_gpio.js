@@ -57,6 +57,7 @@ let _MOD = {
 				_APP.consolelog("addRoutes", 2);
 				_MOD.addRoutes(_APP.app, _APP.express);
 
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 

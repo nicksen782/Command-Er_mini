@@ -19,6 +19,7 @@ let _MOD = {
 				_APP.consolelog("addRoutes", 2);
 				_MOD.addRoutes(_APP.app, _APP.express);
 
+				// Set the moduleLoaded flag.
 				_MOD.moduleLoaded = true;
 			}
 			resolve();
@@ -32,11 +33,7 @@ let _MOD = {
 	// Begins the appLoop.
 	startAppLoop: function(){
 		// Create new.
-		_APP.drawLoop =  new _APP.m_drawLoop.drawLoop({
-			// framesPerSecond: _APP.m_config.config.node.fps,
-			// maxFrameSkip: 1,
-			// waitTime: 0
-		});
+		_APP.drawLoop =  new drawLoop();
 		
 		// 
 		_APP.drawLoop.on( 'init'  , _APP.m_drawLoop.initHandler   );
@@ -47,9 +44,6 @@ let _MOD = {
 		_APP.drawLoop.emit('init');
 		_APP.drawLoop.start();
 	},
-
-	// Will hold a reference to the drawLoop class.
-	drawLoop: null,
 
 	// ****************
 
@@ -68,25 +62,24 @@ let _MOD = {
 		getChanges: function(){
 			// Determine changes.
 			let _changesFullFlat = [];
-			let drawNeeded = false;
+			let len1, len2, layer, keys, key, layer_i, k_i;
 
 			// Go through each _VRAM_changes layer. 
-			for(let layer_i=0; layer_i<_APP.m_draw._VRAM_changes.length; layer_i+=1){
+			len1 = _APP.m_draw._VRAM_changes.length;
+			for(layer_i=0; layer_i<len1; layer_i+=1){
 				// Get the layer.
-				let layer = _APP.m_draw._VRAM_changes[layer_i];
+				layer = _APP.m_draw._VRAM_changes[layer_i];
 				
 				// Key the layer's keys. 
-				let keys = Object.keys(layer);
+				keys = Object.keys(layer);
 				
 				// Go through each key in the layer.
-				for(let k_i=0; k_i<keys.length; k_i+=1){
-					let key = keys[k_i];
+				len2 = keys.length;
+				for(k_i=0; k_i<keys.length; k_i+=1){
+					key = keys[k_i];
 				
 					// Is this a change?
 					if(layer[key].c){
-						// Set the drawNeeded flag.
-						drawNeeded = true;
-
 						// Add the change to _changesFullFlat.
 						_changesFullFlat.push( layer[key].l, layer[key].x, layer[key].y, layer[key].t );
 					}
@@ -96,10 +89,8 @@ let _MOD = {
 				_APP.m_draw._VRAM_updateStats[layer_i].overwrites = _APP.m_draw._VRAM_updateStats[layer_i].updates - _APP.m_draw._VRAM_updateStats[layer_i].real;
 			}
 
-			return {
-				_changesFullFlat : _changesFullFlat,
-				drawNeeded       : drawNeeded      ,
-			};
+			return new Uint8Array(_changesFullFlat) ;
+			// return _changesFullFlat ;
 		},
 		sendToWsClients: function(data){
 			// Update the web clients.
@@ -152,10 +143,10 @@ let _MOD = {
 				_APP.timeIt("DISPLAY", "s");
 				
 				// Determine changes.
-				let {_changesFullFlat, drawNeeded } = _MOD.loop.getChanges();
+				let _changesFullFlat = _MOD.loop.getChanges();
 
 				// Is a draw required?
-				if(drawNeeded){
+				if(_changesFullFlat.length){
 					// Send 
 					_MOD.loop.sendToWsClients({
 						_changesFullFlat: _changesFullFlat
@@ -192,6 +183,15 @@ class drawLoop extends EventEmitter {
 		super();
 	}
 
+	// Internal variables.
+	_running    = false;
+	_paused     = false;
+	_now        = false;
+	_delta      = false;
+	_lastDiff   = false;
+	_runLoop    = false;
+	_flagsCheck = false;
+
 	// Getters.
 	//
 	
@@ -199,12 +199,14 @@ class drawLoop extends EventEmitter {
 	//
 
 	start() {
-		// this.emit('start');
+		// console.log("start");
 		this._running = true;
+		// this.emit('start');
 		this._loop();
 	}
 	
 	stop() {
+		// console.log("stop");
 		this._running = false;
 		// this.emit('stop');
 	}
@@ -217,36 +219,37 @@ class drawLoop extends EventEmitter {
 		this._paused = false;
 	}
 
-	_loop() {
+	_loop(now) {
 		if(this._running){
-			// How long has it been since a full loop has been completed?
-			let now   = performance.now();
-			let delta = now - (_APP.stats._then);
-			let lastDiff  = (_APP.stats.interval-delta);
-			
 			if(!this._paused){
+				// How long has it been since a full loop has been completed?
+				// this._now       = performance.now();
+				this._now       = now;
+				this._delta     = this._now - (_APP.stats._then);
+				this._lastDiff  = (_APP.stats.interval - this._delta);
+
 				// Should the full loop run?
-				let runLoop = ((delta >= _APP.stats.interval)) ? true : false;
-				let flagsCheck = (!_APP.m_draw.updatingLCD) ? true : false;
-				if(runLoop && flagsCheck){ 
+				this._runLoop = (this._delta >= _APP.stats.interval) ? true : false;
+				this._flagsCheck = (!_APP.m_draw.updatingLCD)        ? true : false;
+				if(this._runLoop && this._flagsCheck){ 
 					// Track performance.
-					_APP.fps.tick();
-					_APP.stats.lastDiff = lastDiff; 
-					_APP.stats._then = _APP.fps._lastTick_; 
-					_APP.stats.now   = now;
-					_APP.stats.delta = delta;
+					_APP.fps.tick(now);
+					_APP.stats.lastDiff = this._lastDiff; 
+					_APP.stats._then    = _APP.fps._lastTick_; 
+					_APP.stats.now      = this._now;
+					_APP.stats.delta    = this._delta;
 
 					// Request an appLoop update.
-					this.emit('update', now, delta, lastDiff); 
+					this.emit('update'); 
 				}
 			}
 
 			// Schedule the next potential update.
-			setTimeout(() => this._loop(), 0); // Varying CPU % but 30%-50% less than setImmediate.
+			setTimeout(() => this._loop(performance.now()), 0); // Varying CPU % but 30%-50% less than setImmediate.
 		}
 	}
 };
 
-_MOD.drawLoop = drawLoop;
+// _MOD.drawLoop = drawLoop;
 
 module.exports = _MOD;
