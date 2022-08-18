@@ -39,7 +39,7 @@ let screen = {
 	// Variables.
 	inited: false,
 	lines:[],
-	counter : 5,
+	counter : 0,
 	lastCounterUpdate:null,
 	screenEndDelayMs:null,
 
@@ -123,7 +123,7 @@ let screen = {
 		thisScreen.lines = [];
 		thisScreen.lastCounterUpdate = performance.now();
 		thisScreen.screenEndDelayMs = thisScreen.shared.secondsToFramesToMs(thisScreen.screenEndDelaySeconds);
-		thisScreen.counter = 3;
+		thisScreen.counter = 2;
 
 		_APP.m_draw.print((thisScreen.counter-1).toString() , ts.cols-1 , ts.rows-1);
 
@@ -147,11 +147,12 @@ let screen = {
 				if(thisScreen.counter >= 1){
 					_APP.m_draw.print((thisScreen.counter-1).toString() , ts.cols-1 , ts.rows-1);
 				}
+				else if(thisScreen.counter == 0){
+					// thisScreen.shared.changeScreen.specific("m_s_test_1");
+					thisScreen.shared.changeScreen.specific("m_s_host_select");
+				}
 				
 				thisScreen.lastCounterUpdate = performance.now();
-			}
-			if(thisScreen.counter == 0){
-				thisScreen.shared.changeScreen.specific("m_s_test_1");
 			}
 
 			resolve();

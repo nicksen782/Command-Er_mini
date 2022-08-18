@@ -51,23 +51,21 @@
 			<!-- Options 1 -->
 			<table class="ws disconnected">
 				<tr>
+					<td class="title">VRAM Layers</td>
+					<td><input type="checkbox" id="vram_div_layersChk"></td>
+
 					<td class="title">Server FPS: Set</td>
 					<td>
 						<select id="info_changeFps"></select>
 						<button id="info_changeFpsBtn">SET</button>
 					</td>
-
-					<td class="title">Server FPS: Is:</td>
+				</tr>
+				<tr>
+					<td class="title">SUBSCRIPTIONS</td>
 					<td>
-						<span id="info_serverFps"></span>
+						<div id="info_subscriptionsDiv"></div>
 					</td>
-				</tr>
-				<tr>
-					<td class="title">VRAM Layers</td>
-					<td><input type="checkbox" id="vram_div_layersChk"></td>
-				</tr>
-				
-				<tr>
+
 					<td class="title">UPDATESTATS</td>
 					<td>
 						<div id="info_VRAM_UPDATESTATS">
@@ -75,11 +73,17 @@
 							</table>
 						</div>
 					</td>
-
-					<td class="title">SUBSCRIPTIONS</td>
-					<td>
-						<div id="info_subscriptionsDiv"></div>
+				</tr>
+				
+				<tr>
+					<td colspan="1" class="title">SCREENS</td>
+					<td colspan="3">
+						<div id="info_screensDiv1">
+							<table>
+							</table>
+						</div>
 					</td>
+
 				</tr>
 			</table>
 			
@@ -95,6 +99,9 @@
 				<tr>
 					<td class="title table-cell">L:FPS</td>
 					<td> <span id="info_fps">0 f/s</span> </td>
+
+					<td class="title table-cell">S:FPS</td>
+					<td> <span id="info_serverFps"></span> </td>
 
 					<td class="title table-cell">L:draws</td>
 					<td> <span id="info_draws">0</span> </td>
@@ -120,6 +127,10 @@
 				<button id="post_requestVramDraw" class="button">Get _VRAM</button>
 			</div>
 			<button id="post_requestDrawFlags" class="button">Request GET_DRAW_FLAGS</button>
+			<br>
+			<div id="info_screensDiv2">
+			</div>
+
 		</div>
 
 	</div>

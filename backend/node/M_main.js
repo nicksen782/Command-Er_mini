@@ -18,6 +18,7 @@ const rpbp = require( './removeprocess.js' ).run;
 // Screen modules saved within THIS module.
 const m_screens = [
 	'./m_s_title.js',
+	'./m_s_host_select.js',
 	'./m_s_test_1.js',
 ];
 
@@ -81,6 +82,26 @@ let _APP = {
 		app.get('/getRoutePaths'    ,express.json(), async (req, res) => {
 			let resp = _APP.getRoutePaths(req.query.type, app); 
 			res.json(resp);
+		});
+
+		// 
+		_APP.addToRouteList({ path: "/changeScreen", method: "post", args: [], file: __filename, desc: "" });
+		app.post('/changeScreen'    ,express.json(), async (req, res) => {
+			// Pause the drawLoop from running.
+			if(_APP.drawLoop) { _APP.drawLoop.pause(); }
+			
+			// Give enough time for the drawLoop to complete before making the screen change.
+			setTimeout(function(){
+				// Change the screen.
+				_APP.screenLogic.shared.changeScreen.specific(req.body.screen);
+
+				// Unpause. This should be the beginning of the next drawLoop.
+				if(_APP.drawLoop) { _APP.drawLoop.unpause(); }
+
+				// Respond to complete the request.
+				res.json("");
+			}, _APP.timeIt_timings_prev["FULLLOOP"].t || _APP.stats.interval);
+
 		});
 	},
 
@@ -452,8 +473,9 @@ let _APP = {
 	// *****************
 	
 	screens: [], // Populated by this module_init.
-	// currentScreen : "m_s_test_1",
 	currentScreen : "m_s_title",
+	// currentScreen : "m_s_host_select",
+	// currentScreen : "m_s_test_1",
 	screenLogic: {
 		shared: {
 			// Changing screens. 
@@ -501,9 +523,32 @@ let _APP = {
 				},
 			},
 
+			// Reinit the shared functions (and their timers.)
+			doSharedInits: function(){
+				// _APP.screenLogic.shared.doSharedInits()
+				if(!_APP.screenLogic.shared.time.inited){ _APP.screenLogic.shared.time.init(); }
+				if(!_APP.screenLogic.shared.battery.inited){ _APP.screenLogic.shared.battery.init(); }
+			},
+
 			// Display the time.
 			time: {
-				display: function(x=0, y=29, tile="tile3"){
+				inited         : false,
+				timeUpdateMs   : null,
+				lastTimeUpdate : null,
+				init: function(){
+					let shared = _APP.screenLogic.shared;
+					this.timeUpdateMs   = shared.secondsToFramesToMs(1);
+					this.lastTimeUpdate = performance.now();
+					this.inited         = true; 
+				},
+				updateIfNeeded: function(x = 0, y = 29, tile="tile3"){
+					// if(!this.inited){ this.init(); }
+					if(performance.now() - this.lastTimeUpdate >= this.timeUpdateMs ){
+						_APP.screenLogic.shared.time.display(x,y,tile);
+						this.lastTimeUpdate = performance.now();
+					}
+				},
+				display: function(x = 0, y = 29, tile = "tile3"){
 					var d = new Date(); // for now
 					let h = d.getHours();
 					let ampm="AM";
@@ -523,10 +568,26 @@ let _APP = {
 
 			// Display battery info.
 			battery:{
-				chargeFlag:false,
-				lastBattery:{},
-				lastBatteryUpdate:0,
-				display: function(x=23, y=29, tile="tile3"){
+				chargeFlag           : false,
+				lastBattery          : {},
+				lastChargeFlagUpdate : null,
+				batteryUpdateMs      : null,
+				lastBatteryUpdate    : null,
+				init: function(){
+					let shared = _APP.screenLogic.shared;
+					this.batteryUpdateMs      = shared.secondsToFramesToMs(5);
+					this.lastBatteryUpdate    = performance.now();
+					this.lastChargeFlagUpdate = performance.now();
+					this.inited               = true; 
+				},
+				updateIfNeeded: function(x = 23, y = 29, tile = "tile3"){
+					// if(!this.inited){ this.init(); }
+					if(performance.now() - this.lastBatteryUpdate >= this.batteryUpdateMs ){
+						_APP.screenLogic.shared.battery.display(x,y,tile);
+						this.lastBatteryUpdate = performance.now();
+					}
+				},
+				display: function(x = 23, y = 29, tile = "tile3"){
 					let json = this.lastBattery;
 					firstLoad=false;
 					if(!json['%']){
@@ -565,11 +626,8 @@ let _APP = {
 	
 						// Show the battery indicator?
 						if(Math.sign(json['A']) == 1){
-							// Change the charge indictator icon periodically.
-							if(performance.now() - this.lastBatteryUpdate > (_APP.screenLogic.shared.secondsToFramesToMs(1))){
-								this.chargeFlag = !this.chargeFlag;
-								this.lastBatteryUpdate = performance.now();
-							}
+							// Change the charge indictator icon at each draw.
+							this.chargeFlag = !this.chargeFlag;
 							
 							// Display the charge indicator.
 							if(this.chargeFlag){ _APP.m_draw.setTile("battcharge1", x, y, 2); }
@@ -582,6 +640,8 @@ let _APP = {
 					else{
 						// _APP.m_draw.setTile("L", x, y, 2); 
 					}
+
+					// Display the battery string.
 					_APP.m_draw.print(str, x+1, y);
 			
 				},
@@ -601,6 +661,7 @@ let _APP = {
 				return ms;
 			},
 		},
+		// Populated during init.
 		screens: {},
 	},
 };

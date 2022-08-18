@@ -55,6 +55,7 @@ let _MOD = {
 		_APP.addToRouteList({ path: "SUBSCRIBE"        , method: "ws", args: [], file: __filename, desc: "(JSON): Subscript to event." });
 		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unubscript from event." });
 		_APP.addToRouteList({ path: "PRESS_BUTTONS"    , method: "ws", args: [], file: __filename, desc: "(JSON): PRESS_BUTTONS" });
+		_APP.addToRouteList({ path: "CHANGE_SCREEN"    , method: "ws", args: [], file: __filename, desc: "(JSON): CHANGE_SCREEN" });
 		_APP.addToRouteList({ path: "GET_SUBSCRIPTIONS", method: "ws", args: [], file: __filename, desc: "(TEXT): Get list of active subscriptions." });
 	},
 
@@ -115,6 +116,9 @@ let _MOD = {
 				// Re-init the stats object.
 				_APP.stats.setFps( data.data );
 
+				// Re-init the shared timers.
+				_APP.screenLogic.shared.doSharedInits()
+
 				// Start a new AppLoop.
 				// if(_APP.drawLoop) { _APP.m_drawLoop.startAppLoop(); }
 			},
@@ -126,6 +130,19 @@ let _MOD = {
 			},
 			PRESS_BUTTONS:      async function(ws, data){
 				_APP.m_gpio.setButtonOverrideValues(data.data);
+			},
+			CHANGE_SCREEN:      async function(ws, data){
+				// Pause the drawLoop from running.
+				if(_APP.drawLoop) { _APP.drawLoop.pause(); }
+				
+				// Give enough time for the drawLoop to complete before making the screen change.
+				setTimeout(function(){
+					// Change the screen.
+					_APP.screenLogic.shared.changeScreen.specific(data.data);
+
+					// Unpause. This should be the beginning of the next drawLoop.
+					if(_APP.drawLoop) { _APP.drawLoop.unpause(); }
+				}, _APP.timeIt_timings_prev["FULLLOOP"].t || _APP.stats.interval);
 			},
 		},
 		TEXT:{

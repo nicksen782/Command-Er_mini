@@ -57,7 +57,6 @@ let setErrorHandlers = function(){
 					// Remove the child process if it is set.
 					try{
 						if(_APP.drawLoop){ 
-							console.log(`  cleanUp: (via: ${byWhat}): appLoopCleanup...`);
 							_APP.drawLoop.pause();
 							_APP.drawLoop.stop();
 							_APP.drawLoop = null; 
@@ -65,7 +64,7 @@ let setErrorHandlers = function(){
 						}
 					}
 					catch(e){
-						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+						console.log(`  cleanUp: (via: ${byWhat}): appLoopCleanup...FAILED`, e);
 					}
 				}
 			},
@@ -74,15 +73,14 @@ let setErrorHandlers = function(){
 					// Remove the child process if it is set.
 					try{
 						if(_APP.m_websocket_python.cp_child){ 
-							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup...`);
 							// _APP.m_websocket_python.cp_child.kill('SIGTERM'); 
 							_APP.m_websocket_python.cp_child.kill('SIGINT'); 
 							_APP.m_websocket_python.cp_child = null; 
-							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup... DONE`);
+							console.log(`  cleanUp: (via: ${byWhat}): displayCleanup... DONE`);
 						}
 					}
 					catch(e){
-						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+						console.log(`  cleanUp: (via: ${byWhat}): displayCleanup...FAILED`, e);
 					}
 				}
 			},
@@ -91,7 +89,6 @@ let setErrorHandlers = function(){
 					// Remove the child process if it is set.
 					try{
 						if(_APP.m_websocket_python.cp_child){ 
-							console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup...`);
 							// _APP.m_websocket_python.cp_child.kill('SIGTERM'); 
 							_APP.m_websocket_python.cp_child.kill('SIGINT'); 
 							_APP.m_websocket_python.cp_child = null; 
@@ -99,7 +96,7 @@ let setErrorHandlers = function(){
 						}
 					}
 					catch(e){
-						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+						console.log(`  cleanUp: (via: ${byWhat}): pythonCleanup...FAILED`, e);
 					}
 				}
 			},
@@ -108,19 +105,17 @@ let setErrorHandlers = function(){
 					// Remove the child process if it is set.
 					try{
 						if(_APP.m_websocket_node.ws){ 
-							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: websocket...`);
 							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: websocket... DONE`);
 							_APP.m_websocket_node.ws.close();
 							_APP.m_websocket_node.ws = null;
 						}
 						if(_APP.server){
-							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: server...`);
 							_APP.server.close();
 							console.log(`  cleanUp: (via: ${byWhat}): serverCleanup: server... DONE`);
 						}
 					}
 					catch(e){
-						console.log("ERROR REMOVING PYTHON PROCESS.", e);
+						console.log(`  cleanUp: (via: ${byWhat}): serverCleanup...FAILED`, e);
 					}
 				}
 			},
@@ -331,6 +326,7 @@ let setErrorHandlers = function(){
 			// Start a new AppLoop.
 			_APP.fps.init( _APP.m_config.config.node.fps );
 			_APP.stats.setFps( _APP.m_config.config.node.fps );
+			_APP.screenLogic.shared.doSharedInits()
 			_APP.m_drawLoop.startAppLoop();
 
 			// setTimeout(async function(){ 

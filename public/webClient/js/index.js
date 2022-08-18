@@ -1,23 +1,132 @@
 // HTTP REQUESTS USING POST.
 let http = {
-	post: async function(url, body){
-		let resp = await( await fetch(url, {
-			method: 'POST', headers: { Accept: 'application.json', 'Content-Type': 'application/json' },
+	// Can use either "GET" or "POST" and type of either "json" or "text".
+	send: async function(url, body=null, type="json", method="POST"){
+		// await http.send("http://192.168.2.66:7777/ping.txt", null, "text", "GET");
+
+		return new Promise(async function(resolve,reject){
+			method = method.toUpperCase();
+			let options = {
+				method: method, 
+				headers: {},
+			};
+
+			// Set body?
+			switch(method){
+				case "GET": { break; }
+				case "POST": { options.body = JSON.stringify(body); break; }
+				default : { throw "ERROR: INVALID METHOD: " + method; resolve(false); break; }
+			}
+
+			// Set headers.
+			switch(type){
+				case "json": { 
+					options.headers = { 
+						'Accept': 'application/json', 
+						'Content-Type': 'application/json' 
+					};
+					break; 
+				}
+				case "text": { 
+					options.headers = { 
+						'Accept': 'text/plain', 
+						'Content-Type': 'text/plain' 
+					};
+					break;
+				}
+				default : { throw "ERROR: INVALID TYPE: " + type; resolve(false); break; }
+			};
+
+			// Make the request.
+			let resp;
+			try{
+				resp = await fetch(url, options).catch(e=>{ throw e; });
+				if     (type=="json"){ resp = await resp.json(); }
+				else if(type=="text"){ resp = await resp.text(); }
+				
+				// console.log(resp);
+				resolve(resp);
+			}
+			catch(e){
+				// console.log(`http.get ERROR: ${url}, ${type}:`, e);
+				resolve(false);
+			}
+		});
+	},
+
+	// Can use "POST" and type of "json" .
+	post: async function(url, body, type="json"){
+		let options = {
+			method: 'POST', 
+			headers: {},
 			body: JSON.stringify(body)
-		}) ).json();
-		// console.log(resp);
-		return resp;
+		};
+
+		switch(type){
+			case "json": { 
+				options.headers = { 
+					'Accept': 'application/json', 
+					'Content-Type': 'application/json' 
+				};
+				break; 
+			}
+			default : { throw "ERROR: INVALID TYPE:"+type; break; }
+		};
+
+		// let resp = await fetch(url, {});
+		let resp;
+		try{
+			resp = await fetch(url, options).catch(e=>{ throw e; });
+			if     (type=="json"){ resp = await resp.json(); }
+			
+			// console.log(resp);
+			return resp;
+		}
+		catch(e){
+			// console.log(`http.post ERROR: ${url}, ${type}:`, e);
+			return false;
+		}
+
+	},
+	pingServer: async function(){
+		return new Promise(async function(resolve,reject){
+			// console.log( await http.pingServer() );
+			
+			// Store the previous connection icon.
+			let prevHTML = buttons.DOM["ws_status"].innerHTML;
+
+			// Set the blue icon.
+			buttons.DOM["ws_status"].innerHTML = "&#128998;";
+
+			let serverUrl = `` +
+				`${window.location.protocol == "https:" ? "https" : "http"}://` +
+				`${location.hostname}` + 
+				`${location.port ? ':'+location.port : ''}`
+			;
+			// let resp = await http.send("http://192.168.2.67:7777/ping.txt", null, "text", "GET");
+			let resp = await http.send(serverUrl, null, "text", "GET");
+			resp = resp === false ? false : true;
+
+			// Reset to the previous connection icon.
+			buttons.DOM["ws_status"].innerHTML = prevHTML;
+
+			// End.
+			resolve(resp);
+		});
 	},
 };
 // WEBSOCKET
 let websocket = {
+	connecting:false,
 	activeUuid:null,
 	activeWs:null,
 	wsArr:[],
-	autoReconnect:false,
-	// autoReconnecting:false,
-	autoReconnect_intervalId:false,
-	connecting:false,
+
+	autoReconnect             : true,
+	autoReconnect_counter     : 0,
+	autoReconnect_counter_max : 30,
+	autoReconnect_id          : false,
+	autoReconnect_ms          : 2000,
 
 	// STATUS CODES
 	ws_statusCodes: {
@@ -54,19 +163,19 @@ let websocket = {
 		JSON  : {
 			// OPENING A NEW CONNECTION.
 			NEWCONNECTION: function(data){
-				// console.log(`mode: ${data.mode}, data:`,data.data);
+				// console.log(`mode: ${data.mode}, data:`, data.data);
 				websocket.activeUuid = data.data;
 			},
 			WELCOMEMESSAGE: function(data){
-				// console.log(`mode: ${data.mode}, data:`,data.data);
+				// console.log(`mode: ${data.mode}, data:`, data.data);
 			},
 
 			SUBSCRIBE: function(data){
-				// console.log(`mode: ${data.mode}, data:`,data.data);
+				// console.log(`mode: ${data.mode}, data:`, data.data);
 				buttons.updateSubscriptionList(data.data);
 			},
 			UNSUBSCRIBE: function(data){
-				// console.log(`mode: ${data.mode}, data:`,data.data);
+				// console.log(`mode: ${data.mode}, data:`, data.data);
 				buttons.updateSubscriptionList(data.data);
 			},
 
@@ -116,6 +225,9 @@ let websocket = {
 				if(draw.serverFps != data.data){
 					draw.serverFps = data.data;
 					draw.DOM.info_serverFps.innerText = data.data;
+
+					// Reinit fps.
+					draw.fps.init(data.data);
 				}
 			},
 		},
@@ -127,38 +239,54 @@ let websocket = {
 	// UTILITIES
 	ws_utilities: {
 		// Start the WebSocket connection.
-		initWss: function(){
-			// GENERATE THE WEBSOCKET URL.
-			let locUrl = `` +
-				`${window.location.protocol == "https:" ? "wss" : "ws"}://` +
-				`${location.hostname}` + 
-				`${location.port ? ':'+location.port : ''}` +
-				`${location.pathname != "/" ? ''+location.pathname : '/'}` +
-				`LCD`
-			;
+		initWss: async function(){
+			return new Promise(async function(resolve,reject){
+				if(websocket.connecting){ console.log("WS connection attempt already in progress."); resolve(false); return; }
 
-			// Close any existing connections. 
-			websocket.ws_utilities.wsCloseAll();
+				// GENERATE THE WEBSOCKET URL.
+				let locUrl = `` +
+					`${window.location.protocol == "https:" ? "wss" : "ws"}://` +
+					`${location.hostname}` + 
+					`${location.port ? ':'+location.port : ''}` +
+					`${location.pathname != "/" ? ''+location.pathname : '/'}` +
+					`LCD`
+				;
 
-			// Set the connection indicator.
-			buttons.DOM["ws_status"].innerHTML = "&#128997;";
+				// Make sure that the server is up.
+				
+				let isServerUp = await http.pingServer() ;
+				if(isServerUp === false) {
+					// console.log("Server is unavailable");
+					resolve(false);
+					return; 
+				};
 
-			// Create new WebSocket connection. 
-			websocket.connecting = true;
-			let ws = new WebSocket(locUrl);
-			ws.onopen   = websocket.ws_events.el_open   ;
-			ws.onmessage= websocket.ws_events.el_message;
-			ws.onclose  = websocket.ws_events.el_close  ;
-			ws.onerror  = websocket.ws_events.el_error  ;
-			// ws.addEventListener('open'   , (event)=> websocket.ws_events.el_open   (ws, event) );
-			// ws.addEventListener('message', (event)=> websocket.ws_events.el_message(ws, event) );
-			// ws.addEventListener('close'  , (event)=> websocket.ws_events.el_close  (ws, event) );
-			// ws.addEventListener('error'  , (event)=> websocket.ws_events.el_error  (ws, event) );
-			ws.binaryType = 'arraybuffer';
-			websocket.activeWs = ws;
+				// Set the connection indicator.
+				buttons.DOM["ws_status"].innerHTML = "&#128997;";
 
-			// Add new to array of ws.
-			websocket.wsArr.push(ws);
+				// Close any existing connections. 
+				websocket.ws_utilities.wsCloseAll();
+
+				// Create new WebSocket connection. 
+				websocket.connecting = true;
+				let ws = new WebSocket(locUrl);
+				ws.onopen   = websocket.ws_events.el_open   ;
+				ws.onmessage= websocket.ws_events.el_message;
+				ws.onclose  = websocket.ws_events.el_close  ;
+				ws.onerror  = websocket.ws_events.el_error  ;
+				// ws.addEventListener('open'   , (event)=> websocket.ws_events.el_open   (ws, event) );
+				// ws.addEventListener('message', (event)=> websocket.ws_events.el_message(ws, event) );
+				// ws.addEventListener('close'  , (event)=> websocket.ws_events.el_close  (ws, event) );
+				// ws.addEventListener('error'  , (event)=> websocket.ws_events.el_error  (ws, event) );
+				ws.binaryType = 'arraybuffer';
+				websocket.activeWs = ws;
+
+				// Add new to array of ws.
+				websocket.wsArr.push(ws);
+
+				resolve(true);
+				return; 
+			});
 		},
 		// Close all WebSocket connections. 
 		wsCloseAll: function(){
@@ -174,14 +302,50 @@ let websocket = {
 				}
 			}
 		},
-		//
-		autoReconnect: function(){
-			// websocket.ws_utilities.autoReconnect
-			// if(websocket.autoReconnect && !websocket.autoReconnecting){
-			if(websocket.autoReconnect){
-				// console.log("Auto-reconnect: TRYING...");
-				websocket.ws_utilities.initWss();
+		
+		// Timeout function for automatically reconnecting after a connection loss.
+		autoReconnect_func: async function(){
+			// Is autoReconnect disabled?
+			if(!websocket.autoReconnect){
+				websocket.autoReconnect_counter = 0;
+				clearTimeout(websocket.autoReconnect_id);
+				return; 
 			}
+
+			// Have we reached the max number of attempts? 
+			if(websocket.autoReconnect_counter > websocket.autoReconnect_counter_max){
+				console.log(`  Reconntion has failed. Max number of attempts (${websocket.autoReconnect_counter_max}) was reached. ((${(( (websocket.autoReconnect_counter-1)*websocket.autoReconnect_ms)/1000).toFixed(1)})) seconds`);
+				websocket.autoReconnect_counter = 0;
+				clearTimeout(websocket.autoReconnect_id);
+			}
+
+			// No. Try to connect.
+			else{
+				// Increment the counter by 1.
+				websocket.autoReconnect_counter += 1;
+
+				console.log(`  Reconnection attempt ${websocket.autoReconnect_counter} of ${websocket.autoReconnect_counter_max}`);
+				let resp = await websocket.ws_utilities.initWss();
+
+				// Did the connection fail?
+				if(resp === false){
+					// If this was the last attempt then set the timeout delay to a smaller number.
+					if(websocket.autoReconnect_counter >= websocket.autoReconnect_counter_max){
+						websocket.autoReconnect_id = setTimeout(websocket.ws_utilities.autoReconnect_func, 100);
+					}
+					// Set the next attempt timeout.
+					else{
+						websocket.autoReconnect_id = setTimeout(websocket.ws_utilities.autoReconnect_func, websocket.autoReconnect_ms);
+					}
+				}
+				// The connection was successful.
+				else{
+					console.log(`  Reconnection successful (${((websocket.autoReconnect_counter*websocket.autoReconnect_ms)/1000).toFixed(1)} seconds)`);
+					websocket.autoReconnect_counter = 0;
+					clearTimeout(websocket.autoReconnect_id);
+				}
+			}
+
 		},
 	},
 	// EVENT HANDLERS.
@@ -199,14 +363,14 @@ let websocket = {
 			wsElems.forEach(function(d){ d.classList.add("connected"); d.classList.remove("disconnected"); });
 
 			// Init fps.
-			draw.fps.init();
+			draw.fps.init(1);
 
 			// Request GET_VRAM.
 			draw.getVram("ws");
 
 			if(websocket.autoReconnect){
-				// websocket.autoReconnecting = false;
-				clearTimeout(websocket.autoReconnect_intervalId);
+				autoReconnect_counter = 0;
+				clearTimeout(websocket.autoReconnect_id);
 			}
 			websocket.connecting = false;
 		},
@@ -292,16 +456,15 @@ let websocket = {
 			wsElems.forEach(function(d){ d.classList.add("disconnected"); d.classList.remove("connected"); });
 
 			setTimeout(function(){
+				// Gray icon.
 				buttons.DOM["ws_status"].innerHTML = "&#11035;";
 				websocket.activeWs=null; 
 				websocket.connecting = false;
 
 				if(websocket.autoReconnect){
-					// websocket.autoReconnecting = true;
-					console.log("Websocket connection lost. Will try to reconnect.");
-					websocket.autoReconnect_intervalId = setInterval(function(){
-						websocket.ws_utilities.autoReconnect();
-					}, 3000);
+					websocket.autoReconnect_counter = 0;
+					console.log(`'autoReconnect' is active. Will try to reconnect ${websocket.autoReconnect_counter_max} times at ${websocket.autoReconnect_ms} ms intervals. (${((websocket.autoReconnect_counter_max*websocket.autoReconnect_ms)/1000).toFixed(1)} seconds)`);
+					websocket.autoReconnect_id = setTimeout(websocket.ws_utilities.autoReconnect_func, websocket.autoReconnect_ms);
 				}
 
 			}, 1000);
@@ -590,9 +753,9 @@ let draw = {
 			
 			return this.value;
 		},
-		init: function(){
+		init: function(sampleSize){
 			// Set the values. 
-			this.sampleSize = 60;
+			this.sampleSize = sampleSize;
 			this.value      = 0;
 			this.average    = 0;
 			this._sample_   = [];
@@ -607,11 +770,6 @@ let draw = {
 				``
 				;
 		},
-	},
-
-	requestFpsChange: function(newFps){
-		// CONFIG.
-		// CHANGE_FPS
 	},
 
 	// REQUESTS
@@ -669,7 +827,7 @@ let draw = {
 		}
 		else if(type=="post"){
 			if(!draw.isDrawing){
-				let data = await http.post("GET_VRAM", {});
+				let data = await http.post("GET_VRAM", {}, "json");
 
 				// Apply view to the ArrayBuffer.
 				data = new Uint8Array(data);
@@ -751,7 +909,7 @@ let buttons = {
 
 		buttons.DOM["post_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('post');}, false);
 		buttons.DOM["post_requestDrawFlags"].addEventListener("click", async ()=>{
-			let data = await http.post("GET_DRAW_FLAGS", {});
+			let data = await http.post("GET_DRAW_FLAGS", {}, "json");
 			console.log( 
 				JSON.stringify(data, null, 1) 
 			);
@@ -776,7 +934,7 @@ let buttons = {
 			}
 		}
 		else if(type=="post"){
-			http.post("PRESS_BUTTONS", obj) ;
+			http.post("PRESS_BUTTONS", obj, "json") ;
 		}
 	},
 	populateFpsValues: function(){
@@ -871,6 +1029,44 @@ let buttons = {
 	removeSubscription: function(key){ 
 		if(websocket.activeWs){ websocket.activeWs.send(JSON.stringify({mode:"UNSUBSCRIBE", data:key})); }
 	},
+
+	// SCREENS
+	populateScreens: function(){
+		let info_screensDiv1 = document.getElementById("info_screensDiv1");
+		let info_screensDiv2 = document.getElementById("info_screensDiv2");
+		let screens = draw.configs.screens;
+
+		// WS buttons.
+		let frag = document.createDocumentFragment();
+		for(let i=0; i<screens.length; i+=1){
+			let value = screens[i];
+			let button = document.createElement("button");
+			button.innerText = value.replace("m_s_", "");
+			button.onclick = function(){ 
+				if(websocket.activeWs){ 
+					websocket.activeWs.send(JSON.stringify({mode:"CHANGE_SCREEN", data:value})); 
+				}
+			};
+			button.setAttribute("screen", value);
+			frag.append(button);
+		}
+		info_screensDiv1.innerHTML = "";
+		info_screensDiv1.append(frag);
+
+		// POST buttons.
+		frag = document.createDocumentFragment();
+		for(let i=0; i<screens.length; i+=1){
+			let value = screens[i];
+			let button = document.createElement("button");
+			button.innerText = value.replace("m_s_", "");
+			button.onclick = function(){ http.post("changeScreen", {screen:value}, "json"); };
+			button.setAttribute("screen", value);
+			frag.append(button);
+		}
+		info_screensDiv2.innerHTML = "SCREENS: ";
+		info_screensDiv2.append(frag);
+	},
+
 };
 
 // APP INIT
@@ -878,7 +1074,7 @@ window.onload = async function(){
 	window.onload = null;
 	
 	console.log("CONFIGS");
-	draw.configs = await http.post("get_configs", {});
+	draw.configs = await http.post("get_configs", {}, "json");
 	
 	console.log("GRAPHICS");
 	await draw.getGraphics();
@@ -897,6 +1093,7 @@ window.onload = async function(){
 	buttons.DOM.ws_autoReconnect = document.getElementById("ws_autoReconnect");
 	buttons.DOM.ws_autoReconnect.addEventListener("click", function(){
 		websocket.autoReconnect = this.checked;
+		if(!websocket.autoReconnect){ console.log("*"); clearTimeout(websocket.autoReconnect_id); }
 	}, false);
 	buttons.DOM.ws_autoReconnect.checked = websocket.autoReconnect;
 
@@ -908,6 +1105,8 @@ window.onload = async function(){
 	buttons.populateFpsValues();
 	draw.DOM.info_changeFps.value = draw.configs.config.node.fps;
 	buttons.populateSubscriptionKeys();
+
+	buttons.populateScreens();
 
 	draw.DOM.vram_div_layers = document.getElementById("vram_div_layers");
 	
@@ -933,5 +1132,5 @@ window.onload = async function(){
 	buttons.setup();
 
 	// Init fps.
-	draw.fps.init();
+	draw.fps.init(1);
 }

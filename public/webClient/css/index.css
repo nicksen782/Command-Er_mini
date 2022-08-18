@@ -248,7 +248,7 @@ button#ws_connect {
 span#ws_autoReconnectDiv {
 	position: absolute;
 	right: 180px;
-	display: none;
+	/* display: none; */
 }
 
 span#ws_autoReconnectDiv:hover {
@@ -275,4 +275,22 @@ span#ws_autoReconnectDiv:hover {
 #info_VRAM_UPDATESTATS table td {
 	text-align: center;
 	background-color: rgb(255 255 255 / 50%);
+}
+
+#info_screensDiv1,
+#info_screensDiv2
+{
+	vertical-align: top;
+	background-color: #d2e0ee;
+	width: 100%;
+	min-height: 24px;
+}
+#info_screensDiv1 button,
+#info_screensDiv2 button{
+	font-size: 14px;
+	font-family: monospace;
+	min-width: 60px;
+	height: 22px;
+	vertical-align: top;
+	margin: 1px;
 }
