@@ -2,6 +2,7 @@
 const fs   = require('fs');
 const os       = require('os');
 const path = require('path'); 
+const child_process = require('child_process'); 
 
 // Modules saved within THIS module.
 const m_modules = [
@@ -103,6 +104,22 @@ let _APP = {
 			}, _APP.timeIt_timings_prev["FULLLOOP"].t || _APP.stats.interval);
 
 		});
+
+		// 
+		_APP.addToRouteList({ path: "/DEBUGCMD", method: "post", args: ['cmd'], file: __filename, desc: "" });
+		app.post('/DEBUGCMD'    ,express.json(), async (req, res) => {
+			switch(req.body.cmd){
+				case "pm2.restart"    : { _APP.screenLogic.shared.pm2.restart();    break; }
+				case "process.exit"   : { _APP.screenLogic.shared.process.exit();   break; }
+				case "linux.reboot"   : { _APP.screenLogic.shared.linux.reboot();   break; }
+				case "linux.shutdown" : { _APP.screenLogic.shared.linux.shutdown(); break; }
+				default : { break; }
+			};
+
+			// Respond to complete the request.
+			res.json("");
+		});
+
 	},
 
 	// ROUTED: Outputs a list of registered routes.
@@ -478,6 +495,57 @@ let _APP = {
 	// currentScreen : "m_s_test_1",
 	screenLogic: {
 		shared: {
+			// DEBUG?
+			linux: {
+				reboot: function(){
+					// _APP.screenLogic.shared.linux.reboot()
+					console.log(":: _APP.screenLogic.shared.linux.reboot ::");
+					child_process.exec("sudo reboot now", (err, result)=>{
+						if(err) { console.log("err:", err); }
+						console.log(result.toString());
+					});
+				},
+				shutdown: function(){
+					// _APP.screenLogic.shared.linux.shutdown()
+					console.log(":: _APP.screenLogic.shared.linux.shutdown ::");
+					child_process.exec("sudo shutdown now", (err, result)=>{
+						if(err) { console.log("err:", err); }
+						console.log(result.toString());
+					});
+				},
+			},
+			process: {
+				// End process (if running with PM2 this may restart the process.)
+				exit: function(){
+					// _APP.screenLogic.shared.process.exit()
+					console.log(":: _APP.screenLogic.shared.process.exit ::");
+					process.exit(0);
+				},
+			},
+			pm2: {
+				restart: function(){
+					// _APP.screenLogic.shared.pm2.restart()
+					console.log(":: _APP.screenLogic.shared.pm2.restart ::");
+					child_process.exec("pm2 restart COMMANDER_MINI", (err, result)=>{
+						if(err) { console.log("err:", err); }
+						console.log(result.toString());
+					});
+				},
+			},
+
+			getDialogBoxParams: function(x, y, w, h){
+				// Create outer, inner, and text area boxs with the provided values. 
+				let box1 = { x:x, y:y, w:w, h:h }; 
+				let box2 = { x:box1.x+1, y:box1.y+1, w:box1.w-2, h:box1.h-2 }; 
+				let box3 = { x:box2.x+1, y:box2.y+1, w:box2.w-2, h:box2.h-2 }; 
+
+				return {
+					outer: box1,
+					inner: box2,
+					text : box3,
+				};
+			},
+
 			// Changing screens. 
 			changeScreen:{
 				prev:function(){

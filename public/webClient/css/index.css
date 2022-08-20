@@ -69,7 +69,7 @@ body {
 	display: inline-block;
 	vertical-align: top;
 	text-align: left;
-	font-size: 16px;
+	font-size: 12px;
 }
 
 #controls_top {
@@ -237,8 +237,11 @@ button#ws_connect {
 	background-color: rgb(237 243 248);
 	border: 1px solid black;
 	margin-bottom: 2px;
-	display: block;
+	display: inline-block;
 	font-size: 12px;
+	padding: 2px;
+	margin-right: 2px;
+	margin-bottom: 2px;
 }
 
 .subscriptionContainer:hover {
@@ -259,7 +262,7 @@ span#ws_autoReconnectDiv:hover {
 	/* width:100%; */
 	font-family: monospace;
 	white-space: pre;
-	font-size: 16px;
+/* 	font-size: 16px; */
 	width: 120px;
 	min-height: 95px;
 }

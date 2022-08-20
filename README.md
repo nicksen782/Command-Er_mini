@@ -70,5 +70,13 @@ cd ~
 ## Install/configure PM2
   - todo
   - sudo npm i -g pm2 
+  - pm2 install pm2-logrotate
+  - pm2 startup
+    - Copy and paste the command aspm2 root as indicated.
+  - pm2 init simple
+    - Or use provided example.
+  - pm2 start ecosystem.config.js
+  - /etc/fstab
+  - tmpfs                 /home/pi/.pm2/logs   tmpfs   defaults,noatime  0 0
 
 # node ~/MINI

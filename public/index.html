@@ -51,27 +51,21 @@
 			<!-- Options 1 -->
 			<table class="ws disconnected">
 				<tr>
-					<td class="title">VRAM Layers</td>
-					<td><input type="checkbox" id="vram_div_layersChk"></td>
-
-					<td class="title">Server FPS: Set</td>
-					<td>
-						<select id="info_changeFps"></select>
-						<button id="info_changeFpsBtn">SET</button>
-					</td>
-				</tr>
-				<tr>
-					<td class="title">SUBSCRIPTIONS</td>
-					<td>
-						<div id="info_subscriptionsDiv"></div>
-					</td>
-
 					<td class="title">UPDATESTATS</td>
 					<td>
 						<div id="info_VRAM_UPDATESTATS">
 							<table>
 							</table>
 						</div>
+					</td>
+
+					<td>
+						<div class="title">VRAM Layers</div>
+						SHOW: <input type="checkbox" id="vram_div_layersChk">
+
+						<div class="title">Server FPS: Set</div>
+						<select id="info_changeFps"></select>
+							<button id="info_changeFpsBtn">SET</button>
 					</td>
 				</tr>
 				
@@ -83,7 +77,13 @@
 							</table>
 						</div>
 					</td>
+				</tr>
 
+				<tr>
+					<td colspan="1" class="title">SUBSCRIPTIONS</td>
+					<td colspan="3">
+						<div id="info_subscriptionsDiv"></div>
+					</td>
 				</tr>
 			</table>
 			
@@ -111,7 +111,7 @@
 				</tr>
 			</table>
 		</div>
-		<br>
+		<!-- <br> -->
 
 		<div class="title">Via POST</div>
 		<div>
@@ -127,6 +127,11 @@
 				<button id="post_requestVramDraw" class="button">Get _VRAM</button>
 			</div>
 			<button id="post_requestDrawFlags" class="button">Request GET_DRAW_FLAGS</button>
+			<br>
+			<button class="button" onclick="http.post('DEBUGCMD', { 'cmd':'pm2.restart'    }, 'json');">pm2.restart</button>
+			<button class="button" onclick="http.post('DEBUGCMD', { 'cmd':'process.exit'   }, 'json');">process.exit</button>
+			<button class="button" onclick="http.post('DEBUGCMD', { 'cmd':'linux.reboot'   }, 'json');">linux.reboot</button>
+			<button class="button" onclick="http.post('DEBUGCMD', { 'cmd':'linux.shutdown' }, 'json');">linux.shutdown</button>
 			<br>
 			<div id="info_screensDiv2">
 			</div>

@@ -80,7 +80,18 @@ let screen = {
 		// Initial drawing of the battery and time.
 		thisScreen.shared.time   .display(0, 29, "tile3");
 		thisScreen.shared.battery.display(23, 29, "tile3");
-		
+
+		let obj = thisScreen.shared.getDialogBoxParams(5, 7, 20, 10);
+		console.log("getDialogBoxParams:", obj);
+		_APP.m_draw.fillTile("tile3"        , obj.outer.x, obj.outer.y,  obj.outer.w, obj.outer.h); 
+		_APP.m_draw.fillTile("tile1"        , obj.inner.x, obj.inner.y,  obj.inner.w, obj.inner.h); 
+		_APP.m_draw.fillTile("tile3"        , obj.text.x, obj.text.y,  obj.text.w, obj.text.h); 
+
+		_APP.m_draw.print(" ".repeat(1) + `* : LINE 1`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+1);
+		_APP.m_draw.print(" ".repeat(1) + `  : LINE 2`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+2);
+		_APP.m_draw.print(" ".repeat(1) + `  : LINE 3`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+3);
+		_APP.m_draw.print(" ".repeat(1) + `  : LINE 4`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+4);
+
 		// Init vars.
 		thisScreen.inited = true;
 	},
@@ -99,6 +110,12 @@ let screen = {
 			// Display/Update the time/battery data sections as needed.
 			thisScreen.shared.time.updateIfNeeded(0, 29, "tile3");
 			thisScreen.shared.battery.updateIfNeeded(23, 29, "tile3");
+
+			// 
+			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY1_PIN")     ) { thisScreen.shared.pm2    .restart();  }
+			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY2_PIN")     ) { thisScreen.shared.process.exit();     }
+			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY_UP_PIN")   ) { thisScreen.shared.linux  .reboot();   }
+			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY_DOWN_PIN") ) { thisScreen.shared.linux  .shutdown(); }
 
 			resolve();
 		});
