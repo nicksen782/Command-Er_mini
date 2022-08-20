@@ -222,6 +222,7 @@ class C_Battery:
         jsonObj['%']  = (p)
         jsonObj['PV'] = (bus_voltage + shunt_voltage)
         jsonObj['SV'] = (shunt_voltage)
+        jsonObj['C']  = jsonObj['A'] >= 0 
 
         # Return the object. 
         return jsonObj

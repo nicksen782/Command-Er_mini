@@ -157,8 +157,9 @@ let _MOD = {
 					_MOD.pinged = true;
 				},
 				GET_BATTERY: function(ws, data){
-					// console.log(`mode: ${data.mode}, data: ${data.data}`);
+					// console.log(`mode: ${data.mode}, data:`, data.data);
 					_APP.screenLogic.shared.battery.lastBattery = data.data;
+					_APP.screenLogic.shared.battery.hasUpdate = true;
 				},
 			},
 			TEXT  : {

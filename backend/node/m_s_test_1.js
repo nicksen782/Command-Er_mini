@@ -37,9 +37,6 @@ let _MOD = {
 let screen = {
 	// Variables.
 	inited: false,
-	flag1:false,
-	flag2:false,
-	flag3:false,
 	counter:0,
 	lines2:[],
 	lastBatteryUpdate:0,
@@ -120,9 +117,6 @@ let screen = {
 
 		// Set the inited flag.
 		thisScreen.inited = true;
-		thisScreen.flag1 = false;
-		thisScreen.flag2 = false;
-		thisScreen.flag3 = false;
 		thisScreen.counter = 0;
 		thisScreen.lines2 = [];
 		thisScreen.lastBatteryUpdate = 0;
@@ -174,19 +168,6 @@ let screen = {
 					thisScreen.lines2.push( (line2.padEnd(16, " ") + line1.padEnd(14, " ")));
 				}
 			)();
-			thisScreen.lines2.push(`${"*".repeat(30)}`);
-
-			let t1a = ((performance.now()-thisScreen.lastTimeUpdate)/1000)   .toFixed(1).toString().padStart(3, " ");
-			let t1b = ((thisScreen.timeUpdateMs)/1000)                       .toFixed(1).toString().padStart(3, " ");
-			let t2a = ((performance.now()-thisScreen.lastBatteryUpdate)/1000).toFixed(1).toString().padStart(3, " ");
-			let t2b = ((thisScreen.batteryUpdateMs)/1000)                    .toFixed(1).toString().padStart(3, " ");
-			thisScreen.lines2.push(`TIME UPDATES: ${t1a} / ${t1b} (${thisScreen.flag2 ? "1" : "0"})`.padEnd(30, " "));
-			thisScreen.lines2.push(`BATT UPDATES: ${t2a} / ${t2b} (${thisScreen.flag3 ? "1" : "0"})`.padEnd(30, " "));
-			thisScreen.lines2.push(`${"*".repeat(30)}`);
-
-			// Timing test.
-			thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFrames    (1.0) .toFixed(1).toString().padStart(8, " ") +" FRAMES ");
-			thisScreen.lines2.push(" 1.0s: " + thisScreen.shared.secondsToFramesToMs(1.0) .toFixed(1).toString().padStart(8, " ") +" MS     ");
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
 
 			for(let v of thisScreen.lines2){ _APP.m_draw.print(v , 0 , y++); }
@@ -242,19 +223,14 @@ let screen = {
 			y++;
 			_APP.m_draw.print(`${"*".repeat(30)}` , 0 , y++);
 
-			if(performance.now() - thisScreen.lastTimeUpdate >= thisScreen.timeUpdateMs ){
-				thisScreen.shared.time.display(0, 29, "tile3");
-				thisScreen.flag2 = !thisScreen.flag2;
-				thisScreen.lastTimeUpdate = performance.now();
-			}
-			
-			// Display/Update the battery data section on a counter. 
-			thisScreen.shared.battery.display(23, 29, "tile3");
-			if(performance.now() - thisScreen.lastBatteryUpdate >= thisScreen.batteryUpdateMs ){
-				_APP.m_websocket_python.getBatteryUpdate();
-				thisScreen.flag3 = !thisScreen.flag3;
-				thisScreen.lastBatteryUpdate = performance.now();
-			}
+			// Display/Update the time/battery data sections as needed.
+			thisScreen.shared.time.updateIfNeeded(0, 29, "tile3");
+			thisScreen.shared.battery.updateIfNeeded(23, 29, "tile3");
+
+			// Counting test.
+			_APP.m_draw.print(thisScreen.counter.toString().padStart(2, "0"), 14 , 29);
+			thisScreen.counter +=1;
+			if(thisScreen.counter > 20){ thisScreen.counter = 0; }
 			
 			resolve();
 		});

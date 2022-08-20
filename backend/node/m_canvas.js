@@ -50,13 +50,88 @@ let _MOD = {
 	rawBuffer: null, // Saved as to not need to reallocate memory each draw.
 	tileCache: []  , // Cache of all tiles.
 
+	// TESTING. Draws to the LCD framebuffer based on the passed changes.
+	drawLayersUpdateFramebuffer: async function(_changesFullFlat){
+		return new Promise(function(resolve,reject){
+			// Determine which X,Y coords have changes (any layer.)
+			// For any X,Y change:
+			//   Add coords for a clear of the final canvas.
+			//   Add coords for drawing of each layer canvas in order.
+			//   Use the tile id that is present in VRAM.
+			//   Therefore it is only needed to know what X,Y coords have changed.
+			// Once all X,Y changes are known and in an array:
+			//  ONLY draw to the final canvas. First clear then draw they layer tiles in order.
+			//  No need to combine entire layers, especially when the change could be minimal.
+
+			let changedCoords = {};
+			let clearCommands = [];
+			let drawCommands = [];
+			for(let i=0; i<_changesFullFlat.length; i+=4){
+				// Generate key (used to check if this coord is already known.
+				let key = `X${_changesFullFlat[i+1]}Y${_changesFullFlat[i+2]}`;
+
+				// Does this key exist in the obj?
+				if(!changedCoords[key]){
+					// Set the key with true (and so that we do not use this key again.)
+					changedCoords[key] = true;
+
+					// Determine x,y,w,h
+					let x1 = _changesFullFlat[i+1];
+					let y1 = _changesFullFlat[i+2];
+					let x2 = (_changesFullFlat[i+1] * _APP.m_config.config.lcd.tileset.tileWidth);
+					let y2 = (_changesFullFlat[i+2] * _APP.m_config.config.lcd.tileset.tileHeight);
+					let w = _APP.m_config.config.lcd.tileset.tileWidth;
+					let h = _APP.m_config.config.lcd.tileset.tileHeight;
+					
+					// Add to the clear commands. 
+					clearCommands.push( { x:x2, y:y2, w:w, h:h } );
+
+					// Add a draw command for each tile layer at this x,y coord.
+					// console.log("y1:", y1, "x1:", x1, " --- ", "y2:", y2, "x2:", x2);
+					let index = _APP.m_config.indexByCoords[y1][x1];
+					for(let t=0; t<_MOD.layers.length -1; t+=1){
+						drawCommands.push( { x:x2, y:y2, w:w, h:h, t:_APP.m_draw._VRAM_view[index+t] } );
+					}
+				}
+			}
+
+			// Perform the clears.
+			let finalLayerCtx = _MOD.layers[_MOD.layers.length-1].ctx;
+			for(let clear_i=0; clear_i<clearCommands.length; clear_i+=1){
+				finalLayerCtx.clearRect(
+					clearCommands[clear_i].x, clearCommands[clear_i].y, 
+					clearCommands[clear_i].w, clearCommands[clear_i].h
+				);
+			}
+
+			// Perform the draws.
+			for(let draw_i=0; draw_i<drawCommands.length; draw_i+=1){
+				finalLayerCtx.drawImage(
+					_MOD.tileCache[ drawCommands[draw_i].t ].canvas,
+					drawCommands[draw_i].x, drawCommands[draw_i].y)
+				;
+			}
+
+			// Create a raw buffer from the last layer. 
+			_MOD.rawBuffer = _MOD.layers[_MOD.layers.length-1].canvas.toBuffer('raw');
+
+			// Send the raw buffer to update the LCD screen.
+			fs.write(_MOD.fb, _MOD.rawBuffer, 0, _MOD.rawBuffer.bytelength, 0, (err,fd)=>{
+				if(err){ console.log("fs.write ERROR:", err); reject(err); return; }
+				// console.log(fd);
+				
+				// End.
+				resolve();
+			});
+			
+		});
+	},
+
 	// Draws to the LCD framebuffer based on the passed changes.
 	clears:{},
 	draws :{},
-	drawLayersUpdateFramebuffer: async function(_changesFullFlat){
+	OLD2drawLayersUpdateFramebuffer: async function(_changesFullFlat){
 		return new Promise(async function(resolve,reject){
-			// Get the width and the height of a tile.
-
 			// Clear the arrays.
 			_MOD.clears = {};
 			_MOD.draws = {};
@@ -126,7 +201,7 @@ let _MOD = {
 	},
 
 	// Draws to the LCD framebuffer based on the passed changes.
-	OLDdrawLayersUpdateFramebuffer: async function(_changesFullFlat){
+	OLD1drawLayersUpdateFramebuffer: async function(_changesFullFlat){
 		return new Promise(async function(resolve,reject){
 			// Get the width and the height of a tile.
 			let tileWidth  = _APP.m_config.config.lcd.tileset.tileWidth;

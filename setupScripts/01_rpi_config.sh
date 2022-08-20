@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+
 # ###################
 # RASPBERRY PI CONFIG
 # ###################
@@ -11,14 +13,11 @@ function replaceBootText() {
 	# Backup the old /boot/config.txt file.
 	local BK_FILE="/boot/config__${DATE_WITH_TIME}__.txt"
 	sudo cp /boot/config.txt $BK_FILE
-	echo "Backup of /boot/config.txt: ${DATE_WITH_TIME}"
+	echo "Backup of /boot/config.txt: ${BK_FILE}"
 
 	# Replace the /boot/config.txt file.
-	cp -f boot/config.txt /boot/config.txt
+	sudo cp -f boot/config.txt /boot/config.txt
 }
-
-# Change to the home directory.
-# cd ~
 
 echo "This script will REPLACE /boot/config.txt"
 read -p "Continue (y/n)?" choice

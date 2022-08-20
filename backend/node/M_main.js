@@ -569,32 +569,41 @@ let _APP = {
 			// Display battery info.
 			battery:{
 				chargeFlag           : false,
-				lastBattery          : {},
+				lastBattery          : {"V":0, "A":0, "W":0, "%":0, "PV":0, "SV":0, "C":false},
 				lastChargeFlagUpdate : null,
 				batteryUpdateMs      : null,
+				hasUpdate            : null,
 				lastBatteryUpdate    : null,
 				init: function(){
 					let shared = _APP.screenLogic.shared;
 					this.batteryUpdateMs      = shared.secondsToFramesToMs(5);
 					this.lastBatteryUpdate    = performance.now();
 					this.lastChargeFlagUpdate = performance.now();
+					this.hasUpdate            = false;
 					this.inited               = true; 
 				},
 				updateIfNeeded: function(x = 23, y = 29, tile = "tile3"){
-					// if(!this.inited){ this.init(); }
+					// Is it time to request a battery update? 
 					if(performance.now() - this.lastBatteryUpdate >= this.batteryUpdateMs ){
-						_APP.screenLogic.shared.battery.display(x,y,tile);
+						_APP.m_websocket_python.getBatteryUpdate();
 						this.lastBatteryUpdate = performance.now();
+					}
+					// No? Do we already have an update to display?
+					else if(this.hasUpdate){
+						// console.log(_APP.screenLogic.shared.battery.lastBattery);
+						_APP.screenLogic.shared.battery.display(x,y,tile);
+						this.hasUpdate = false;
 					}
 				},
 				display: function(x = 23, y = 29, tile = "tile3"){
 					let json = this.lastBattery;
 					firstLoad=false;
-					if(!json['%']){
-						firstLoad=true;
-						// console.log("Battery data has not been populated yet.");
-						// return; 
+					try{
+						if(!json['%']){
+							firstLoad=true;
+						}
 					}
+					catch(e){ firstLoad=true; }
 			
 					// DEBUG
 					// if(!json['%']){ json = {'%': 100.0}; }
@@ -625,10 +634,10 @@ let _APP = {
 						_APP.m_draw.setTile(batIcon, x, y); 
 	
 						// Show the battery indicator?
-						if(Math.sign(json['A']) == 1){
+						if(json['C'] == true ){
 							// Change the charge indictator icon at each draw.
 							this.chargeFlag = !this.chargeFlag;
-							
+
 							// Display the charge indicator.
 							if(this.chargeFlag){ _APP.m_draw.setTile("battcharge1", x, y, 2); }
 							else{                _APP.m_draw.setTile("battcharge2", x, y, 2); }
@@ -636,9 +645,6 @@ let _APP = {
 						else{
 							_APP.m_draw.setTile(" ", x, y, 2); 
 						}
-					}
-					else{
-						// _APP.m_draw.setTile("L", x, y, 2); 
 					}
 
 					// Display the battery string.

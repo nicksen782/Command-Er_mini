@@ -38,29 +38,37 @@ git clone https://github.com/nicksen782/Command-Er_mini.git MINI
 # git clone https://github.com/nicksen782/Command-Er_mini.git MINI --branch DEV
 ````
 ## Update the /boot/config.txt file:
-  - Run ~/MINI/setupScripts/01_rpi_config.sh
+  - Run bash ~/MINI/setupScripts/01_rpi_config.sh
     - This will change your /boot/config.txt file.
       - It gives you an opportunty to cancel.
     - It creates a backup of /boot/config.txt BEFORE overwritting it.
+  - Run raspi-config
+    - System Options > Boot / Auto Login > Console
+    - Interface Options > SPI > Yes
+    - Interface Options > I2C > Yes
   - Reboot after this script is finished.
 
 ## Use the setupScripts/setup.sh script to continue.
-  - Next, run ~/MINI/setupScripts/setup.sh
+  - Next, run bash ~/MINI/setupScripts/setup.sh
     - It will:
       - Install Linux packages.          (~/MINI/setupScripts/02_linux.sh)
       - Install NodeJS and NPM.          (~/MINI/setupScripts/03_node_npm.sh)
-      - Install Python modules.          (~/MINI/setupScripts/04_fbcp.sh)
-      - Install fbcp (framebuffer copy.) (~/MINI/setupScripts/05_python.sh)
+      - Install Python modules.          (~/MINI/setupScripts/04_python.sh)
+      - Install fbcp (framebuffer copy.) (~/MINI/setupScripts/05_fbcp.sh)
 	    - This will add a call to fbcp at the end of your rc.local file (before the exit 0.)
   - Reboot after this script is finished.
+
+## Install the NPM packages for the application:
+  - Note: Takes a little over 5 minutes.
+````sh
+# Change to the app directory.
+cd ~/MINI
+npm install
+cd ~
+````
 
 ## Install/configure PM2
   - todo
   - sudo npm i -g pm2 
 
-## Finish the installation:
-````sh
-# Change to the app directory.
-cd ~/MINI
-node .
-````
+# node ~/MINI

@@ -4,6 +4,7 @@ import sys
 import json
 import io
 import timeit
+import traceback
 # SHARED
 
 # WEBSOCKETS SERVER
@@ -87,7 +88,11 @@ class C_WebSocketServer:
                     elif self.data == "GET_BATTERY":
                         jsonObj = {}
                         jsonObj['mode'] = "GET_BATTERY"
-                        jsonObj['data'] =  self.parent.c_battery.getBatteryData()
+                        try:
+                            jsonObj['data'] =  self.parent.c_battery.getBatteryData()
+                        except Exception as ex:
+                            traceback.print_exc()
+                            print(f"Error in websocket 'GET_BATTERY' ({type}): ex: {ex}")
                         self.send_message( json.dumps(jsonObj, ensure_ascii=False) )
 
                     # CATCH-ALL.
