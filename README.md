@@ -23,11 +23,44 @@ Designed to interact with this software:
 - Python 3.9.2
 - NodeJs 16.15.1
 
-## Installation:
-- sudo apt install nvm
-- sudo nvm install 16 lts 
-  -  NOTE: The install/compile steps can take a long time (30+ mins) on a Raspberry Pi Zero.
-- sudo npm install -g npm@latest
-- nvm alias default 16.15.1
-- git clone git@github.com:nicksen782/Command-Er_mini.git
-- cd Command-Er_mini
+# INSTALL INSTRUCTIONS:
+````sh
+# Install git (it isn't included in a RPI OS Lite image.)
+sudo apt install git -y
+
+# Change to the home directory.
+cd ~
+
+# Clone the repo.
+git clone https://github.com/nicksen782/Command-Er_mini.git MINI
+
+# Clone the repo (optionally you can set the branch to checkout.)
+# git clone https://github.com/nicksen782/Command-Er_mini.git MINI --branch DEV
+````
+## Update the /boot/config.txt file:
+  - Run ~/MINI/setupScripts/01_rpi_config.sh
+    - This will change your /boot/config.txt file.
+      - It gives you an opportunty to cancel.
+    - It creates a backup of /boot/config.txt BEFORE overwritting it.
+  - Reboot after this script is finished.
+
+## Use the setupScripts/setup.sh script to continue.
+  - Next, run ~/MINI/setupScripts/setup.sh
+    - It will:
+      - Install Linux packages.          (~/MINI/setupScripts/02_linux.sh)
+      - Install NodeJS and NPM.          (~/MINI/setupScripts/03_node_npm.sh)
+      - Install Python modules.          (~/MINI/setupScripts/04_fbcp.sh)
+      - Install fbcp (framebuffer copy.) (~/MINI/setupScripts/05_python.sh)
+	    - This will add a call to fbcp at the end of your rc.local file (before the exit 0.)
+  - Reboot after this script is finished.
+
+## Install/configure PM2
+  - todo
+  - sudo npm i -g pm2 
+
+## Finish the installation:
+````sh
+# Change to the app directory.
+cd ~/MINI
+node .
+````

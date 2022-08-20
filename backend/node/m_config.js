@@ -33,7 +33,7 @@ let _MOD = {
 				_APP = parent;
 		
 				// Get and store the config file. (check if it is populated.)
-				if(!_MOD.config.node){ await _MOD.get_configs(); }
+				if(!_MOD.config.node){ await _MOD.get_configs(_APP); }
 				_APP.consolelog("got_config", 2);
 				
 				// Add routes.
@@ -72,8 +72,11 @@ let _MOD = {
 
 	},
 
-	get_configs: async function(){
+	get_configs: async function(parent){
 		return new Promise(async function(resolve,reject){
+			// Save reference to the parent module.
+			if(!_APP) { _APP = parent; }
+
 			// Read/Store the JSON. 
 			_MOD.config            = JSON.parse( fs.readFileSync(_MOD.config_filename,            'utf8') );
 			_MOD.coordsByIndex     = JSON.parse( fs.readFileSync(_MOD.coordsByIndex_filename,     'utf8') );

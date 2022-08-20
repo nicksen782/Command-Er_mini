@@ -69,7 +69,7 @@ let _APP = {
 			_APP.consolelog("", 0);
 
 			//
-			await _APP.m_config.get_configs();
+			await _APP.m_config.get_configs(_APP);
 
 			resolve();
 		});

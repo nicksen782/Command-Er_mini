@@ -1,0 +1,27 @@
+# NOT NEEDED.
+#hdmi_blanking=2
+#dtoverlay=vc4-kms-v3d
+#max_framebuffers=2
+#arm_boost=1
+#core_freq=338
+
+# TURN ON/OFF.
+camera_auto_detect=0
+display_auto_detect=0
+dtparam=audio=off
+dtparam=i2c_arm=on
+dtparam=spi=on
+dtparam=act_led_trigger=actpwr
+
+# DISPLAY SETTINGS.
+gpu_mem=128
+disable_overscan=1
+hdmi_force_hotplug=1
+hdmi_cvt=240 240 30 1 0 0 1
+hdmi_group=2
+hdmi_mode=87
+display_rotate=0
+otg_mode=0
+
+# GPIO SETTINGS.
+gpio=6,19,5,26,13,21,20,16=pu
