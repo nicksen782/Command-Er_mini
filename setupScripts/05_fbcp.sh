@@ -18,14 +18,10 @@ echo
 echo "-- REMOVE FBCP PROCESS --"
 pkill -x fbcp
 
-# Download Waveshare's version of fbcp-ili9341 and unpack.
+# Download Waveshare's version of fbcp-ili9341.
 echo
-echo "-- DOWNLOAD FBCP FROM WAVESHARE --"
-wget https://www.waveshare.com/w/upload/f/f9/Waveshare_fbcp.7z
-7z x Waveshare_fbcp.7z -o./waveshare_fbcp
-
-# Remove the previous download.
-rm Waveshare_fbcp.7z
+echo "-- DOWNLOAD FBCP FROM WAVESHARE (https://github.com/EngineerWill/waveshare_fbcp) --"
+git clone https://github.com/EngineerWill/waveshare_fbcp.git waveshare_fbcp
 
 # Change to the waveshare_fbcp directory.
 cd waveshare_fbcp
@@ -55,5 +51,4 @@ REPLACEWITH=""\
 "# Disable terminal blinking cursor.\n"\
 "echo 0 | tee /sys/class/graphics/fbcon/cursor_blink\n\n"\
 "exit 0"
-
 sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /etc/rc.local

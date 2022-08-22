@@ -31,9 +31,11 @@ function appendToBootTxt() {
 	REPLACEWITH="#max_framebuffers=2"
 	sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
-	# Use raspi-config nonint to turn on SPI and I2C.
+	# Use raspi-config nonint to turn ON I2C.
 	sudo raspi-config nonint do_i2c 0
-	sudo raspi-config nonint do_spi 0
+
+	# Use raspi-config nonint to turn OFF SPI.
+	sudo raspi-config nonint do_spi 1
 
 	# Reboot
 	sudo reboot

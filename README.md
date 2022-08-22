@@ -61,7 +61,7 @@ git clone https://github.com/nicksen782/Command-Er_mini.git MINI
   - Run bash ~/MINI/setupScripts/01_rpi_config.sh
     - This will change your /boot/config.txt file.
       - It gives you an opportunty to cancel.
-    - It creates a backup of /boot/config.txt BEFORE apending to  it.
+    - It creates a backup of /boot/config.txt BEFORE apending to it.
     - NOTE: If you would like to do this step manually instead of overwriting /boot/config.txt then compare your own version and add the changes from the sample provided in: ~/MINI/setupScripts/boot/config.txt
   - The script will reboot the Pi after it finishes.
   - After the reboot is complete, SSH back into the Pi and continue with the command below.
