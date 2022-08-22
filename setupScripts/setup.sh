@@ -1,9 +1,10 @@
 #!/bin/bash
 
 cd ~
-bash ~/MINI/setupScripts/02_linux.sh
-bash ~/MINI/setupScripts/03_node_npm.sh
-bash ~/MINI/setupScripts/04_python.sh
-bash ~/MINI/setupScripts/05_fbcp.sh
-bash ~/MINI/setupScripts/06_app_install.sh
-bash ~/MINI/setupScripts/07_pm2.sh
+time bash ~/MINI/setupScripts/02_linux.sh
+time bash ~/MINI/setupScripts/03_node_npm.sh
+time bash ~/MINI/setupScripts/04_python.sh
+time bash ~/MINI/setupScripts/05_fbcp.sh
+time bash ~/MINI/setupScripts/06_app_install.sh
+time bash ~/MINI/setupScripts/07_pm2.sh
+sudo reboot

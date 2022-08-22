@@ -16,7 +16,7 @@ cd ~
 # Disable the blinking console cursor.
 echo
 echo "-- DISABLE BLINKING CURSOR --"
-echo 0 | sudo tee /sys/class/graphics/fbcon/cursor_blink
+echo 0 | sudo tee /sys/class/graphics/fbcon/cursor_blink >> /dev/null
 
 # Clean apt packages and update.
 echo
@@ -27,10 +27,10 @@ sudo apt -y update
 # Install packages.
 echo
 echo "-- INSTALL APT PACKAGES --"
-sudo apt -y install ca-certificates
-sudo apt -y install build-essential libpixman-1-dev libcairo2-dev libpango1.0-dev libgif-dev libjpeg-dev librsvg2-dev
-sudo apt -y install cmake p7zip-full
-sudo apt -y install i2c-tools libi2c-dev python3-smbus python3-pip
+sudo apt -y install ca-certificates \
+  install build-essential libpixman-1-dev libcairo2-dev libpango1.0-dev libgif-dev libjpeg-dev librsvg2-dev \
+  install cmake p7zip-full \
+  install i2c-tools libi2c-dev python3-smbus python3-pip 
 
 # Remove nodejs and npm packages if they are already installed in the base OS image.
 # These are usually very old versions.

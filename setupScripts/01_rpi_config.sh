@@ -21,6 +21,16 @@ function appendToBootTxt() {
 	# Append to the /boot/config.txt file.
 	cat boot/config_partial.txt | sudo tee -a /boot/config.txt > /dev/null
 
+	# Comment-out: dtoverlay=vc4-kms-v3d
+	FINDTHIS="dtoverlay=vc4-kms-v3d"
+	REPLACEWITH="#dtoverlay=vc4-kms-v3d"
+	sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+	# Comment-out: max_framebuffers=2
+	FINDTHIS="max_framebuffers=2"
+	REPLACEWITH="#max_framebuffers=2"
+	sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
 	# Use raspi-config nonint to turn on SPI and I2C.
 	sudo raspi-config nonint do_i2c 0
 	sudo raspi-config nonint do_spi 0
