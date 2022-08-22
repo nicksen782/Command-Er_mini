@@ -38,6 +38,8 @@ function appendToBootTxt() {
 	sudo raspi-config nonint do_spi 1
 
 	# Reboot
+	echo
+	echo "-- /boot/config.txt IS CONFIGURED - REBOOTING --"
 	sudo reboot
 }
 
