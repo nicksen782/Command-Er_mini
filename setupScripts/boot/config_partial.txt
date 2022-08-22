@@ -1,19 +1,16 @@
-# NOT NEEDED.
-#hdmi_blanking=2
-#dtoverlay=vc4-kms-v3d
-#max_framebuffers=2
-#arm_boost=1
-#core_freq=338
-#otg_mode=0
+
+# *********************************
+# START : ADDED BY: COMMAND-ER MINI
+# *********************************
 
 # TURN ON/OFF.
 camera_auto_detect=0
 display_auto_detect=0
 dtparam=audio=off
 dtparam=act_led_trigger=actpwr
-#dtparam=i2c_arm=on # Set via raspi-config
-#dtparam=i2c1=on    # Set via raspi-config
-#dtparam=spi=on     # Set via raspi-config
+# dtparam=i2c_arm=on # Set via raspi-config
+# dtparam=i2c1=on    # Set via raspi-config
+# dtparam=spi=on     # Set via raspi-config
 
 # DISPLAY SETTINGS. # http://wiki.sunfounder.cc/index.php?title=Adjust_Resolution_for_Raspberry_Pi
 gpu_mem=128
@@ -26,3 +23,7 @@ display_rotate=0
 
 # GPIO SETTINGS.
 gpio=6,19,5,26,13,21,20,16=pu
+
+# *********************************
+# FINISH: ADDED BY: COMMAND-ER MINI
+# *********************************

@@ -28,8 +28,12 @@ sudo apt -y update
 echo
 echo "-- INSTALL APT PACKAGES --"
 sudo apt -y install ca-certificates
-sudo apt -y install libpixman-1-dev libcairo2-dev libpango1.0-dev libgif-dev
-sudo apt -y install cmake
-sudo apt -y install p7zip-full -y
-sudo apt -y install python3-pip
-sudo apt -y install i2c-tools libi2c-dev python3-smbus
+sudo apt -y install build-essential libpixman-1-dev libcairo2-dev libpango1.0-dev libgif-dev libjpeg-dev librsvg2-dev
+sudo apt -y install cmake p7zip-full
+sudo apt -y install i2c-tools libi2c-dev python3-smbus python3-pip
+
+# Remove nodejs and npm packages if they are already installed in the base OS image.
+# These are usually very old versions.
+echo
+echo "-- REMOVE APT PACKAGES --"
+sudo apt purge -y --auto-remove nodejs npm

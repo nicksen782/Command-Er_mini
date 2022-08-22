@@ -24,10 +24,17 @@ sudo cp -r node-v16.9.1-linux-armv6l/* /usr/local/
 rm node-v16.9.1-linux-armv6l.tar.gz
 rm -rf node-v16.9.1-linux-armv6l
 
-# Update NPM.
+# Set ownership of ~/.npm.
 echo
-echo "-- UPDATING NPM --"
-sudo npm install -g npm
+echo "-- SET OWNERSHIP OF ~/.npm --"
+sudo chown -R $(whoami) "$HOME/.npm"
+
+# # Update NPM.
+# echo
+# echo "-- UPDATING NPM --"
+# npm cache verify
+# npm cache clean --force
+# sudo npm install -g npm@latest
 
 # Install node-gyp
 echo

@@ -6,7 +6,7 @@ cd $(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 # RASPBERRY PI CONFIG
 # ###################
 
-function replaceBootText() {
+function appendToBootTxt() {
 	# Generate a datetime string.
 	local DATE_WITH_TIME=`date "+%Y%m%d-%H%M%S"`
 
@@ -16,13 +16,23 @@ function replaceBootText() {
 	echo "Backup of /boot/config.txt: ${BK_FILE}"
 
 	# Replace the /boot/config.txt file.
-	sudo cp -f boot/config.txt /boot/config.txt
+	# sudo cp -f boot/config.txt /boot/config.txt
+
+	# Append to the /boot/config.txt file.
+	cat boot/config_partial.txt | sudo tee -a /boot/config.txt > /dev/null
+
+	# Use raspi-config nonint to turn on SPI and I2C.
+	sudo raspi-config nonint do_i2c 0
+	sudo raspi-config nonint do_spi 0
+
+	# Reboot
+	sudo reboot
 }
 
-echo "This script will REPLACE /boot/config.txt"
+echo "This script will APPEND to /boot/config.txt and then reboot."
 read -p "Continue (y/n)?" choice
 case "$choice" in 
-  y|Y ) replaceBootText;;
+  y|Y ) appendToBootTxt;;
   n|N ) echo "ABORTED";;
   * ) echo "ABORTED: INVALID CHOICE";;
 esac
