@@ -1,27 +1,30 @@
 # Command-Er Mini
 
 Designed with this hardware in mind: 
-* [Raspberry Pi Zero WH Package F, with UPS Module and 1.3inch LCD](https://www.waveshare.com/raspberry-pi-zero-wh-package-f.htm) 
+  * [Raspberry Pi Zero WH Package F, with UPS Module and 1.3inch LCD](https://www.waveshare.com/raspberry-pi-zero-wh-package-f.htm) 
+
 Designed to interact with this software:
-* [Command-Er (currently private)](https://github.com/nicksen782/Command-Er) 
+  * [Command-Er (currently private)](https://github.com/nicksen782/Command-Er) 
 
 ## Features:
 - Portable mostly self-contained client for Command-Er (or anything else really.)
 - Battery as UPS, and LCD with button controls to control the application.
 - Web server built-in for debugging.
-  - Server keeps a canvas and can output that data to the LCD framebuffer
-  - Can send the canvas data to a webclient via WebSocket.
-  - Can control the device via the web server and see the LCD screen on your computer.
-
-## TODO:
-- Connection to Command-Er to send commands through a selected terminal or a default terminal.
-- Menu system to govern the usage of the device. 
-- Status updates on a command that is sent. 
+  - The Web Client receives:
+    - Canvas drawing changes (What is on the LCD screen.)
+    - Various statistics.
+  - The Web Client sends:
+    - Debug commands
+    - Button presses
+    - Can set the server FPS.
+  - Most features use WebSockets. Some use POST. 
+  - Many of these features are available with both types.
 
 ## Tested with:
 - Raspberry Pi Zero W
 - Python 3.9.2
-- NodeJs 16.15.1
+- NodeJs 16.9.1
+- npm 8.18.0
 
 # INSTALL INSTRUCTIONS:
 ````sh
@@ -42,6 +45,7 @@ git clone https://github.com/nicksen782/Command-Er_mini.git MINI
     - This will change your /boot/config.txt file.
       - It gives you an opportunty to cancel.
     - It creates a backup of /boot/config.txt BEFORE overwritting it.
+    - NOTE: If you would like to do this step manually instead of overwriting /boot/config.txt then compare your own version and add the changes from the sample provided in: ~/MINI/setupScripts/boot/config.txt
   - Run raspi-config
     - System Options > Boot / Auto Login > Console
     - Interface Options > SPI > Yes
@@ -50,33 +54,28 @@ git clone https://github.com/nicksen782/Command-Er_mini.git MINI
 
 ## Use the setupScripts/setup.sh script to continue.
   - Next, run bash ~/MINI/setupScripts/setup.sh
-    - It will:
-      - Install Linux packages.          (~/MINI/setupScripts/02_linux.sh)
-      - Install NodeJS and NPM.          (~/MINI/setupScripts/03_node_npm.sh)
-      - Install Python modules.          (~/MINI/setupScripts/04_python.sh)
-      - Install fbcp (framebuffer copy.) (~/MINI/setupScripts/05_fbcp.sh)
-	    - This will add a call to fbcp at the end of your rc.local file (before the exit 0.)
+    - It will run these scripts:
+    ````sh
+      (~/MINI/setupScripts/02_linux.sh)       - Installs Linux packages.
+      (~/MINI/setupScripts/03_node_npm.sh)    - Installs NodeJS and NPM.
+      (~/MINI/setupScripts/04_python.sh)      - Installs Python modules.
+      (~/MINI/setupScripts/05_fbcp.sh)        - Installs fbcp (framebuffer copy.)
+      (~/MINI/setupScripts/06_app_install.sh) - Installs the npm packages for the app. 
+      (~/MINI/setupScripts/07_pm2.sh)         - Installs pm2 and configures it.
+    ````
   - Reboot after this script is finished.
 
-## Install the NPM packages for the application:
-  - Note: Takes a little over 5 minutes.
-````sh
-# Change to the app directory.
-cd ~/MINI
-npm install
-cd ~
-````
+## FINISH
+  - The app should start automatically after reboot (Take a little over 1 minute.)
+  - COMMON PM2 MANAGEMENT COMMANDS:
+    - Restart only:
+      - pm2 restart COMMANDER_MINI
+    - Log only: 
+      - pm2 log COMMANDER_MINI
+    - Restart and log: 
+      - pm2 restart COMMANDER_MINI && pm2 log COMMANDER_MINI
 
-## Install/configure PM2
-  - todo
-  - sudo npm i -g pm2 
-  - pm2 install pm2-logrotate
-  - pm2 startup
-    - Copy and paste the command aspm2 root as indicated.
-  - pm2 init simple
-    - Or use provided example.
-  - pm2 start ecosystem.config.js
-  - /etc/fstab
-  - tmpfs                 /home/pi/.pm2/logs   tmpfs   defaults,noatime  0 0
-
-# node ~/MINI
+# TODO:
+- Connection to Command-Er to send commands through a selected terminal or a default terminal.
+- Menu system to govern the usage of the device. 
+- Status updates on a command that is sent. 

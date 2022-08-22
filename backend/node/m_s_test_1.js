@@ -48,39 +48,6 @@ let screen = {
 	timeUpdateSeconds:1,
 	batteryUpdateSeconds:5,
 
-	buttons: async function(key, state){
-		switch(key){
-			// Command cursor movements. 
-			case "KEY_UP_PIN"   : { if(state){ } break; }
-			case "KEY_DOWN_PIN" : { if(state){ } break; }
-	
-			// Section changes.
-			case "KEY_LEFT_PIN" : { if(state){ _APP.screenLogic.shared.changeScreen.prev(); } break; }
-			case "KEY_RIGHT_PIN": { if(state){ _APP.screenLogic.shared.changeScreen.next(); } break; }
-	
-			// Config screen.
-			case "KEY_PRESS_PIN": { if(state){ } break; }
-	
-			// Status screen.
-			case "KEY1_PIN"     : { 
-				if(state){ 
-				}
-				break; 
-			}
-	
-			// 
-			case "KEY2_PIN"     : { 
-				if(state){ 
-				}
-				break; 
-			}
-			
-			// Backlight toggle.
-			case "KEY3_PIN"     : { 
-				break;
-			}
-		}
-	},
 	init: async function(){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
@@ -95,7 +62,7 @@ let screen = {
 
 		// Top rows.
 		_APP.m_draw.fillTile("tile3"         , 0, 0, ts.cols, 1); 
-		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen.substring(4)} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
 
@@ -142,10 +109,10 @@ let screen = {
 			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ") }`);
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
 			
-			let totalTime = _APP.timeIt_timings_prev["FULLLOOP"].t;
-			let gpio          = _APP.timeIt_timings_prev["GPIO"].t;          let gpio_p          = ((gpio          / totalTime)*100).toFixed(2);
-			let logic         = _APP.timeIt_timings_prev["LOGIC"].t;         let logic_p         = ((logic         / totalTime)*100).toFixed(2);
-			let displayupdate = _APP.timeIt_timings_prev["DISPLAY"].t; let displayupdate_p = ((displayupdate / totalTime)*100).toFixed(2);
+			let totalTime     = _APP.timeIt_timings_prev["APPLOOP__"]["FULLLOOP"].t;
+			let gpio          = _APP.timeIt_timings_prev["APPLOOP__"]["GPIO"].t;     let gpio_p          = ((gpio          / totalTime)*100).toFixed(2);
+			let logic         = _APP.timeIt_timings_prev["APPLOOP__"]["LOGIC"].t;    let logic_p         = ((logic         / totalTime)*100).toFixed(2);
+			let displayupdate = _APP.timeIt_timings_prev["APPLOOP__"]["DISPLAY"].t;  let displayupdate_p = ((displayupdate / totalTime)*100).toFixed(2);
 			thisScreen.lines2.push( `GPIO    :${gpio         .toFixed(2).padStart(7, " ")} / ${(gpio_p          + '%').padStart(9, " ")}` );
 			thisScreen.lines2.push( `LOGIC   :${logic        .toFixed(2).padStart(7, " ")} / ${(logic_p         + '%').padStart(9, " ")}` );
 			thisScreen.lines2.push( `DISPLAY :${displayupdate.toFixed(2).padStart(7, " ")} / ${(displayupdate_p + '%').padStart(9, " ")}` );

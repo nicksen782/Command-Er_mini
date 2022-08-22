@@ -182,7 +182,7 @@ let setErrorHandlers = function(){
 	_APP   = await require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
 	
 	//
-	_APP.timeIt("_STARTUP_", "s");
+	_APP.timeIt("FULL_STARTUP", "s", "STARTUP__");
 
 	// Init _APP.
 	_APP.module_init(_APP);
@@ -267,7 +267,7 @@ let setErrorHandlers = function(){
 	};
 
 	_APP.consolelog(".".repeat(54), 0);
-	_APP.timeIt("expressServerStart", "s");   
+	_APP.timeIt("expressServerStart", "s", "STARTUP__");   
 	_APP.consolelog("START: expressServerStart:", 0);
 	
 	// Remove the process if it already exists.
@@ -276,8 +276,8 @@ let setErrorHandlers = function(){
 	
 	(async function startServer(){
 		server.listen(conf, async function () {
-			_APP.timeIt("expressServerStart", "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("expressServerStart", "t").toFixed(3).padStart(9, " ")} ms`, 0);
+			_APP.timeIt("expressServerStart", "e", "STARTUP__");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("expressServerStart", "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog("");
 			
@@ -310,11 +310,11 @@ let setErrorHandlers = function(){
 			printRoutes(); 
 			console.log("");
 			
-			_APP.timeIt("_STARTUP_", "e");
+			_APP.timeIt("FULL_STARTUP", "e", "STARTUP__");
 			 
 			lines = [
 				"-".repeat(36)                                                                          ,
-				` READY (STARTUP TIME: ${_APP.timeIt("_STARTUP_", "t").toFixed(3).padStart(9, " ")} ms) ` ,
+				` READY (STARTUP TIME: ${_APP.timeIt("FULL_STARTUP", "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms) ` ,
 				"-".repeat(36)                                                                          ,
 			];
 			console.log("");

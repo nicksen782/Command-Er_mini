@@ -38,13 +38,83 @@ let screen = {
 	// VARIABLES:
 	inited: false,
 
+	menu1: {}, // Populated via intVars.
+	
 	// CONSTANTS:
-
+	
 	// INIT:
+	createDialog_choose_host: function(){
+		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
+		let dims = { "x": 0, "y": 4, "w": 30, "h": 22 };
+		let tiles = { "t1": "tile3", "t2": "tile2", "t3": "tile4", "bgClearTile": "tile4" };
+		let cursor = { "usesCursor":true, "cursorIndexes":[] }
+		let actions = [];
+		let lines   = [
+			// TITLE
+			`SELECT A HOST`,
+			
+			// ROWS (added later.)
+			//
+		];
+		_APP.m_config.remoteConf.forEach( (d,i)=>{ 
+			let newYIndex = lines.length + dims.y+2;
+			actions.push(
+				function(){ 
+					console.log("TODO: CONNECT TO : ", d.name, d.URL);
+				}
+			);
+			cursor.cursorIndexes.push( newYIndex );
+			lines.push(`  ${d.name}`);
+		} );
+
+		return thisScreen.shared.createDialogObject({
+			"name"   : "choose_host",
+			...dims, ...tiles, ...cursor,
+			"lines"  : lines,
+			"actions": actions
+		});
+	},
+	intVars: function(){
+		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
+		// console.log("SCREEN: initVars:", _APP.currentScreen);
+
+		thisScreen.menu1 = {
+			dialogs: {
+				// OLDchoose_host: thisScreen.shared.createDialogObject({
+				// 	"name"   : "choose_host",
+				// 	"x": 3, "y": 7, "w": 24, "h": 7,
+				// 	 "t1": "tile3", "t2": "tile2", "t3": "tile4",
+				// 	 "bgClearTile": "tile4",
+				// 	 "usesCursor":true,
+				// 	"lines"  : [
+				// 		` : PROCESS.EXIT`,
+				// 		` : PM2 RESTART`,
+				// 		` : CLOSE DIALOG BOX`,
+				// 	],
+				// 	"actions": [
+				// 		function(){ console.log("ACTION: LINE 0"); this.thisScreen.shared.process.exit();    }, // LINE 0
+				// 		function(){ console.log("ACTION: LINE 1"); this.thisScreen.shared.pm2    .restart(); }, // LINE 1,
+				// 		function(){ 
+				// 			// try{ console.log("*ACTION**: this:", this);                      } catch(e){ console.log("fail: 1"); } 
+				// 			try{ 
+				// 				console.log("*ACTION**: this.close:", this.box.close); 
+				// 				this.box.close();
+				// 			} 
+				// 			catch(e){ console.log("fail: 4"); } 
+				// 		}, // LINE 2,
+				// 	],
+				// }),
+				choose_host: thisScreen.createDialog_choose_host(),
+			},
+		};
+	},
 	init: async function(){
+		_APP.timeIt("init", "s", "host_select");
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
 		console.log("SCREEN: init:", _APP.currentScreen);
+
+		thisScreen.intVars();
 	
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
@@ -55,45 +125,23 @@ let screen = {
 
 		// Top rows.
 		_APP.m_draw.fillTile("tile3"         , 0, 0, ts.cols, 1); 
-		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen.substring(4)} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
 
 		// Bottom row.
 		_APP.m_draw.fillTile("tile3"         , 0, ts.rows-1, ts.cols, 1); 
-		
-		let y=3;
-		let x=0;
-		
-		_APP.m_draw.print(`SELECT A HOST:` , x+0 , y++);
-		_APP.m_draw.print( `` 
-			+ `|LOCATION| `.padEnd(9, ".") 
-			+ `|NAME| `.padEnd(8, ".") 
-			+ `|HOST| `.padEnd(8, ".") 
-			, x+0 , y++
-		);
-
-		_APP.m_config.remoteConf.forEach( (d,i)=>{ 
-			_APP.m_draw.print(`${d.name}` , x+1 , y++);
-		} );
 
 		// Initial drawing of the battery and time.
 		thisScreen.shared.time   .display(0, 29, "tile3");
 		thisScreen.shared.battery.display(23, 29, "tile3");
 
-		let obj = thisScreen.shared.getDialogBoxParams(5, 7, 20, 10);
-		console.log("getDialogBoxParams:", obj);
-		_APP.m_draw.fillTile("tile3"        , obj.outer.x, obj.outer.y,  obj.outer.w, obj.outer.h); 
-		_APP.m_draw.fillTile("tile1"        , obj.inner.x, obj.inner.y,  obj.inner.w, obj.inner.h); 
-		_APP.m_draw.fillTile("tile3"        , obj.text.x, obj.text.y,  obj.text.w, obj.text.h); 
-
-		_APP.m_draw.print(" ".repeat(1) + `* : LINE 1`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+1);
-		_APP.m_draw.print(" ".repeat(1) + `  : LINE 2`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+2);
-		_APP.m_draw.print(" ".repeat(1) + `  : LINE 3`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+3);
-		_APP.m_draw.print(" ".repeat(1) + `  : LINE 4`.padEnd(obj.text.w-1, " ") , obj.text.x, obj.text.y+4);
+		thisScreen.menu1.dialogs.choose_host.active=true;
 
 		// Init vars.
 		thisScreen.inited = true;
+		_APP.timeIt("init", "e", "host_select");
+
 	},
 	
 	// MAIN FUNCTION:
@@ -108,14 +156,20 @@ let screen = {
 			let ts = conf.tileset;
 
 			// Display/Update the time/battery data sections as needed.
+			_APP.timeIt("time", "s", "host_select");
 			thisScreen.shared.time.updateIfNeeded(0, 29, "tile3");
-			thisScreen.shared.battery.updateIfNeeded(23, 29, "tile3");
+			_APP.timeIt("time", "e", "host_select");
 
-			// 
-			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY1_PIN")     ) { thisScreen.shared.pm2    .restart();  }
-			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY2_PIN")     ) { thisScreen.shared.process.exit();     }
-			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY_UP_PIN")   ) { thisScreen.shared.linux  .reboot();   }
-			// if( _APP.m_gpio.isPress ("KEY_PRESS_PIN") && _APP.m_gpio.isPress ("KEY_DOWN_PIN") ) { thisScreen.shared.linux  .shutdown(); }
+			_APP.timeIt("battery", "s", "host_select");
+			thisScreen.shared.battery.updateIfNeeded(23, 29, "tile3");
+			_APP.timeIt("battery", "e", "host_select");
+
+			if(thisScreen.menu1.dialogs.choose_host.active){
+				thisScreen.menu1.dialogs.choose_host.box.draw();
+				thisScreen.menu1.dialogs.choose_host.cursor.move();
+				thisScreen.menu1.dialogs.choose_host.cursor.blink();
+				thisScreen.menu1.dialogs.choose_host.text.select();
+			}
 
 			resolve();
 		});

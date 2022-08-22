@@ -14,6 +14,7 @@ let _MOD = {
 		"VRAM_CHANGES",
 		"STATS1",
 		"STATS2",
+		"STATS3",
 	],
 
 	// Init this module.
@@ -55,6 +56,7 @@ let _MOD = {
 		_APP.addToRouteList({ path: "SUBSCRIBE"        , method: "ws", args: [], file: __filename, desc: "(JSON): Subscript to event." });
 		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unubscript from event." });
 		_APP.addToRouteList({ path: "PRESS_BUTTONS"    , method: "ws", args: [], file: __filename, desc: "(JSON): PRESS_BUTTONS" });
+		_APP.addToRouteList({ path: "DEBUGCMD"         , method: "ws", args: [], file: __filename, desc: "(JSON): Send debug command (fixed list.)" });
 		_APP.addToRouteList({ path: "CHANGE_SCREEN"    , method: "ws", args: [], file: __filename, desc: "(JSON): CHANGE_SCREEN" });
 		_APP.addToRouteList({ path: "GET_SUBSCRIPTIONS", method: "ws", args: [], file: __filename, desc: "(TEXT): Get list of active subscriptions." });
 	},
@@ -131,6 +133,16 @@ let _MOD = {
 			PRESS_BUTTONS:      async function(ws, data){
 				_APP.m_gpio.setButtonOverrideValues(data.data);
 			},
+			
+			DEBUGCMD:      async function(ws, data){
+				switch(data.data.cmd){
+					case "pm2.restart"    : { _APP.screenLogic.shared.pm2.restart();    break; }
+					case "process.exit"   : { _APP.screenLogic.shared.process.exit();   break; }
+					case "linux.reboot"   : { _APP.screenLogic.shared.linux.reboot();   break; }
+					case "linux.shutdown" : { _APP.screenLogic.shared.linux.shutdown(); break; }
+					default : { break; }
+				};
+			},
 			CHANGE_SCREEN:      async function(ws, data){
 				// Pause the drawLoop from running.
 				if(_APP.drawLoop) { _APP.drawLoop.pause(); }
@@ -142,7 +154,7 @@ let _MOD = {
 
 					// Unpause. This should be the beginning of the next drawLoop.
 					if(_APP.drawLoop) { _APP.drawLoop.unpause(); }
-				}, _APP.timeIt_timings_prev["FULLLOOP"].t || _APP.stats.interval);
+				}, _APP.timeIt_timings_prev["APPLOOP__"]["FULLLOOP"].t || _APP.stats.interval);
 			},
 		},
 		TEXT:{
@@ -229,10 +241,13 @@ let _MOD = {
 					case "VRAM_CHANGES" : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_FULL");    break; }
 
 					//
-					// case "STATS1" : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_FULL");    break; }
+					// case "STATS1" : : { break; }
 
 					//
-					// case "STATS2" : { ws.subscriptions = ws.subscriptions.filter(d=>d!="VRAM_FULL");    break; }
+					// case "STATS2" : { break; }
+
+					//
+					// case "STATS3" : { break; }
 
 					//
 					default: { break; }
@@ -334,6 +349,7 @@ let _MOD = {
 			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_CHANGES");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS2");
+			_MOD.ws_utilities.addSubscription(clientWs, "STATS3");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
 

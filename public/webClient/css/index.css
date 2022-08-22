@@ -4,10 +4,13 @@
 
 body {
 	overflow: auto;
-	width: 960px;
+	/* width: 1105px; */
+	width: 100%;
 	background-color: cadetblue;
 	text-align: center;
-	margin-top: 5px;
+	/* margin-top: 5px; */
+	white-space: nowrap;
+	margin: auto;
 }
 
 .button {
@@ -37,10 +40,78 @@ body {
 	position: relative;
 	margin-bottom: 3px;
 	border: 2px solid black;
+	padding: 3px;
+	/* min-width: 120px; */
+	max-width: 120px;
+}
+.title2 {
+	display: block;
+	background-color: rgb(98 176 255 / 50%);
+	position: relative;
+	margin-bottom: 3px;
+	border: 2px solid black;
+	padding: 3px;
+	min-width: 130px;
+	/* max-width: 120px; */
 }
 
 .title.taller {
-	padding: 6px;
+	padding: 8px;
+	max-width: unset;
+}
+
+#controls_nav {
+	border: 1px solid black;
+	padding: 5px;
+	margin-bottom: 5px;
+}
+
+#controls_cont_views {
+	/* border: 1px solid green; */
+	/* background-color:
+	yellow; */
+	height: 370px;
+	/* width: 600px; */
+	width: 100%;
+	padding: 5px;
+	background-color: rgb(255 255 255 / 25%);
+	border:1px solid black;
+}
+
+#controls_cont_views .view {
+	display: none;
+	overflow: auto;
+}
+
+#controls_cont_views .view.active {
+	display: block;
+	/* background-color: #d2e0ee; */
+	height: 100%;
+}
+
+.title.navButton {
+	display: inline-block;
+	min-width: 70px;
+	padding: 2px;
+	text-align: center;
+	font-weight: bold;
+	text-decoration: underline;
+	background-color: #f0c9ab;
+	cursor:pointer;
+}
+
+.title.navButton:hover {
+	/* background-color: #83b8ee; */
+	background-color: #ff7100;
+	/* font-style:italic; */
+	text-decoration: underline;
+}
+
+.title.navButton:active{
+	background-color: #c15600;
+}
+.title.navButton.active {
+	background-color: #ff7100;
 }
 
 .inlineBlock {
@@ -64,7 +135,7 @@ body {
 	padding: 5px;
 	margin: 0px;
 	background-color: lightsteelblue;
-	width: 535px;
+	width: 710px;
 	height: 430px;
 	display: inline-block;
 	vertical-align: top;
@@ -72,42 +143,18 @@ body {
 	font-size: 12px;
 }
 
-#controls_top {
-	width: 523px;
-	background-color: rgb(255 255 255 / 25%);
-	padding: 5px;
-}
-
 #info_subscriptionsDiv {
 	vertical-align: top;
 }
 
-#controls_bottom2 {
-	vertical-align: top;
-	background-color: rgb(255 255 255 / 25%);
-	padding: 4px;
-}
-
-#controls_bottom2 table {
-}
-
-#controls_bottom2 table th {
-}
-
-#controls_bottom2 table th,
-#controls_bottom2 table td {
-	width: 16%;
-	border: 1px solid black;
-}
-
 #vram_cont {
 	border: 1px solid darkblue;
-	display: inline-block;
+	/* display: inline-block; */
 	padding: 5px;
 	padding-bottom: 0px;
 	margin: 0px;
 	background-color: lightsteelblue;
-	width: 400px;
+	width: 390px;
 	height: 430px;
 	text-align: center;
 	display: inline-block;
@@ -123,28 +170,39 @@ body {
 }
 
 #vram_div_layers {
-	display: inline-block;
-	vertical-align: top;
+	/* background-color: lightsteelblue; */
+	margin: 0px;
 	padding: 0px;
 	margin: 0px;
-	background-color: red;
-	position: relative;
-	top: 2px;
+	text-align: left;
+	overflow: auto;
+	white-space: nowrap;
+}
+#vram_div_layers .vram_div_layer{
+	display: inline-block;
+	vertical-align: top;
 	background-color: lightsteelblue;
-	padding: 5px;
-	padding-bottom: 0px;
-	margin: 0px;
-	margin-top: 5px;
-	border: 1px solid darkblue;
-	text-align: center;
+	border: 1px solid black;
+	padding: 2px;
+	margin: 2px;
+}
+#vram_div_layers .vram_div_layer .title{}
+#vram_div_layers .vram_div_layer canvas{}
+#vram_div_layers .vram_div_layer .updateStats{
+    margin-bottom: 5px;
 }
 
 .vramCanvas {
 	margin: 0px;
-	background-color: darkgray;
+	background-color: gray;
+	background-color: black;
+	/* background-color: unset; */
 	width: 100%;
-	width: 310px;
+	/* width: 310px; */
+	/* width: 189px; */
 	border: 2px solid black;
+	width: 215px;
+	/* height: 100%; */
 }
 
 .center {
@@ -171,7 +229,9 @@ span#ws_status {
 }
 
 #vram_div_layers.hide {
-	display: none;
+	/* display: none; */
+	opacity: 25%;
+	cursor: not-allowed;
 }
 
 table td,
@@ -185,12 +245,9 @@ table th {
 	font-size: 10px;
 }
 
-#info_VRAM_UPDATESTATS {
-}
-
-
 .ws {
-	width: 100%;
+	/* width: 100%; */
+	/* padding: 5px; */
 }
 
 .ws.disconnected {
@@ -208,6 +265,7 @@ table th {
 .ws.connected {
 	background-color: #a5c2dd;
 	/* width: 100%; */
+	/* padding: 5px; */
 }
 
 span#info_fps {
@@ -258,42 +316,55 @@ span#ws_autoReconnectDiv:hover {
 	background-color: #bcd2e6;
 }
 
-#info_VRAM_UPDATESTATS table {
-	/* width:100%; */
+.updateStats table {
 	font-family: monospace;
 	white-space: pre;
-/* 	font-size: 16px; */
-	width: 120px;
-	min-height: 95px;
+	width: 100%;
+	min-height: 40px;
 }
-
-#info_VRAM_UPDATESTATS table th {
+.updateStats table th {
 	text-align: center;
 	text-decoration: underline;
 	font-weight: bold;
 	width: 28px;
 	background-color: rgb(255 255 255 / 80%);
 }
-
-#info_VRAM_UPDATESTATS table td {
+.updateStats table td {
 	text-align: center;
 	background-color: rgb(255 255 255 / 50%);
 }
+.updateStats table td[name='updates_real'] {
+	text-align: center;
+/* 	background-color: rgb(255 255 255 / 50%); */
+	background-color: rgb(255 255 0 / 0.5);
+}
 
 #info_screensDiv1,
-#info_screensDiv2
-{
+#info_screensDiv2 {
 	vertical-align: top;
-	background-color: #d2e0ee;
+	/* background-color: #d2e0ee; */
 	width: 100%;
 	min-height: 24px;
 }
+
 #info_screensDiv1 button,
-#info_screensDiv2 button{
+#info_screensDiv2 button {
 	font-size: 14px;
 	font-family: monospace;
 	min-width: 60px;
 	height: 22px;
 	vertical-align: top;
 	margin: 1px;
+}
+.postrow{background-color: #a5c2dd;padding: 5px;}
+.width100{ width:100% }
+
+#controls_cont_view_stats_output{
+	white-space:
+	pre;
+	/* background-color: #b0c4de; */
+	height: 355px;
+	width: 100%;
+	font-family: monospace;
+	overflow: auto;
 }

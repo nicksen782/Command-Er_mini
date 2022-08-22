@@ -181,44 +181,70 @@ let websocket = {
 
 			// VRAM UPDATES
 			STATS1: function(data){
-				let table = draw.DOM.info_VRAM_UPDATESTATS.querySelector("table");
-				let numRows = table.rows.length;
-				
-				// Create the table rows if needed.
-				let layers = Object.keys(data.data);
-				let keys = Object.keys(data.data[0]);
-				let cnt = 0;
-				if(numRows != layers.length + 1 ){
-					// Add the headers row.
-					let tr = table.insertRow(-1);
-					for(let k=0; k<keys.length; k+=1){
-						let key = keys[k];
-						tr.insertCell(-1).outerHTML = `<th title="${key}">${key.substring(0,1).toUpperCase()}</th>`;
-					}
+				{
+					let tables = document.querySelectorAll("#controls_cont_view_vram .updateStats");
+					let numTables = tables.length;
+					
+					let layers = Object.keys(data.data);
+					let keys = Object.keys(data.data[0]);
+					
+					// For each table and layer in data.data:
+					// console.log(tables, numTables, layers, keys);
+					tables.forEach(function(d,i){
+						// Find the table.
+						let thisTable = d.querySelector("table") || false;
 
-					// Add the data rows.
-					while(numRows-1 != layers.length && cnt < layers.length){
-						let tr = table.insertRow(-1);
-						for(let k=0; k<keys.length; k+=1){
-							let key = keys[k];
-							let td = tr.insertCell(-1);
-							td.setAttribute("name", "updates_" + key);
+						// Create the table and data row if it is missing.
+						if(!thisTable){
+							// console.log(d, thisTable);
+							// console.log("Missing table. Creating.", d, thisTable);
+							let table = document.createElement("table");
+
+							// Add the headers row.
+							let tr = table.insertRow(-1);
+							for(let k=0; k<keys.length; k+=1){
+								let key = keys[k];
+								// tr.insertCell(-1).outerHTML = `<th title="${key}">${key.substring(0,1).toUpperCase()}:${i}</th>`;
+								tr.insertCell(-1).outerHTML = `<th layer="${i}" title="${key}">${key.toUpperCase()}</th>`;
+							}
+
+							// Add the data row.
+							tr = table.insertRow(-1);
+							for(let k=0; k<keys.length; k+=1){
+								let key = keys[k];
+								let td = tr.insertCell(-1);
+								td.setAttribute("name", "updates_" + key);
+								td.setAttribute("layer", i);
+							}
+
+							//
+							d.append(table);
+
+							// Save the table to local var. 
+							thisTable = table;
 						}
-
-						// Update the row count.
-						numRows = table.rows.length;
-						cnt+=1;
-					}
-				}
-
-				// Update the data rows.
-				for(let r=1; r<table.rows.length; r+=1){
-					let row = table.rows[r];
-					for(let k=0; k<keys.length; k+=1){
-						let key = keys[k];
-						let td = row.querySelector(`[name='updates_${key}']`);
-						td.innerText = data.data[r-1][key].toString();
-					}
+						
+						// Update the data row.
+						for(let r=1; r<thisTable.rows.length; r+=1){
+							let row = thisTable.rows[r];
+							for(let k=0; k<keys.length; k+=1){
+								let key = keys[k];
+								
+								let td = row.querySelector(`[name='updates_${key}']`);
+								let layer_i = td.getAttribute("layer");
+								
+								let rec = data.data[layer_i];
+								let oldValue = td.innerText;
+								let newValue = rec[key].toString();
+								
+								// Don't update if the new value is the same as the old value.
+								if(oldValue != newValue){
+									td.innerText = newValue;
+								}
+							}
+						}
+						
+					});
 				}
 			},
 			STATS2: function(data){
@@ -229,6 +255,35 @@ let websocket = {
 					// Reinit fps.
 					draw.fps.init(data.data);
 				}
+			},
+			STATS3: function(data){
+				let dest = document.getElementById("controls_cont_view_stats_output");
+				let output = "";
+				
+				// Display the main keys in reverse order.
+				let keys1 = Object.keys(data.data);
+				keys1.reverse();
+				// keys1 = [
+				// 	"STARTUP__",
+				// 	"APPLOOP__",
+				// ];
+
+				for(let key1 of keys1){
+					let longestKey2 = 0;
+					for(let key in data.data[key1]){ if(key.length > longestKey2){ longestKey2 = key.length; } }
+
+					output += `${"*".repeat(40)}\n`;
+					output += `${key1} :\n`;
+					
+					// Display the sub keys in reverse order.
+					let keys2 = Object.keys(data.data[key1]).reverse();
+					for(let key2 of keys2){
+						let value = data.data[key1][key2].t.toFixed(2);
+						output += `    ${key2.padEnd(longestKey2, " ")} : ${value.padStart(10, " ")} ms\n`;
+					}
+				}
+				output += `${"*".repeat(40)}\n`;
+				dest.innerText = output;
 			},
 		},
 		TEXT  : {
@@ -356,7 +411,7 @@ let websocket = {
 			// Green icon.
 			buttons.DOM["ws_status"].innerHTML = "&#129001;";
 
-			draw.fps.updateDisplay();
+			// draw.fps.updateDisplay();
 
 			// Remove disconnected, add connected.
 			let wsElems = document.querySelectorAll(".ws");
@@ -468,7 +523,7 @@ let websocket = {
 				}
 
 			}, 1000);
-			draw.fps.updateDisplay();
+			// draw.fps.updateDisplay();
 		},
 		// Connection closed unexpectedly. 
 		el_error:function(ws, event){
@@ -484,7 +539,7 @@ let websocket = {
 				ws.close();
 			}
 
-			draw.fps.updateDisplay();
+			// draw.fps.updateDisplay();
 		},
 	},
 };
@@ -503,9 +558,9 @@ let draw = {
 	tilesetCanvas:null,
 	tilesCache:[],
 	canvases : {
+		vram_l0 :null,
 		vram_l1 :null,
 		vram_l2 :null,
-		vram_l3 :null,
 		vram_all:null,
 	},
 	_VRAM:[],
@@ -516,18 +571,17 @@ let draw = {
 	showIndividualLayers: true,
 	serverFps:1,
 
-	showVramLayers: function(){
-		draw.DOM.vram_div_layers.classList.remove("hide");
-	},
-	hideVramLayers: function(){
-		draw.DOM.vram_div_layers.classList.add("hide");
-
-	},
+	// showVramLayers: function(){
+	// 	draw.DOM.vram_div_layers.classList.remove("hide");
+	// },
+	// hideVramLayers: function(){
+	// 	draw.DOM.vram_div_layers.classList.add("hide");
+	// },
 	initCanvases: async function(){
 		// 
+		draw.canvases.vram_l0  = document.getElementById("vram_l0").getContext("2d");
 		draw.canvases.vram_l1  = document.getElementById("vram_l1").getContext("2d");
 		draw.canvases.vram_l2  = document.getElementById("vram_l2").getContext("2d");
-		draw.canvases.vram_l3  = document.getElementById("vram_l3").getContext("2d");
 		draw.canvases.vram_all = document.getElementById("vram_all").getContext("2d");
 
 		for(let key in draw.canvases){
@@ -552,7 +606,7 @@ let draw = {
 				let tileCanvas, dx, dy, ctx;
 				let ctx_all = draw.canvases["vram_all"];
 
-				// console.log(_changesFull);
+				// let clearsOnAllCanvas = [];
 				for(let i=0; i<_changesFull.length; i+=4){
 					let rec = {
 						l:_changesFull[i+0],
@@ -569,9 +623,9 @@ let draw = {
 					tileCanvas = draw.tilesCache[rec.t];
 	
 					// Determine which canvas needed to be drawn to.
-					if     (rec.l==0){ ctx = draw.canvases["vram_l1"]; }
-					else if(rec.l==1){ ctx = draw.canvases["vram_l2"]; }
-					else if(rec.l==2){ ctx = draw.canvases["vram_l3"]; }
+					if     (rec.l==0){ ctx = draw.canvases["vram_l0"]; }
+					else if(rec.l==1){ ctx = draw.canvases["vram_l1"]; }
+					else if(rec.l==2){ ctx = draw.canvases["vram_l2"]; }
 	
 					// Draw to the all canvas.
 					// ctx_all.clearRect(dx, dy, tileWidth, tileHeight);
@@ -581,14 +635,19 @@ let draw = {
 					ctx.clearRect(dx, dy, tileWidth, tileHeight);
 					ctx.drawImage(tileCanvas, dx, dy); 
 
+					// Clear this tile on the all canvas.
+					draw.canvases["vram_all"].clearRect(dx, dy, tileWidth, tileHeight);
+					// clearsOnAllCanvas.push({ dx:dx, dy:dy, tileWidth:tileWidth, tileHeight:tileHeight });
+
 					// Update VRAM.
 					draw._VRAM_prev[draw.configs.indexByCoords[rec.y][rec.x] + rec.l] = rec.t;
 				}
 
 				// Combine the canvas layers into the ALL canvas.
+				// draw.canvases["vram_all"].clearRect(0,0, draw.canvases["vram_all"].canvas.width, draw.canvases["vram_all"].canvas.height);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l0"].canvas, 0, 0);
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
-				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
 			};
 			
 			draw.isDrawing=true;
@@ -609,9 +668,9 @@ let draw = {
 			let oldTime = draw.DOM.info_lastDraw.innerText;
 			let newTime = draw.getTime();
 			if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
-			draw.draws += 1;
-			draw.DOM.info_draws.innerText = draw.draws;
-			draw.fps.updateDisplay();
+			// draw.draws += 1;
+			// draw.DOM.info_draws.innerText = draw.draws;
+			// draw.fps.updateDisplay();
 			draw.isDrawing=false;
 		});
 	},
@@ -624,7 +683,8 @@ let draw = {
 				let tileHeight = draw.configs.config.lcd.tileset.tileHeight;
 				let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
 				let x, y, tileId, tileCanvas, dx, dy, ctx, VRAM_index;
-					
+				
+				// let clearsOnAllCanvas = [];
 				for(let index=0; index<draw.configs.coordsByIndex.length; index+=1){
 					x = draw.configs.coordsByIndex[index][0];
 					y = draw.configs.coordsByIndex[index][1];
@@ -647,25 +707,31 @@ let draw = {
 						dy = y*tileHeight;
 
 						// Determine which canvas needed to be drawn to.
-						if     (v==0){ ctx = draw.canvases["vram_l1"]; }
-						else if(v==1){ ctx = draw.canvases["vram_l2"]; }
-						else if(v==2){ ctx = draw.canvases["vram_l3"]; }
+						if     (v==0){ ctx = draw.canvases["vram_l0"]; }
+						else if(v==1){ ctx = draw.canvases["vram_l1"]; }
+						else if(v==2){ ctx = draw.canvases["vram_l2"]; }
 						
+						// Clear this tile on the all canvas.
+						draw.canvases["vram_all"].clearRect(dx, dy, tileWidth, tileHeight);
+						// clearsOnAllCanvas.push({ dx:dx, dy:dy, tileWidth:tileWidth, tileHeight:tileHeight });
+
 						// Draw to the matching canvas.
 						ctx.clearRect(dx, dy, tileWidth, tileHeight);
 						ctx.drawImage(tileCanvas, dx, dy); 
+
 					}
 				}
 				// Combine the canvas layers into the ALL canvas.
+				// draw.canvases["vram_all"].clearRect(0,0, draw.canvases["vram_all"].canvas.width, draw.canvases["vram_all"].canvas.height);
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l0"].canvas, 0, 0);
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
-				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
 			};
 			let updateMainCanvas = function(){
 				// Combine the canvas layers into the ALL canvas.
+				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l0"].canvas, 0, 0);
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l1"].canvas, 0, 0);
 				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l2"].canvas, 0, 0);
-				draw.canvases["vram_all"].drawImage(draw.canvases["vram_l3"].canvas, 0, 0);
 			};
 			let saveNew_VRAM = function(){
 				// Init the array if needed. Save new to prev.
@@ -681,9 +747,9 @@ let draw = {
 				let oldTime = draw.DOM.info_lastDraw.innerText;
 				let newTime = draw.getTime();
 				if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
-				draw.draws += 1;
-				draw.DOM.info_draws.innerText = draw.draws;
-				draw.fps.updateDisplay();	
+				// draw.draws += 1;
+				// draw.DOM.info_draws.innerText = draw.draws;
+				// draw.fps.updateDisplay();	
 				draw.isDrawing=false;
 			};
 
@@ -761,15 +827,15 @@ let draw = {
 			this._sample_   = [];
 			this._index_    = 0;
 			this._lastTick_ = performance.now();
-			draw.fps.updateDisplay();
+			// draw.fps.updateDisplay();
 		},
-		updateDisplay: function(){
-			document.getElementById("info_fps").innerText = `` +
-				`${draw.fps.average.toString().padStart(2, " ")} f/s ` +
-				`(${draw.fps._index_.toString()}/${draw.fps.sampleSize.toString()})`.padStart(7, " ") +
-				``
-				;
-		},
+		// updateDisplay: function(){
+		// 	document.getElementById("info_fps").innerText = `` +
+		// 		`${draw.fps.average.toString().padStart(2, " ")} f/s ` +
+		// 		`(${draw.fps._index_.toString()}/${draw.fps.sampleSize.toString()})`.padStart(7, " ") +
+		// 		``
+		// 		;
+		// },
 	},
 
 	// REQUESTS
@@ -937,6 +1003,20 @@ let buttons = {
 			http.post("PRESS_BUTTONS", obj, "json") ;
 		}
 	},
+	DEBUGCMD : function(type, cmd){
+		let obj = {
+			cmd   : cmd,
+		}
+		if(type=="ws"){
+			if(websocket.activeWs){
+				websocket.activeWs.send(JSON.stringify({"mode":"DEBUGCMD", "data":obj}));
+			}
+		}
+		else if(type=="post"){
+			http.post("DEBUGCMD", obj, "json") ;
+		}
+	},
+
 	populateFpsValues: function(){
 		let select = draw.DOM.info_changeFps;
 		let configFps = draw.configs.config.node.fps;
@@ -1063,10 +1143,38 @@ let buttons = {
 			button.setAttribute("screen", value);
 			frag.append(button);
 		}
-		info_screensDiv2.innerHTML = "SCREENS: ";
+		info_screensDiv2.innerHTML = "";
 		info_screensDiv2.append(frag);
 	},
 
+};
+// NAV
+let nav = {
+	hideAll:function(){
+		// nav.hideAll();
+		
+		let navButtons = document.querySelectorAll("#controls_nav .navButton");
+		navButtons.forEach(d=>{ d.classList.remove("active"); });
+
+		let navViews = document.querySelectorAll("#controls_cont_views .view");
+		navViews.forEach(d=>{ d.classList.remove("active"); });
+	},
+	showOne:function(navButtonId){
+		// nav.showOne("controls_cont_nav_ws");
+		// nav.showOne("controls_cont_nav_post");
+		// nav.showOne("controls_cont_nav_vram");
+
+		// Remove the active status on all nav buttons and nav views.
+		nav.hideAll();
+		
+		// Get the nav button and the nav view.
+		let navButton = document.getElementById(navButtonId);
+		let view = document.getElementById( navButton.getAttribute("view") );
+		
+		// Add the active status on the nav button and nav view.
+		navButton.classList.add("active");
+		view.classList.add("active");
+	},
 };
 
 // APP INIT
@@ -1081,14 +1189,6 @@ window.onload = async function(){
 
 	console.log("CANVASES INIT");
 	await draw.initCanvases();
-
-	// VRAM layers toggle.
-	draw.DOM.vram_div_layersChk = document.getElementById("vram_div_layersChk");
-	draw.DOM.vram_div_layersChk.addEventListener("click", function(){
-		draw.showIndividualLayers = this.checked; 
-		if(this.checked){ draw.showVramLayers(); }
-		else{ draw.hideVramLayers(); }
-	}, false)
 
 	buttons.DOM.ws_autoReconnect = document.getElementById("ws_autoReconnect");
 	buttons.DOM.ws_autoReconnect.addEventListener("click", function(){
@@ -1110,14 +1210,11 @@ window.onload = async function(){
 
 	draw.DOM.vram_div_layers = document.getElementById("vram_div_layers");
 	
-	draw.DOM.info_fps          = document.getElementById("info_fps");
-	draw.DOM.info_draws        = document.getElementById("info_draws");
+	// draw.DOM.info_fps          = document.getElementById("info_fps");
+	// draw.DOM.info_draws        = document.getElementById("info_draws");
 	draw.DOM.info_lastDraw     = document.getElementById("info_lastDraw");
 	draw.DOM.info_changeFps    = document.getElementById("info_changeFps");
 	
-	draw.DOM.info_VRAM_UPDATESTATS    = document.getElementById("info_VRAM_UPDATESTATS");
-	// draw.DOM.info_VRAM_UPDATESTATS.innerText = "\n\n\n";
-
 	draw.DOM.info_serverFps    = document.getElementById("info_serverFps");
 
 	window.addEventListener("unload", function () {
@@ -1131,6 +1228,21 @@ window.onload = async function(){
 
 	buttons.setup();
 
+	// draw.DOM.info_VRAM_UPDATESTATS = document.getElementById("info_VRAM_UPDATESTATS");
+	// VRAM layers toggle.
+	// draw.DOM.vram_div_layersChk = document.getElementById("vram_div_layersChk");
+	// draw.DOM.vram_div_layersChk.checked = draw.showIndividualLayers;
+	// draw.DOM.vram_div_layersChk.addEventListener("click", function(){
+	// 	draw.showIndividualLayers = this.checked; 
+	// 	if(this.checked){ draw.showVramLayers(); }
+	// 	else{ draw.hideVramLayers(); }
+	// }, false);
+	// draw.DOM.vram_div_layersChk.dispatchEvent(new Event("click"));
+
 	// Init fps.
 	draw.fps.init(1);
+
+	nav.showOne("controls_cont_nav_ws");
+	// nav.showOne("controls_cont_nav_post");
+	// nav.showOne("controls_cont_nav_vram");
 }

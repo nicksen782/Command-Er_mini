@@ -118,21 +118,24 @@ let _MOD = {
 
 				// VRAM update stats2. - (JSON)
 				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2" );
+				
+				// stats3. - (JSON)
+				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS3", data:_APP.timeIt_timings_prev}), "STATS3" );
 			}
 		},
 		appLoop: async function(){
-			_APP.timeIt("FULLLOOP", "s");
+			_APP.timeIt("FULLLOOP", "s", "APPLOOP__");
 			_APP.drawLoop.pause();
 
 			// BUTTONS
-			_APP.timeIt("GPIO", "s");
+			_APP.timeIt("GPIO", "s", "APPLOOP__");
 			await _APP.m_gpio.readAll();
-			_APP.timeIt("GPIO", "e");
+			_APP.timeIt("GPIO", "e", "APPLOOP__");
 			
 			// STATE
-			_APP.timeIt("LOGIC", "s");
+			_APP.timeIt("LOGIC", "s", "APPLOOP__");
 			await _APP.screenLogic.screens[_APP.currentScreen].func();
-			_APP.timeIt("LOGIC", "e");
+			_APP.timeIt("LOGIC", "e", "APPLOOP__");
 
 			// Is a draw needed?
 			if(_APP.m_draw.lcdUpdateNeeded){
@@ -140,7 +143,7 @@ let _MOD = {
 				_APP.m_draw.updatingLCD=true;
 
 				// Start the timeIt.
-				_APP.timeIt("DISPLAY", "s");
+				_APP.timeIt("DISPLAY", "s", "APPLOOP__");
 				
 				// Determine changes.
 				let _changesFullFlat = _MOD.loop.getChanges();
@@ -165,8 +168,8 @@ let _MOD = {
 				_APP.m_draw.clearDrawingFlags();
 
 				// Update the timeIt stamps.
-				_APP.timeIt("DISPLAY", "e");
-				_APP.timeIt("FULLLOOP", "e");
+				_APP.timeIt("DISPLAY", "e", "APPLOOP__");
+				_APP.timeIt("FULLLOOP", "e", "APPLOOP__");
 				_APP.drawLoop.unpause();
 			}
 

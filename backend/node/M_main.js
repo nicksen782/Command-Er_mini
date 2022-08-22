@@ -42,7 +42,7 @@ let _APP = {
 			let key = path.basename(__filename, '.js');
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog(`START: module_init: ${key} :`, 0);
-			_APP.timeIt(`${key}`, "s"); 
+			_APP.timeIt(`${key}`, "s", "STARTUP__"); 
 			
 			_APP.consolelog("add modules", 2);
 			for(let i=0; i<m_modules.length; i+=1){
@@ -64,8 +64,8 @@ let _APP = {
 			_APP.consolelog("addRoutes", 2);
 			_APP.addRoutes(_APP.app, _APP.express);
 
-			_APP.timeIt(`${key}`, "e");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+			_APP.timeIt(`${key}`, "e", "STARTUP__");
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog("", 0);
 
@@ -101,7 +101,7 @@ let _APP = {
 
 				// Respond to complete the request.
 				res.json("");
-			}, _APP.timeIt_timings_prev["FULLLOOP"].t || _APP.stats.interval);
+			}, _APP.timeIt_timings_prev["APPLOOP__"]["FULLLOOP"].t || _APP.stats.interval);
 
 		});
 
@@ -189,8 +189,8 @@ let _APP = {
 					line1+= ` : `;
 					line1+= `(${ (i+1) + "/" + m_modules.length })`.padStart(7, " ");
 					_APP.consolelog(line1, 0);
-					_APP.timeIt(`${key}`, "s"); await _APP[key].module_init(_APP); _APP.timeIt(`${key}`, "e");
-					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+					_APP.timeIt(`${key}`, "s", "STARTUP__"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e", "STARTUP__");
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
 					_APP.consolelog(".".repeat(54), 0);
 					_APP.consolelog("");
 				}
@@ -206,8 +206,8 @@ let _APP = {
 					line1+= ` : `;
 					line1+= `(${ (i+1) + "/" + m_screens.length })`.padStart(7, " ");
 					_APP.consolelog(line1, 0);
-					_APP.timeIt(`${key}`, "s"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e");
-					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+					_APP.timeIt(`${key}`, "s", "STARTUP__"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e", "STARTUP__");
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
 					_APP.consolelog(".".repeat(54), 0);
 					_APP.consolelog("");
 				}
@@ -222,28 +222,60 @@ let _APP = {
 	// DEBUG: Used to measure how long something takes.
 	timeIt_timings : { },
 	timeIt_timings_prev : { },
-	timeIt: function(key, type){
+	timeIt: function(key, type, subKey="NOSUBKEY"){
 		if(type == "s"){
-			_APP.timeIt_timings[key] = { s: performance.now(), e: 0, t: 0, };
+			if(subKey){ 
+				if(!_APP.timeIt_timings     [subKey]){ _APP.timeIt_timings     [subKey] = {}; }
+				if(!_APP.timeIt_timings_prev[subKey]){ _APP.timeIt_timings_prev[subKey] = {}; }
+				_APP.timeIt_timings[subKey][key] = { s: performance.now(), e: 0, t: 0, }; 
+			}
+			else{ 
+				_APP.timeIt_timings[key]         = { s: performance.now(), e: 0, t: 0, }; 
+			}
 		}
 		else if(type == "e"){
-			if(_APP.timeIt_timings[key]){
-				_APP.timeIt_timings[key].e = performance.now();
-				_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
-
-				// Add to prev
-				_APP.timeIt_timings_prev[key] = {
-					s: _APP.timeIt_timings[key].s,
-					e: _APP.timeIt_timings[key].e,
-					t: _APP.timeIt_timings[key].t,
+			if(subKey){
+				if(_APP.timeIt_timings[subKey][key]){
+					_APP.timeIt_timings[subKey][key].e = performance.now();
+					_APP.timeIt_timings[subKey][key].t = _APP.timeIt_timings[subKey][key].e - _APP.timeIt_timings[subKey][key].s;
+	
+					// Add to prev
+					// if(!_APP.timeIt_timings_prev[subKey]){ _APP.timeIt_timings_prev[subKey] = {}; }
+					_APP.timeIt_timings_prev[subKey][key] = {
+						s: _APP.timeIt_timings[subKey][key].s,
+						e: _APP.timeIt_timings[subKey][key].e,
+						t: _APP.timeIt_timings[subKey][key].t,
+					}
+				}
+			}
+			
+			else{
+				if(_APP.timeIt_timings[key]){
+					_APP.timeIt_timings[key].e = performance.now();
+					_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
+	
+					// Add to prev
+					_APP.timeIt_timings_prev[key] = {
+						s: _APP.timeIt_timings[key].s,
+						e: _APP.timeIt_timings[key].e,
+						t: _APP.timeIt_timings[key].t,
+					}
 				}
 			}
 		}
 		else if(type == "t"){
-			if(_APP.timeIt_timings[key]){
-				return _APP.timeIt_timings[key].t;
+			if(subKey){
+				if(_APP.timeIt_timings[subKey][key]){
+					return _APP.timeIt_timings[subKey][key].t;
+				}
+				return -1;
 			}
-			return -1;
+			else{
+				if(_APP.timeIt_timings[key]){
+					return _APP.timeIt_timings[key].t;
+				}
+				return -1;
+			}
 		}
 	},
 
@@ -444,14 +476,14 @@ let _APP = {
 		// Display system data.
 		_APP.consolelog(".".repeat(54), 0);
 		_APP.consolelog(`START: sysData :`, 0);
-		_APP.timeIt(`sysData`, "s"); 
+		_APP.timeIt(`sysData`, "s", "STARTUP__"); 
 		let sysData = _APP.getSysData();
 		for(let key in sysData){
 			let line1 = `${key.toUpperCase()}`.padEnd(12, " ") +": "+ `${JSON.stringify(sysData[key],null,0)}`;
 			_APP.consolelog(line1, 2);
 		}
-		_APP.timeIt(`sysData`, "e"); 
-		_APP.consolelog(`END  : TIME: ${_APP.timeIt(`sysData`, "t").toFixed(3).padStart(9, " ")} ms`, 0);
+		_APP.timeIt(`sysData`, "e", "STARTUP__"); 
+		_APP.consolelog(`END  : TIME: ${_APP.timeIt(`sysData`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
 		_APP.consolelog(".".repeat(54), 0);
 		_APP.consolelog("");
 	},
@@ -533,17 +565,183 @@ let _APP = {
 				},
 			},
 
-			getDialogBoxParams: function(x, y, w, h){
+			getDialogBoxParams: function(x, y, w, h, t1="tile3", t2="tile1", t3="tile3"){
 				// Create outer, inner, and text area boxs with the provided values. 
-				let box1 = { x:x, y:y, w:w, h:h }; 
-				let box2 = { x:box1.x+1, y:box1.y+1, w:box1.w-2, h:box1.h-2 }; 
-				let box3 = { x:box2.x+1, y:box2.y+1, w:box2.w-2, h:box2.h-2 }; 
+				let box1 = { x:x, y:y, w:w, h:h, t:t1 }; 
+				let box2 = { x:box1.x+1, y:box1.y+1, w:box1.w-2, h:box1.h-2, t:t2 }; 
+				let box3 = { x:box2.x+1, y:box2.y+1, w:box2.w-2, h:box2.h-2, t:t3 }; 
 
 				return {
 					outer: box1,
 					inner: box2,
 					text : box3,
 				};
+			},
+			createDialogObject : function(config){
+				let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
+				let dialogDims = thisScreen.shared.getDialogBoxParams(config.x, config.y, config.w, config.h, config.t1, config.t2, config.t3);
+				let dialog = { box:{}, cursor:{}, text:{} } ;
+				dialog = {
+					active: false,
+					thisScreen: thisScreen,
+					config: config,
+					drawn: false,
+		
+					box: {
+						outer: dialogDims.outer,
+						inner: dialogDims.inner,
+						text : dialogDims.text,
+						draw: function(){
+							if(dialog.drawn){ return; }
+		
+							// Draw outer box.
+							_APP.m_draw.fillTile(dialog.box.outer.t, dialog.box.outer.x, dialog.box.outer.y,  dialog.box.outer.w, dialog.box.outer.h); 
+		
+							// Draw inner box.
+							_APP.m_draw.fillTile(dialog.box.inner.t, dialog.box.inner.x, dialog.box.inner.y,  dialog.box.inner.w, dialog.box.inner.h); 
+		
+							// Draw text box.
+							_APP.m_draw.fillTile(dialog.box.text.t,  dialog.box.text.x,  dialog.box.text.y,   dialog.box.text.w,  dialog.box.text.h ); 
+		
+							// Draw text.
+							dialog.text.lines.forEach((line, i)=>{
+								_APP.m_draw.print(line.padEnd(dialog.box.text.w-1, " ") , dialog.box.text.x, dialog.box.text.y + i);
+							});
+		
+							// 
+							dialog.drawn = true; 
+		
+							// Draw the cursor.
+							dialog.cursor.y = dialog.cursor.cursorIndexes[dialog.cursor.index];
+							dialog.cursor.draw();
+						},
+						close: function(){
+							// Erase the dialog box. 
+							_APP.m_draw.fillTile(config.bgClearTile, dialog.box.outer.x, dialog.box.outer.y,  dialog.box.outer.w, dialog.box.outer.h, 0); 
+							_APP.m_draw.fillTile(" ", dialog.box.outer.x, dialog.box.outer.y,  dialog.box.outer.w, dialog.box.outer.h, 1); 
+							_APP.m_draw.fillTile(" ", dialog.box.outer.x, dialog.box.outer.y,  dialog.box.outer.w, dialog.box.outer.h, 2); 
+							dialog.active = false;
+							dialog.drawn = false; 
+						},
+					},
+					cursor: {
+						// Position.
+						x : dialogDims.text.x, 
+						y : dialogDims.text.y, 
+						index: 0,
+						cursorIndexes: config.cursorIndexes || [],
+						
+						// Boundaries. (Additionally, a cursor cannot move down to a line that does not have an action.)
+						minX : dialogDims.text.x, 
+						minY : dialogDims.text.y, 
+						maxX : dialogDims.text.x + dialogDims.text.w, 
+						maxY : dialogDims.text.y + dialogDims.text.h, 
+						
+						// Cursor tiles (and blink.)
+						t : "cursor3", 
+						t1: "cursor3", 
+						t2: "cursor4", 
+						frameDelay: _APP.screenLogic.shared.secondsToFramesToMs(0.5), 
+						lastFrame : performance.now(),
+						
+						// Functions.
+						blink: function(){
+							if(!dialog.active){ return; }
+							if(!config.usesCursor){ return; }
+		
+							// Switch the cursor tile?
+							if(performance.now() - dialog.cursor.lastFrame > dialog.cursor.frameDelay){
+								// Swap the cursor.
+								if( dialog.cursor.t == dialog.cursor.t1){ dialog.cursor.t = dialog.cursor.t2; }
+								else{ dialog.cursor.t = dialog.cursor.t1; }
+		
+								// Draw the cursor.
+								dialog.cursor.draw();
+		
+								// Update lastFrame.
+								dialog.cursor.lastFrame = performance.now();
+							}
+						},
+						draw: function(){
+							if(!dialog.active){ return; }
+							if(!config.usesCursor){ return; }
+		
+							// Draw the tile.
+							// _APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.y); 
+							// console.log(dialog.cursor.cursorIndexes, dialog.cursor.index, dialog.cursor.cursorIndexes[dialog.cursor.index]);
+							_APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.cursorIndexes[dialog.cursor.index]); 
+						},
+						move: function(){
+							if(!dialog.active){ return; }
+							if(!config.usesCursor){ return; }
+		
+							// Get the current cursor position.
+							let x = dialog.cursor.x;
+							let y = dialog.cursor.y;
+							let index = dialog.cursor.index;
+		
+							// Allow the cursor position change?
+							if(dialog.cursor.cursorIndexes.length){
+								let min = 0;
+								let max = dialog.cursor.cursorIndexes.length;
+								if     ( _APP.m_gpio.isPress ("KEY_UP_PIN")   && index > min && dialog.cursor.cursorIndexes.indexOf(y-1) != -1) { y -=1; index -= 1; }
+								else if( _APP.m_gpio.isPress ("KEY_DOWN_PIN") && index < max && dialog.cursor.cursorIndexes.indexOf(y+1) != -1) { y +=1; index += 1; }
+								else{ return; }
+							}
+							else{
+								if     ( _APP.m_gpio.isPress ("KEY_UP_PIN")    && (dialog.cursor.y - 1 >= dialog.cursor.minY) && dialog.text.actions[dialog.cursor.index-1] ) { y -=1; index -= 1; }
+								else if( _APP.m_gpio.isPress ("KEY_DOWN_PIN")  && (dialog.cursor.y + 1 <  dialog.cursor.maxY) && dialog.text.actions[dialog.cursor.index+1] ) { y +=1; index += 1; }
+								else{ return; }
+							}
+		
+							// Erase the cursor.
+							_APP.m_draw.setTile(" ", dialog.cursor.x, dialog.cursor.y); 
+		
+							// Set the new values.
+							dialog.cursor.x = x;
+							dialog.cursor.y = y;
+							dialog.cursor.index = index;
+		
+							// Draw the cursor.
+							dialog.cursor.draw();
+						},
+					},
+					text: {
+						select: function(){
+							if(!dialog.active){ return; }
+							if     ( _APP.m_gpio.isPress ("KEY_PRESS_PIN") ) { 
+								// If the usesCursor is not set then assume that the dialog just needed to be closed. 
+								if(!config.usesCursor){ 
+									dialog.box.close();
+									return; 
+								}
+
+								else if(dialog.cursor.cursorIndexes.length){
+									dialog.text.actions[dialog.cursor.index]();
+								}
+		
+								// Otherwise run the function that matches the current line.
+								else if(dialog.text.actions[dialog.cursor.index]) { dialog.text.actions[dialog.cursor.index](); }
+
+								//
+								else{
+									console.log("TEXT.SELECT: NO ACTION IS AVAILABLE.");
+								}
+							}
+						},
+						lines: config.lines,
+						actions: [],
+						// actions: config.actions,
+					},
+				};
+		
+				// Bind "this" for each function to dialog.
+				for(let i=0; i<config.actions.length; i+=1){
+					let func = config.actions[i];
+					dialog.text.actions.push( func.bind(dialog) );
+				}
+				
+				return dialog;
 			},
 
 			// Changing screens. 

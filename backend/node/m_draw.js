@@ -296,8 +296,8 @@ let _MOD = {
 					_MOD._VRAM_updateStats[layer_i] = { 
 						"layer"     : layer_i, 
 						"updates"   : 0, 
+						"overwrites": 0 ,
 						"real"      : 0 ,
-						"overwrites": 0
 					}
 				}
 
