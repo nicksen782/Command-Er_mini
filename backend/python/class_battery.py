@@ -1,5 +1,14 @@
+# INA219
 import smbus
 import time
+# INA219
+
+# SHARED
+import sys
+import json
+import io
+import timeit
+# SHARED
 
 # Config Register (R/W)
 _REG_CONFIG                 = 0x00
@@ -54,7 +63,6 @@ class Mode:
     SVOLT_CONTINUOUS        = 0x05      # shunt voltage continuous
     BVOLT_CONTINUOUS        = 0x06      # bus voltage continuous
     SANDBVOLT_CONTINUOUS    = 0x07      # shunt and bus voltage continuous
-
 
 class INA219:
     def __init__(self, i2c_bus=1, addr=0x40):
@@ -187,30 +195,36 @@ class INA219:
         if value > 32767:
             value -= 65535
         return value * self._power_lsb
-        
-if __name__=='__main__':
 
-    # Create an INA219 instance.
-    ina219 = INA219(addr=0x43)
-    while True:
-        bus_voltage = ina219.getBusVoltage_V()             # voltage on V- (load side)
-        shunt_voltage = ina219.getShuntVoltage_mV() / 1000 # voltage between V+ and V- across the shunt
-        current = ina219.getCurrent_mA()                   # current in mA
-        power = ina219.getPower_W()                        # power in W
-        p = (bus_voltage - 3)/1.2*100
+class C_Battery:
+    parent = False
+    def __init__(self, parent):
+        self.parent = parent
+        print(f"BATTERY START")
+    
+    def getBatteryData(self):
+        # print(f"{self}")
+        # Generate the data values. 
+        ina219        = INA219(addr=0x43)                  # Create an INA219 instance.
+        bus_voltage   = ina219.getBusVoltage_V()           # Voltage on V- (load side)
+        shunt_voltage = ina219.getShuntVoltage_mV() / 1000 # Voltage between V+ and V- across the shunt
+        current       = ina219.getCurrent_mA()             # Current in mA
+        power         = ina219.getPower_W()                # Power in W
+        p             = (bus_voltage - 3)/1.2*100          # Percentage.
         if(p > 100):p = 100
         if(p < 0):p = 0
+        
+        # Store the data values to an object.
+        jsonObj = {}
+        jsonObj['V']  = (bus_voltage)
+        jsonObj['A']  = (current/1000)
+        jsonObj['W']  = (power)
+        jsonObj['%']  = (p)
+        jsonObj['PV'] = (bus_voltage + shunt_voltage)
+        jsonObj['SV'] = (shunt_voltage)
+        jsonObj['C']  = jsonObj['A'] >= 0 
 
-        # INA219 measure bus voltage on the load side. So PSU voltage = bus_voltage + shunt_voltage
-        #print("PSU Voltage:   {:6.3f} V".format(bus_voltage + shunt_voltage))
-        #print("Shunt Voltage: {:9.6f} V".format(shunt_voltage))
-        print("{")
-        print(" \"V\": {:0.3f},".format(bus_voltage))
-        print(" \"A\": {:0.3f},".format(current/1000))
-        print(" \"W\": {:0.3f},".format(power))
-        print(" \"%\": {:0.1f},".format(p))
-        print(" \"PV\": {:6.3f},".format(bus_voltage + shunt_voltage))
-        print(" \"SV\": {:9.6f}".format(shunt_voltage))
-        print("}")
-        break
-        time.sleep(2)
+        # Return the object. 
+        return jsonObj
+
+

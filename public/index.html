@@ -1,111 +1,221 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com;"> -->
 
 	<title>Command-Er Mini (debug)</title>
 	<link rel="icon" type="image/x-icon" href="favicon.ico">
 
-	<link rel="stylesheet" href="index.css">
-	<script src="index.js" defer></script>
+	<link rel="stylesheet" href="webClient/css/index.css">
+	<script src="webClient/js/index.js" defer></script>
 </head>
+
 <body>
-	<div id="container1" class="disconnected">
-		<div id="liveControls">
-			<div class="inline-block">
-				<!-- CONTROLS 1 -->
-				<table class="tableType1">
-					<caption>CONTROLS</caption>
 
-					<!-- <tr> <td>&nbsp;</td> </tr> -->
-					<tr>
-						<td>&nbsp;</td>
-						<td><button class="button1" id="KEY_UP_PIN"    >U</button></td>
-						<td>&nbsp;</td>
-					</tr>
-					<tr>
-						<td><button class="button1" id="KEY_LEFT_PIN"  >L</button></td>
-						<td><button class="button1" id="KEY_PRESS_PIN" >P</button></td>
-						<td><button class="button1" id="KEY_RIGHT_PIN" >R</button></td>
-					</tr>
-					<tr>
-						<td>&nbsp;</td>
-						<td>
-							<button class="button1" id="KEY_DOWN_PIN" >D</button><br>
-						</td>
-						<td>&nbsp;</td>
-					</tr>
+	<div id="vram_cont">
+		<div class="title taller">
+			WebSocket Connect 
+			<button id="ws_connect" class="button">CONNECT</button>
+			<button id="ws_disconnect" class="button">CLOSE</button>
+			<span id="ws_status">&#11035;</span> 
+		</div>
+
+		<div id="vram_div_all">
+			<div class="title taller">ALL DISPLAY LAYERS</div>
+			<canvas class="" id="vram_all" width="240" height="240"></canvas>
+		</div>
+	</div>
+
+	<div id="controls_cont">
+		<div id="controls_nav">
+			<div id="controls_cont_nav_ws"   view="controls_cont_view_ws"   onclick="nav.showOne(this.id);" class="title navButton">WS</div>
+			<div id="controls_cont_nav_post" view="controls_cont_view_post" onclick="nav.showOne(this.id);" class="title navButton">POST</div>
+			<div id="controls_cont_nav_vram" view="controls_cont_view_vram" onclick="nav.showOne(this.id);" class="title navButton">VRAM</div>
+			<div id="controls_cont_nav_stats" view="controls_cont_view_stats" onclick="nav.showOne(this.id);" class="title navButton">STATS</div>
+			<span onclick="shared.toggleFullscreen();" id="fullscreen">&#8983;</span>
+		</div>
 		
-					<!-- <tr> <td>&nbsp;</td> </tr> -->
-					
-					<tr>
-						<td><button class="button1" id="KEY1_PIN" >B1</button>&nbsp;</td>
-						<td><button class="button1" id="KEY2_PIN" >B2</button>&nbsp;</td>
-						<td><button class="button1" id="KEY3_PIN" >B3</button>&nbsp;</td>
-					</tr>
-
-				</table>
-
-				<!-- CONTROLS 2 -->
-				<table class="tableType1">
-					<caption>DISPLAY</caption>
-					<tr> 
-						<td class="bg1">
-							<label title="Auto reconnect after lost connection.">
-								<input type="checkbox" id="autoReconnectWs" value="1">
-								Reconnect
-							</label>
-						</td> 
-					</tr>
-					<tr> <td><button class="button2" id="ws_open">Open</button></td> </tr>
-					<tr> <td><button class="button2" id="ws_close">Close</button></td> </tr>
+		<div id="controls_cont_views">
+			<!-- WS VIEW -->
+			<div class="view" id="controls_cont_view_ws">
+				<div class="title taller">
+					Via WebSocket 
+					<span id="ws_autoReconnectDiv">
+						<label>
+							Auto-reconnect
+							<input id="ws_autoReconnect" type="checkbox">	
+						</label>
+					</span> 
+				</div>
 		
-					<!-- <tr> <td>&nbsp;</td> </tr> -->
-				</table>
+				<div id="controls_top">
+					<table class="ws disconnected padding width100">
+						<!-- WS BUTTONS -->
+						<tr>
+							<td colspan="1"> <div class="title">BUTTONS</div> </td>
+							<td colspan="5">
+								<button title="KEY_UP_PIN"    id="ws_up"    class="button icon">&#9650;</button>
+								<button title="KEY_DOWN_PIN"  id="ws_down"  class="button icon">&#9660;</button>
+								<button title="KEY_PRESS_PIN" id="ws_press" class="button icon">&#128307;</button>
+								<button title="KEY_LEFT_PIN"  id="ws_left"  class="button icon">&#9664;</button>
+								<button title="KEY_RIGHT_PIN" id="ws_right" class="button icon">&#9654;</button>
+								<button title="KEY1_PIN"      id="ws_b1"    class="button icon">&#9461;</button>
+								<button title="KEY2_PIN"      id="ws_b2"    class="button icon">&#9462;</button>
+								<button title="KEY3_PIN"      id="ws_b3"    class="button icon">&#9463;</button>
+							</td>
+						</tr>
+
+						<!-- WS SCREENS -->
+						<tr>
+							<td colspan="1"> <div class="title">SCREENS</div> </td>
+							<td colspan="5">
+								<div id="info_screensDiv1"></div>
+							</td>
+						</tr>
+
+						<!-- WS COMMANDS -->
+						<tr>
+							<td colspan="1"> <div class="title">COMMANDS</div> </td>
+							<td colspan="5">
+								<button id="ws_requestVramDraw" class="button">Get _VRAM</button>
+							</td>
+						</tr>
+
+						<!-- WS DEBUGCMDS -->
+						<tr>
+							<td colspan="1"> <div class="title">DEBUGCMDS</div> </td>
+							<td colspan="5">
+								<button class="button" onclick="buttons.DEBUGCMD('ws', 'pm2.restart');"   >pm2.restart   </button>
+								<button class="button" onclick="buttons.DEBUGCMD('ws', 'process.exit');"  >process.exit  </button>
+								<button class="button" onclick="buttons.DEBUGCMD('ws', 'linux.reboot');"  >linux.reboot  </button>
+								<button class="button" onclick="buttons.DEBUGCMD('ws', 'linux.shutdown');">linux.shutdown</button>
+							</td>
+						</tr>
+
+						<!-- WS SUBSCRIPTIONS -->
+						<tr>
+							<td colspan="1"> <div class="title">SUBSCRIPTIONS</div> </td>
+							<td colspan="5">
+								<div id="info_subscriptionsDiv"></div>
+							</td>
+						</tr>
+
+						<!-- STATS -->
+						<tr>
+							<td colspan="1"> <div class="title">S:FPS</div> </td>
+							<td colspan="1">
+								<select id="info_changeFps"></select>
+								<button id="info_changeFpsBtn">SET</button>
+							</td>
+						
+							<td colspan="1"> <div class="title">S:FPS</div> </td>
+							<td colspan="1"> <span id="info_serverFps"></span>--</td>
+
+							<td colspan="1"> <div class="title">L:lastDraw</div> </td>
+							<td colspan="1"> <span id="info_lastDraw">----------</span> </td>
+						</tr>
+						
+					</table>
+				</div>
+				
+				
+				<div id="controls_bottom2">
+					<table class="ws disconnected padding">
+						
+					</table>
+				</div>
+			</div>
+
+			<!-- POST VIEW -->
+			<div class="view" id="controls_cont_view_post">
+				<div class="title taller">Via POST</div>
+				<div>
+					<table class="padding width100">
+						<!-- POST BUTTONS -->
+						<tr>
+							<td colspan="1"> <div class="title">BUTTONS</div> </td>
+							<td colspan="1">
+								<button title="KEY_UP_PIN"    id="post_up"    class="button icon">&#9650;</button>
+								<button title="KEY_DOWN_PIN"  id="post_down"  class="button icon">&#9660;</button>
+								<button title="KEY_PRESS_PIN" id="post_press" class="button icon">&#128307;</button>
+								<button title="KEY_LEFT_PIN"  id="post_left"  class="button icon">&#9664;</button>
+								<button title="KEY_RIGHT_PIN" id="post_right" class="button icon">&#9654;</button>
+								<button title="KEY1_PIN"      id="post_b1"    class="button icon">&#9461;</button>
+								<button title="KEY2_PIN"      id="post_b2"    class="button icon">&#9462;</button>
+								<button title="KEY3_PIN"      id="post_b3"    class="button icon">&#9463;</button>
+							</td>
+						</tr>
+						
+						<!-- POST SCREENS -->
+						<tr>
+							<td colspan="1"> <div class="title">SCREENS</div> </td>
+							<td colspan="1">
+								<div id="info_screensDiv2"></div>
+							</td>
+						</tr>
+
+						<!-- POST COMMANDS -->
+						<tr>
+							<td colspan="1"> <div class="title">COMMANDS</div> </td>
+							<td colspan="1">
+								<button id="post_requestVramDraw" class="button">Get _VRAM</button>
+								<button id="post_requestDrawFlags" class="button">Request GET_DRAW_FLAGS</button>
+							</td>
+						</tr>
+
+						<!-- POST DEBUGCMDS -->
+						<tr>
+							<td colspan="1"> <div class="title">DEBUGCMDS</div> </td>
+							<td colspan="1">
+								<button class="button" onclick="buttons.DEBUGCMD('post', 'pm2.restart');"   >pm2.restart   </button>
+								<button class="button" onclick="buttons.DEBUGCMD('post', 'process.exit');"  >process.exit  </button>
+								<button class="button" onclick="buttons.DEBUGCMD('post', 'linux.reboot');"  >linux.reboot  </button>
+								<button class="button" onclick="buttons.DEBUGCMD('post', 'linux.shutdown');">linux.shutdown</button>
+							</td>
+						</tr>
+
+					</table>
+		
+				</div>
+			</div>
+			
+			<!-- VRAM VIEW (AND UPDATES) -->
+			<div class="view" id="controls_cont_view_vram">
+				<div id="vram_div_layers" class="">
+					<!-- VRAM LAYER 0 -->
+					<div class="vram_div_layer" vramLayer="0">
+						<div class="title taller">L0 (fillTile)</div>
+						<div class="ws updateStats"></div>
+						<canvas class="vramCanvas" id="vram_l0" width="240" height="240"></canvas>
+					</div>
+			
+					<!-- VRAM LAYER 1 -->
+					<div class="vram_div_layer" vramLayer="1">
+						<div class="title taller">L1 (setTile)</div>
+						<div class="ws updateStats"></div>
+						<canvas class="vramCanvas" id="vram_l1" width="240" height="240"></canvas>
+					</div>
+			
+					<!-- VRAM LAYER 2 -->
+					<div class="vram_div_layer" vramLayer="2">
+						<span class="title taller">L2 (setTile/print)</span>
+						<div class="ws updateStats"></div>
+						<canvas class="vramCanvas" id="vram_l2" width="240" height="240"></canvas>
+					</div>
+				</div>
+			</div>
+			
+			<!-- STATS VIEW -->
+			<div class="view ws disconnected" id="controls_cont_view_stats">
+				<div id="controls_cont_view_stats_output" class="padding width100"></div>
 			</div>
 		</div>
 
-		<div id="canvasDisplay" class="inline-block">
-			<table class="tableType1">
-				<caption>DISPLAY</caption>
-				<tr>
-					<td>
-						<canvas width="240" height="240" id="CANVAS1"></canvas>
-					</td>
-				</tr>
-			</table>
-		</div>
-
-	</div>
-
-	<br><br>
-
-	<div id="debugControls" class="disconnected inline-block">
-		<table class="tableType1">
-			<caption>DEBUG</caption>
-			<tr> <td><button class="button3" id="requestTimingsButton">(POST) Request timings.</button></td> </tr>
-			<tr> <td><button class="button3" id="BL_PIN"              >(POST) Toggle backlight.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_01"            >( WS ) Request recent framebuffer.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_02"            >( WS ) Update LCD of all clients.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_03"            >( WS ) Get LCD config.</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_04"            >( WS ) Get UUID</button></td> </tr>
-			<tr> <td><button class="button3" id="DEBUG_05"            >( WS ) Get all UUIDs</button></td> </tr>
-			<tr> <td>&nbsp;</td> </tr>
-		</table>
-	</div>
-
-	<div id="debugOutput" class="disconnected inline-block"> 
-		<table class="tableType1">
-			<caption>OUTPUT</caption>
-			<tr> 
-				<td>
-					<textarea id="debugOutput_output"></textarea>
-				</td>
-			</tr>
-		</table>
 	</div>
 
 </body>
-</html>
 
+</html>
