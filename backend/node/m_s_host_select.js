@@ -52,6 +52,7 @@ let screen = {
 		let dims = { "x": 0, "y": 4, "w": 30, "h": 22 };
 		let tiles = { "t1": "tile3", "t2": "tile2", "t3": "tile4", "bgClearTile": "tile4" };
 		let cursor = { "usesCursor":true, "cursorIndexes":[] }
+		let cursors = { "t1":"cursor4", "t2":"cursor5" }
 		let actions = [];
 		let lines   = [
 			// TITLE
@@ -102,6 +103,7 @@ let screen = {
 		return thisScreen.shared.createDialogObject({
 			"name"   : "choose_host",
 			...dims, ...tiles, ...cursor,
+			cursors:cursors,
 			"lines"  : lines,
 			"actions": actions
 		});

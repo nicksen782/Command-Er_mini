@@ -212,7 +212,7 @@ let _MOD = {
 		if(typeof str == "number"){ str = str.toString(); }
 		
 		// Set the string to uppercase.
-		str = str.toUpperCase();
+		// str = str.toUpperCase();
 
 		// Break up the string into separate chars.
 		let chars = str.split("");

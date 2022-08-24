@@ -69,9 +69,9 @@ let screen = {
 		// Bottom row.
 		_APP.m_draw.fillTile("tile3"         , 0, ts.rows-1, ts.cols, 1); 
 		
-		_APP.m_draw.print(`]{}|;:'",.<>/?\\^&*()-=_+[$%`, 0 , 4);
-		_APP.m_draw.print(`ABCDEFGHIJKLMNOPQRSTUVWXYZ`  , 0 , 5);
-		_APP.m_draw.print(` 0123456789!@#`              , 0 , 6);
+		// _APP.m_draw.print(`]{}|;:'",.<>/?\\^&*()-=_+[$%`, 0 , 4);
+		// _APP.m_draw.print(`ABCDEFGHIJKLMNOPQRSTUVWXYZ`  , 0 , 5);
+		// _APP.m_draw.print(` 0123456789!@#`              , 0 , 6);
 		
 		// _APP.m_websocket_python.wsClient.send("GET_BATTERY");
 		_APP.m_websocket_python.getBatteryUpdate();
@@ -101,13 +101,38 @@ let screen = {
 
 			thisScreen.lines2=[];
 			
-			let y=7;
-			thisScreen.lines2.push(`${"*".repeat(30)}`);
+			let y=3;
+			// thisScreen.lines2.push(`${"-".repeat(30)}`);
+			_APP.m_draw.print("cursor:123456", 0, 3); ;
+			_APP.m_draw.setTile("cursor1", 7, 4); 
+			_APP.m_draw.setTile("cursor2", 8, 4); 
+			_APP.m_draw.setTile("cursor3", 9, 4); 
+			_APP.m_draw.setTile("cursor4", 10, 4);
+			_APP.m_draw.setTile("cursor5", 11, 4);
+			_APP.m_draw.setTile("cursor6", 12, 4);
+			y+=1;
+			y+=1;
+			y+=1;
+			// thisScreen.lines2.push(`${"-".repeat(30)}`);
+			// thisScreen.lines2.push(`${" ".repeat(30)}`);
+
+			// thisScreen.lines2.push(`${"-".repeat(30)}`);
+			// thisScreen.lines2.push(` !\"#$%&'()*+,-./`);
+			// thisScreen.lines2.push(`0123456789`);
+			// thisScreen.lines2.push(":;<=>?@");
+			// thisScreen.lines2.push(`ABCDEFGHIJKLMNOPQRSTUVWXYZ`);
+			// thisScreen.lines2.push(`[\\]^_\``);
+			// thisScreen.lines2.push(`abcdefghijklmnopqrstuvwxyz`);
+			// thisScreen.lines2.push(`{|}~`);
+			// thisScreen.lines2.push(`${"-".repeat(30)}`);
+			// thisScreen.lines2.push(`${" ".repeat(30)}`);
+
+			thisScreen.lines2.push(`${"-".repeat(30)}`);
 			thisScreen.lines2.push(`FPS AVG/CONF: ${(_APP.fps.average  .toFixed(0)+"/"+_APP.stats.fps.toFixed(0)).padStart(7, " ")}` + `${("("+(_APP.fps._index_+1).toFixed(0) +"/"+ (_APP.fps.sampleSize-0).toFixed(0) +")").padStart(8, " ")}`);
 			thisScreen.lines2.push(`SET MS/FRAME: ${_APP.stats.interval.toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`MS DELTA    : ${_APP.stats.delta   .toFixed(2).padStart(7, " ")}`);
 			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ") }`);
-			thisScreen.lines2.push(`${"*".repeat(30)}`);
+			// thisScreen.lines2.push(`${"*".repeat(30)}`);
 			
 			// FULL LOOP line.
 			(
@@ -129,7 +154,9 @@ let screen = {
 					thisScreen.lines2.push( (line2.padEnd(16, " ") + line1.padEnd(14, " ")));
 				}
 			)();
-			thisScreen.lines2.push(`${"*".repeat(30)}`);
+			thisScreen.lines2.push(`${"-".repeat(30)}`);
+			thisScreen.lines2.push(`${" ".repeat(30)}`);
+			thisScreen.lines2.push(`${"-".repeat(30)}`);
 
 			for(let v of thisScreen.lines2){ _APP.m_draw.print(v , 0 , y++); }
 
@@ -182,7 +209,7 @@ let screen = {
 			if( _APP.m_gpio.isRele ("KEY2_PIN")      ){ _APP.m_draw.setTile("btn_b_active", x++, y); } else{ _APP.m_draw.setTile("btn_b", x++, y); }
 			if( _APP.m_gpio.isRele ("KEY3_PIN")      ){ _APP.m_draw.setTile("btn_c_active", x++, y); } else{ _APP.m_draw.setTile("btn_c", x++, y); }
 			y++;
-			_APP.m_draw.print(`${"*".repeat(30)}` , 0 , y++);
+			_APP.m_draw.print(`${"-".repeat(30)}` , 0 , y++);
 
 			// Display/Update the time/battery data sections as needed.
 			thisScreen.shared.time.updateIfNeeded(0, 29, "tile3");

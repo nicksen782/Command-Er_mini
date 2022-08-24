@@ -574,6 +574,38 @@ let _APP = {
 			createDialogObject : function(config){
 				let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 				let dialogDims = thisScreen.shared.getDialogBoxParams(config.x, config.y, config.w, config.h, config.t1, config.t2, config.t3);
+
+				// Allow for dialogs to be changed from the default.
+				switch(config.boxCount){
+					// Use 1 box  (outer=outer, inner=outer, text=outer)
+					case 1 : { 
+						dialogDims = {
+							outer: dialogDims.outer,
+							inner: dialogDims.outer,
+							text : dialogDims.outer,
+						}
+						break; 
+					}
+					// Use all 2 boxes. (outer=outer, inner=outer, text=inner)
+					case 2 : { 
+						dialogDims = {
+							outer: dialogDims.outer,
+							inner: dialogDims.outer,
+							text : dialogDims.inner,
+						}
+						break; 
+					}
+					// Use all 3 boxes. (default)
+					case 3 : 
+					default : { 
+						dialogDims = {
+							outer: dialogDims.outer,
+							inner: dialogDims.inner,
+							text : dialogDims.text,
+						}
+						break; 
+					}
+				}
 				let dialog = { box:{}, cursor:{}, text:{} } ;
 				dialog = {
 					active: false,
@@ -601,13 +633,22 @@ let _APP = {
 							dialog.text.lines.forEach((line, i)=>{
 								_APP.m_draw.print(line.padEnd(dialog.box.text.w-1, " ") , dialog.box.text.x, dialog.box.text.y + i);
 							});
+
+							// Highlight the title. 
+							if(config.highlightLines){
+								for(let key in config.highlightLines){
+									key = parseInt(key);
+									// console.log(key, config.highlightLines[key]);
+									_APP.m_draw.fillTile(config.highlightLines[key], dialog.box.text.x , dialog.box.text.y+key, dialog.box.text.w, 1);
+								}
+							}
 		
 							// 
 							dialog.drawn = true; 
 		
 							// Draw the cursor.
 							dialog.cursor.y = dialog.cursor.cursorIndexes[dialog.cursor.index];
-							dialog.cursor.draw();
+							dialog.cursor.draw(); // fails here?
 						},
 						close: function(){
 							// Erase the dialog box. 
@@ -632,9 +673,9 @@ let _APP = {
 						maxY : dialogDims.text.y + dialogDims.text.h, 
 						
 						// Cursor tiles (and blink.)
-						t : "cursor3", 
-						t1: "cursor3", 
-						t2: "cursor4", 
+						t : config.cursors ? config.cursors.t1 : "cursor3", 
+						t1: config.cursors ? config.cursors.t1 : "cursor3", 
+						t2: config.cursors ? config.cursors.t2 : "cursor4", 
 						frameDelay: _APP.screenLogic.shared.secondsToFramesToMs(0.5), 
 						lastFrame : performance.now(),
 						
@@ -657,13 +698,29 @@ let _APP = {
 							}
 						},
 						draw: function(){
+							// NOTE: Will fail if there are not any dialog.cursor.cursorIndexes.
 							if(!dialog.active){ return; }
 							if(!config.usesCursor){ return; }
-		
+
 							// Draw the tile.
 							// _APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.y); 
 							// console.log(dialog.cursor.cursorIndexes, dialog.cursor.index, dialog.cursor.cursorIndexes[dialog.cursor.index]);
-							_APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.cursorIndexes[dialog.cursor.index]); 
+							try{
+								// fails here?
+								_APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.cursorIndexes[dialog.cursor.index]); 
+							}
+							catch(e){
+								console.log(
+									"FAIL in 'cursor.draw': ", 
+									{
+										"dialog.cursor.t":      dialog.cursor.t, 
+										"dialog.cursor.x":      dialog.cursor.x, 
+										"cursor.cursorIndexes": dialog.cursor.cursorIndexes, 
+										"cursor.index":         dialog.cursor.index, 
+										"cursor new y":         dialog.cursor.cursorIndexes[dialog.cursor.index]
+									}
+								);
+							}
 						},
 						move: function(){
 							if(!dialog.active){ return; }
@@ -678,8 +735,17 @@ let _APP = {
 							if(dialog.cursor.cursorIndexes.length){
 								let min = 0;
 								let max = dialog.cursor.cursorIndexes.length;
-								if     ( _APP.m_gpio.isPress ("KEY_UP_PIN")   && index > min && dialog.cursor.cursorIndexes.indexOf(y-1) != -1) { y -=1; index -= 1; }
-								else if( _APP.m_gpio.isPress ("KEY_DOWN_PIN") && index < max && dialog.cursor.cursorIndexes.indexOf(y+1) != -1) { y +=1; index += 1; }
+								// if     ( _APP.m_gpio.isPress ("KEY_UP_PIN") && _APP.m_gpio.isPress ("KEY3_PIN")  ){}
+								// if     ( _APP.m_gpio.isPress ("KEY_DOWN_PIN") && _APP.m_gpio.isPress ("KEY3_PIN")  ){}
+
+								if     ( _APP.m_gpio.isPress ("KEY_UP_PIN")   ){
+									let upCheck   = index-1 >= min ;
+									if( upCheck ) { index -= 1; y = dialog.cursor.cursorIndexes[index]; }
+								}
+								else if( _APP.m_gpio.isPress ("KEY_DOWN_PIN") ){
+									let downCheck = index+1 < max ;
+									if( downCheck ) { index += 1; y = dialog.cursor.cursorIndexes[index]; }
+								}
 								else{ return; }
 							}
 							else{

@@ -45,6 +45,24 @@ let screen = {
 	// CONSTANTS:
 	
 	// INIT:
+	sendCommand: async function(body){
+		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
+		
+		body.uuid = thisScreen.host_select.uuids[0];
+		let url =  `${thisScreen.host_select.activeRemote.URL}MINI/RUNCMD` ;
+		let options = { 
+			method: "POST", 
+			headers : { 
+				'Accept': 'application/json', 
+				'Content-Type': 'application/json' 
+			},
+			body: JSON.stringify(body)
+		} ;
+
+		let json = await _APP.fetch( url, options );
+		json = await json.json();
+		console.log("RESPONSE:", json);
+	},
 	changeSection: function(newSection){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
@@ -53,7 +71,7 @@ let screen = {
 		if(!newSection){ newSection = thisScreen.sectionKeys[0]; }
 
 		// Display the section name. 
-		_APP.m_draw.print(` SECTION: ${newSection}`.padEnd(ts.cols, " ") , 0 , 2);
+		// _APP.m_draw.print(` SECTION: ${newSection}`.padEnd(ts.cols, " ") , 0 , 2);
 
 		// Close existing? 
 		if(thisScreen.menu1.dialogs.choose_cmd) { thisScreen.menu1.dialogs.choose_cmd.box.close(); }
@@ -67,53 +85,68 @@ let screen = {
 	createDialog_choose_cmd: function(newSection){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
-		let dims = { "x": 0, "y": 4, "w": 30, "h": 22 };
-		let tiles = { "t1": "tile3", "t2": "tile2", "t3": "tile4", "bgClearTile": "tile4" };
+		let dims = { "x": 0, "y": 3, "w": 30, "h": 24 };
+		// let tiles = { "t1": "tile3", "t2": "tile2", "t3": "tile4", "bgClearTile": "tile4" };
+		let tiles = { "t1": "tile2", "t2": "tile2", "t3": "tile2", "bgClearTile": "tile4" };
 		let cursor = { "usesCursor":true, "cursorIndexes":[] }
+		let cursors = { "t1":"cursor4", "t2":"cursor5" }
 		let actions = [];
+		let filtered = thisScreen.host_select.remoteConfig.commands.filter(d=>d.sectionName==newSection);
 		let lines   = [
+			// SECTION
+			`s:${newSection} (${thisScreen.sectionKeys.indexOf(newSection)+1}/${thisScreen.sectionKeys.length})`,
+
 			// TITLE
-			`SELECT A COMMAND`,
+			`COMMANDS (1-${Math.min(filtered.length,dims.h-6)} of ${filtered.length})`,
 			
 			// ROWS (added later.)
 			//
 		];
-		thisScreen.host_select.remoteConfig.commands.filter(d=>d.sectionName==newSection).forEach( (d,i)=>{ 
-			if(i>dims.h-6){ return ; }
-			let newYIndex = lines.length + dims.y+2;
-			actions.push(
-				async function(){ 
-					json = await _APP.fetch( 
-						`${thisScreen.host_select.activeRemote.URL}MINI/RUNCMD`, 
-						{ 
-							method: "POST", 
-							headers : { 
-								'Accept': 'application/json', 
-								'Content-Type': 'application/json' 
-							},
-							body: JSON.stringify({
-								cmd: d.cmd,
-								sId: d.sId,
-								gId: d.gId,
-								cId: d.cId,
-								uuid: thisScreen.host_select.uuids[0],
-							})
-						} 
-					); 
-					json = await json.json();
-					console.log("RESPONSE:", json);
+		// let lastGroupId = d.gId;
+		let lastGroupId = null;
+		filtered.forEach( (d,i,a)=>{ 
+			if(lines.length+3>dims.h){ 
+				// console.log(" MAXED1", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title); 
+				return ; 
+			}
+			// console.log(" ADDED ", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title);
+
+			// New group?
+			if(d.gId != lastGroupId){
+				// console.log(`New group: ${d.groupName}(${d.gId}), Old groupId: ${lastGroupId}`);
+				let numInGroup = thisScreen.host_select.remoteConfig.commands.filter(dd=>dd.groupName==d.groupName && dd.sectionName==d.sectionName).length;
+				// if(lastGroupId != null) { lines.push(``); }
+				if(lines.length+4>dims.h){ 
+					console.log(" MAXED2", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title); 
+					return ; 
 				}
-			);
-			cursor.cursorIndexes.push( newYIndex );
-			lines.push(`  ${d.title}`);
+				lines.push(``);
+				lines.push(`g:${d.groupName} (${numInGroup})`);
+				lastGroupId = d.gId;
+			}
+
+			// Add to group.
+			// else{
+				let newYIndex = lines.length + dims.y+0;
+				actions.push(
+					async function(){ 
+						await thisScreen.sendCommand( { type:"FROMCONFIG", cmd: d.cmd, sId: d.sId, gId: d.gId, cId: d.cId } );
+					}
+				);
+				cursor.cursorIndexes.push( newYIndex );
+				lines.push(`  c:${d.title}`);
+			// }
 		} );
-
+		
 		// Display the section name. 
-		_APP.m_draw.print(` SECTION: ${newSection}`.padEnd(ts.cols, " ") , 0 , 2);
-
+		// _APP.m_draw.print(` SECTION: ${newSection}`.padEnd(ts.cols, " ") , 0 , 2);
+		
 		return thisScreen.shared.createDialogObject({
 			"name"   : "choose_cmd",
 			...dims, ...tiles, ...cursor,
+			boxCount: 1,
+			highlightLines: { "0":"tile_blue", "1":"tile_blue" },
+			cursors: cursors,
 			"lines"  : lines,
 			"actions": actions
 		});
@@ -205,7 +238,8 @@ let screen = {
 				thisScreen.menu1.dialogs.choose_cmd.text.select();
 			}
 
-			if     ( _APP.m_gpio.isPress ("KEY_LEFT_PIN") ){
+			// SECTION NAVIGATION.
+			if( _APP.m_gpio.isPress ("KEY_LEFT_PIN") ){
 				if(thisScreen.currentSectionIndex - 1 >= 0   ) { 
 					thisScreen.currentSectionIndex -= 1;
 					let newSection = thisScreen.sectionKeys[thisScreen.currentSectionIndex];
@@ -215,7 +249,7 @@ let screen = {
 					console.log("You pressed LEFT but you are already at the beginning.", thisScreen.currentSectionIndex, thisScreen.sectionKeys.length-1);
 				}
 			}
-			else if( _APP.m_gpio.isPress ("KEY_RIGHT_PIN") ){
+			if( _APP.m_gpio.isPress ("KEY_RIGHT_PIN") ){
 				if(thisScreen.currentSectionIndex + 1 <= thisScreen.sectionKeys.length-1 ) { 
 					thisScreen.currentSectionIndex += 1;
 					let newSection = thisScreen.sectionKeys[thisScreen.currentSectionIndex];
@@ -224,6 +258,11 @@ let screen = {
 				else{
 					console.log("You pressed RIGHT but you are already at the END.", thisScreen.currentSectionIndex, thisScreen.sectionKeys.length-1);
 				}
+			}
+
+			// PRESS CTRL+C ANYWHERE.
+			if( _APP.m_gpio.isPress ("KEY2_PIN") ){
+				await thisScreen.sendCommand( { type:"RAW", cmd: "\u0003" } );
 			}
 
 			resolve();
