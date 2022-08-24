@@ -182,7 +182,7 @@ let setErrorHandlers = function(){
 	_APP   = await require(path.join(process.cwd(), './backend/node/M_main.js'))(app, express, server);
 	
 	//
-	_APP.timeIt("FULL_STARTUP", "s", "STARTUP__");
+	_APP.timeIt("FULL_STARTUP", "s", __filename);
 
 	// Init _APP.
 	_APP.module_init(_APP);
@@ -267,7 +267,7 @@ let setErrorHandlers = function(){
 	};
 
 	_APP.consolelog(".".repeat(54), 0);
-	_APP.timeIt("expressServerStart", "s", "STARTUP__");   
+	_APP.timeIt("expressServerStart", "s", __filename);   
 	_APP.consolelog("START: expressServerStart:", 0);
 	
 	// Remove the process if it already exists.
@@ -276,8 +276,8 @@ let setErrorHandlers = function(){
 	
 	(async function startServer(){
 		server.listen(conf, async function () {
-			_APP.timeIt("expressServerStart", "e", "STARTUP__");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("expressServerStart", "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
+			_APP.timeIt("expressServerStart", "e", __filename);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt("expressServerStart", "t", __filename).toFixed(3).padStart(9, " ")} ms`, 0);
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog("");
 			
@@ -310,11 +310,11 @@ let setErrorHandlers = function(){
 			printRoutes(); 
 			console.log("");
 			
-			_APP.timeIt("FULL_STARTUP", "e", "STARTUP__");
+			_APP.timeIt("FULL_STARTUP", "e", __filename);
 			 
 			lines = [
 				"-".repeat(36)                                                                          ,
-				` READY (STARTUP TIME: ${_APP.timeIt("FULL_STARTUP", "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms) ` ,
+				` READY (STARTUP TIME: ${_APP.timeIt("FULL_STARTUP", "t", __filename).toFixed(3).padStart(9, " ")} ms) ` ,
 				"-".repeat(36)                                                                          ,
 			];
 			console.log("");
@@ -328,11 +328,6 @@ let setErrorHandlers = function(){
 			_APP.stats.setFps( _APP.m_config.config.node.fps );
 			_APP.screenLogic.shared.doSharedInits()
 			_APP.m_drawLoop.startAppLoop();
-
-			// setTimeout(async function(){ 
-			// 	await _APP.m_canvas.displayMessage("TEST 0123456789", 1,4,19,5); 
-			// 	try{ _APP.drawLoop.pause(); } catch(e){ console.log("Cannot pause", "server.js"); }
-			// }, 1500);
 		});
 	})();
 

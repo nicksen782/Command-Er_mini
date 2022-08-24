@@ -10,7 +10,7 @@ let _MOD = {
 	//
 	_VRAM            : [], // ArrayBuffer for VRAM.
 	_VRAM_view       : [], // Uint8 view of _VRAM ArrayBuffer.
-	_VRAM_changes    : [], // Tracks changes per LCD screen update. (Arrays containing objects.)
+	_VRAM_changes    : [], // Tracks changes per LCD screen update. (Object containing objects.)
 	_VRAM_inited     : false, 
 	_VRAM_updateStats: {}, 
 	buff_abgr        : null, // Raw BGRA data (framebuffer).
@@ -48,7 +48,7 @@ let _MOD = {
 			try{ 
 				res.json(Array.from([
 					..._MOD._VRAM_view, 
-					...Array.from("FULL").map(d=>d.charCodeAt(0))
+					...Array.from("FULL__").map(d=>d.charCodeAt(0))
 				]) );
 			}
 			catch(e){
@@ -91,27 +91,22 @@ let _MOD = {
 
 	// Functions used for "drawing".
 
-	// Clear _VRAM_changes.
 	clear_VRAM_changes: function(){
-		// Clear the rows of the _VRAM_changes array. (leave the coordKeys.)
-		for(let layer_i=0; layer_i<_MOD._VRAM_changes.length; layer_i+=1){
-			let layer = _APP.m_draw._VRAM_changes[layer_i];
-			for(let coordKey in layer){
-				layer[coordKey].c = false;
-			}
-		}
+		// Clear the _VRAM_changes array.
+		_MOD._VRAM_changes = {};
 	},
 
 	// Add to _VRAM_changes.
-	addTo_VRAM_changes: function(layer, x, y, tileId, layerNumber){
+	addTo_VRAM_changes: function(x, y){
 		// Add to a layer of _VRAM_changes.
 		let key = `Y${y}_X${x}`;
-		_MOD._VRAM_changes[layer][key] = { 
-			y: y, 
-			x: x, 
-			t: tileId, 
-			c: true, 
-			l: layerNumber 
+		let index = _APP.m_config.indexByCoords[y][x];
+		_MOD._VRAM_changes[key] = { 
+			y : y,
+			x : x,
+			t0: _APP.m_draw._VRAM_view[index+0], 
+			t1: _APP.m_draw._VRAM_view[index+1], 
+			t2: _APP.m_draw._VRAM_view[index+2], 
 		};
 	},
 
@@ -134,7 +129,7 @@ let _MOD = {
 		// Fill layer 0 with the specified tile.
 		_MOD.fillTile(tile, 0, 0, ts.cols, ts.rows, 0);
 		
-		// Fill the other layers _VRAM with the "space" tile (fully transparent and blank.)
+		// Fill the other layer's _VRAM with the "space" tile (fully transparent and blank.)
 		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 1);
 		_MOD.fillTile(" ", 0, 0, ts.cols, ts.rows, 2);
 	},
@@ -165,7 +160,7 @@ let _MOD = {
 			_MOD._VRAM_updateStats[xcolLayer].real += 1;
 
 			// Add to changes.
-			_MOD.addTo_VRAM_changes(xcolLayer, x, y, tile_new, xcolLayer);
+			_MOD.addTo_VRAM_changes(x, y);
 
 			// Set the lcdUpdateNeeded flag.
 			_MOD.lcdUpdateNeeded = true;
@@ -182,11 +177,11 @@ let _MOD = {
 		let oob_x = x >= ts.cols ? true : false;
 		let oob_y = y >= ts.rows ? true : false;
 		if(oob_x){ 
-			console.log(`oob_x:${x} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); 
+			console.log(`oob_x:${x} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}, (in: ${_APP.currentScreen})`); 
 			return;
 		}
 		if(oob_y){ 
-			console.log(`oob_y:${y} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}`); 
+			console.log(`oob_y:${y} >> x:${x}, y${y}, tileName:${tileName}, xcolLayer:${xcolLayer}, (in: ${_APP.currentScreen})`); 
 			return;
 		}
 
@@ -203,9 +198,7 @@ let _MOD = {
 			};
 		}
 		catch(e){
-			// console.log("ERROR: setTile : ", tileName, e);
-			// console.log("_APP.m_config.tilenamesByIndex:", _APP.m_config.tilenamesByIndex);
-			console.log("ERROR: setTile : ", tileName);
+			console.log("ERROR: setTile : ", tileName, `(in: ${_APP.currentScreen})`);
 			tileName = 'nochar'; 
 		}
 		
@@ -215,10 +208,18 @@ let _MOD = {
 
 	// DRAW TEXT TO THE CANVAS. 
 	print      : function(str="", x, y, xcolLayer=2){
+		// Convert to string if the input is a number. 
+		if(typeof str == "number"){ str = str.toString(); }
+		
+		// Set the string to uppercase.
+		str = str.toUpperCase();
+
+		// Break up the string into separate chars.
 		let chars = str.split("");
+
+		// Loop through the list of chars and draw them.
 		for(let i=0; i<chars.length; i+=1){
-			let tileName = chars[i].toString().toUpperCase();
-			_MOD.setTile(tileName, x++, y, xcolLayer);
+			_MOD.setTile(chars[i], x++, y, xcolLayer);
 		}
 	},
 
@@ -242,10 +243,9 @@ let _MOD = {
 
 		// Clear the update stats.
 		for(let layer_i=0; layer_i<ts.tilesInCol; layer_i+=1){
-			_MOD._VRAM_updateStats[layer_i].layer      = layer_i;
+			// _MOD._VRAM_updateStats[layer_i].layer      = layer_i;
 			_MOD._VRAM_updateStats[layer_i].updates    = 0;
 			_MOD._VRAM_updateStats[layer_i].real       = 0;
-			_MOD._VRAM_updateStats[layer_i].overwrites = 0;
 		}
 
 		// Clear the changes.
@@ -270,33 +270,15 @@ let _MOD = {
 
 				// Fill the _VRAM with the "space" tile (fully transparent and blank.)
 				let tileId = _APP.m_config.tileIdsByTilename["n "];
-				// console.log("_initVram:", tileId);
 
 				// Init the _VRAM_changes array.
-				for(let i=0; i<ts.tilesInCol; i+=1){
-					_MOD._VRAM_changes.push( [] );
-					for(let y=0; y<ts.rows; y+=1){
-						for(let x=0; x<ts.cols; x+=1){
-							let key = `Y${y}_X${x}`;
-							_MOD._VRAM_changes[i][key] = {
-								x: x, 
-								y: y, 
-								t: tileId, 
-								c: false, 
-								l: i
-							};
-						}
-					}
-				}
-				_MOD.clear_VRAM_changes();
-
+				_MOD._VRAM_changes = {};
 				
 				// Init _MOD._VRAM_updateStats
 				for(let layer_i=0; layer_i<ts.tilesInCol; layer_i+=1){
 					_MOD._VRAM_updateStats[layer_i] = { 
-						"layer"     : layer_i, 
+						// "layer"     : layer_i, 
 						"updates"   : 0, 
-						"overwrites": 0 ,
 						"real"      : 0 ,
 					}
 				}

@@ -42,7 +42,7 @@ let _APP = {
 			let key = path.basename(__filename, '.js');
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog(`START: module_init: ${key} :`, 0);
-			_APP.timeIt(`${key}`, "s", "STARTUP__"); 
+			_APP.timeIt(`${key}`, "s", __filename); 
 			
 			_APP.consolelog("add modules", 2);
 			for(let i=0; i<m_modules.length; i+=1){
@@ -64,8 +64,8 @@ let _APP = {
 			_APP.consolelog("addRoutes", 2);
 			_APP.addRoutes(_APP.app, _APP.express);
 
-			_APP.timeIt(`${key}`, "e", "STARTUP__");
-			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
+			_APP.timeIt(`${key}`, "e", __filename);
+			_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", __filename).toFixed(3).padStart(9, " ")} ms`, 0);
 			_APP.consolelog(".".repeat(54), 0);
 			_APP.consolelog("", 0);
 
@@ -101,7 +101,7 @@ let _APP = {
 
 				// Respond to complete the request.
 				res.json("");
-			}, _APP.timeIt_timings_prev["APPLOOP__"]["FULLLOOP"].t || _APP.stats.interval);
+			}, _APP.timeIt_timings_prev["m_drawLoop.js"]["FULLLOOP"].t || _APP.stats.interval);
 
 		});
 
@@ -189,8 +189,8 @@ let _APP = {
 					line1+= ` : `;
 					line1+= `(${ (i+1) + "/" + m_modules.length })`.padStart(7, " ");
 					_APP.consolelog(line1, 0);
-					_APP.timeIt(`${key}`, "s", "STARTUP__"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e", "STARTUP__");
-					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
+					_APP.timeIt(`${key}`, "s", __filename); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e", __filename);
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", __filename).toFixed(3).padStart(9, " ")} ms`, 0);
 					_APP.consolelog(".".repeat(54), 0);
 					_APP.consolelog("");
 				}
@@ -206,8 +206,8 @@ let _APP = {
 					line1+= ` : `;
 					line1+= `(${ (i+1) + "/" + m_screens.length })`.padStart(7, " ");
 					_APP.consolelog(line1, 0);
-					_APP.timeIt(`${key}`, "s", "STARTUP__"); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e", "STARTUP__");
-					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
+					_APP.timeIt(`${key}`, "s", __filename); await _APP[key].module_init(_APP, key); _APP.timeIt(`${key}`, "e", __filename);
+					_APP.consolelog(`END  : INIT TIME: ${_APP.timeIt(`${key}`, "t", __filename).toFixed(3).padStart(9, " ")} ms`, 0);
 					_APP.consolelog(".".repeat(54), 0);
 					_APP.consolelog("");
 				}
@@ -222,58 +222,49 @@ let _APP = {
 	// DEBUG: Used to measure how long something takes.
 	timeIt_timings : { },
 	timeIt_timings_prev : { },
-	timeIt: function(key, type, subKey="NOSUBKEY"){
+	timeIt: function(key, type, subKey="NOT_DEFINED"){
+		subKey = path.basename(subKey);
+		
+		// Is this a timeIt 'start'?
 		if(type == "s"){
-			if(subKey){ 
-				if(!_APP.timeIt_timings     [subKey]){ _APP.timeIt_timings     [subKey] = {}; }
-				if(!_APP.timeIt_timings_prev[subKey]){ _APP.timeIt_timings_prev[subKey] = {}; }
-				_APP.timeIt_timings[subKey][key] = { s: performance.now(), e: 0, t: 0, }; 
-			}
-			else{ 
-				_APP.timeIt_timings[key]         = { s: performance.now(), e: 0, t: 0, }; 
-			}
+			// Create the subkey if it doesn't exist.
+			if(!_APP.timeIt_timings     [subKey]){ _APP.timeIt_timings     [subKey] = {}; }
+
+			// Create the prev subkey if it doesn't exist.
+			if(!_APP.timeIt_timings_prev[subKey]){ _APP.timeIt_timings_prev[subKey] = {}; }
+
+			// Create the prev entry key if it does not exist.
+			if(!_APP.timeIt_timings_prev[subKey][key]){ _APP.timeIt_timings_prev[subKey][key] = {}; }
+
+			// Create the entry.
+			_APP.timeIt_timings         [subKey][key] = { s: performance.now(), e: 0, t: 0, }; 
 		}
+		// Is this a timeIt 'end'?
 		else if(type == "e"){
-			if(subKey){
-				if(_APP.timeIt_timings[subKey][key]){
-					_APP.timeIt_timings[subKey][key].e = performance.now();
-					_APP.timeIt_timings[subKey][key].t = _APP.timeIt_timings[subKey][key].e - _APP.timeIt_timings[subKey][key].s;
-	
-					// Add to prev
-					// if(!_APP.timeIt_timings_prev[subKey]){ _APP.timeIt_timings_prev[subKey] = {}; }
-					_APP.timeIt_timings_prev[subKey][key] = {
-						s: _APP.timeIt_timings[subKey][key].s,
-						e: _APP.timeIt_timings[subKey][key].e,
-						t: _APP.timeIt_timings[subKey][key].t,
-					}
-				}
-			}
-			
-			else{
-				if(_APP.timeIt_timings[key]){
-					_APP.timeIt_timings[key].e = performance.now();
-					_APP.timeIt_timings[key].t = _APP.timeIt_timings[key].e - _APP.timeIt_timings[key].s;
-	
-					// Add to prev
-					_APP.timeIt_timings_prev[key] = {
-						s: _APP.timeIt_timings[key].s,
-						e: _APP.timeIt_timings[key].e,
-						t: _APP.timeIt_timings[key].t,
-					}
-				}
+			if(_APP.timeIt_timings[subKey][key]){
+				// Set the end entry.
+				_APP.timeIt_timings[subKey][key].e = performance.now();
+
+				// Calculate the total entry and format.
+				_APP.timeIt_timings[subKey][key].t = parseFloat((_APP.timeIt_timings[subKey][key].e - _APP.timeIt_timings[subKey][key].s).toFixed(2));
+
+				// Add to prev
+				_APP.timeIt_timings_prev[subKey][key] = { t: _APP.timeIt_timings[subKey][key].t };
 			}
 		}
+		// Is this just a request for the total time?
 		else if(type == "t"){
-			if(subKey){
+			try{
+				// Return the value if it exists.
 				if(_APP.timeIt_timings[subKey][key]){
 					return _APP.timeIt_timings[subKey][key].t;
 				}
+
+				// Return -1 if the value does not exist.
 				return -1;
 			}
-			else{
-				if(_APP.timeIt_timings[key]){
-					return _APP.timeIt_timings[key].t;
-				}
+			catch(e){
+				console.log("Error in timeIt:", e);
 				return -1;
 			}
 		}
@@ -476,14 +467,14 @@ let _APP = {
 		// Display system data.
 		_APP.consolelog(".".repeat(54), 0);
 		_APP.consolelog(`START: sysData :`, 0);
-		_APP.timeIt(`sysData`, "s", "STARTUP__"); 
+		_APP.timeIt(`sysData`, "s", __filename); 
 		let sysData = _APP.getSysData();
 		for(let key in sysData){
 			let line1 = `${key.toUpperCase()}`.padEnd(12, " ") +": "+ `${JSON.stringify(sysData[key],null,0)}`;
 			_APP.consolelog(line1, 2);
 		}
-		_APP.timeIt(`sysData`, "e", "STARTUP__"); 
-		_APP.consolelog(`END  : TIME: ${_APP.timeIt(`sysData`, "t", "STARTUP__").toFixed(3).padStart(9, " ")} ms`, 0);
+		_APP.timeIt(`sysData`, "e", __filename); 
+		_APP.consolelog(`END  : TIME: ${_APP.timeIt(`sysData`, "t", __filename).toFixed(3).padStart(9, " ")} ms`, 0);
 		_APP.consolelog(".".repeat(54), 0);
 		_APP.consolelog("");
 	},

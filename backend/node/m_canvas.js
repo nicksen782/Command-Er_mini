@@ -50,251 +50,45 @@ let _MOD = {
 	rawBuffer: null, // Saved as to not need to reallocate memory each draw.
 	tileCache: []  , // Cache of all tiles.
 
-	// TESTING. Draws to the LCD framebuffer based on the passed changes.
-	drawLayersUpdateFramebuffer: async function(_changesFullFlat){
+	// Draw changes to canvas then framebuffer.
+	drawLayersUpdateFramebuffer: async function(){
 		return new Promise(function(resolve,reject){
-			// Determine which X,Y coords have changes (any layer.)
-			// For any X,Y change:
-			//   Add coords for a clear of the final canvas.
-			//   Add coords for drawing of each layer canvas in order.
-			//   Use the tile id that is present in VRAM.
-			//   Therefore it is only needed to know what X,Y coords have changed.
-			// Once all X,Y changes are known and in an array:
-			//  ONLY draw to the final canvas. First clear then draw they layer tiles in order.
-			//  No need to combine entire layers, especially when the change could be minimal.
-
-			let changedCoords = {};
-			let clearCommands = [];
-			let drawCommands = [];
-			for(let i=0; i<_changesFullFlat.length; i+=4){
-				// Generate key (used to check if this coord is already known.
-				let key = `X${_changesFullFlat[i+1]}Y${_changesFullFlat[i+2]}`;
-
-				// Does this key exist in the obj?
-				if(!changedCoords[key]){
-					// Set the key with true (and so that we do not use this key again.)
-					changedCoords[key] = true;
-
-					// Determine x,y,w,h
-					let x1 = _changesFullFlat[i+1];
-					let y1 = _changesFullFlat[i+2];
-					let x2 = (_changesFullFlat[i+1] * _APP.m_config.config.lcd.tileset.tileWidth);
-					let y2 = (_changesFullFlat[i+2] * _APP.m_config.config.lcd.tileset.tileHeight);
-					let w = _APP.m_config.config.lcd.tileset.tileWidth;
-					let h = _APP.m_config.config.lcd.tileset.tileHeight;
-					
-					// Add to the clear commands. 
-					clearCommands.push( { x:x2, y:y2, w:w, h:h } );
-
-					// Add a draw command for each tile layer at this x,y coord.
-					// console.log("y1:", y1, "x1:", x1, " --- ", "y2:", y2, "x2:", x2);
-					let index = _APP.m_config.indexByCoords[y1][x1];
-					for(let t=0; t<_MOD.layers.length -1; t+=1){
-						drawCommands.push( { x:x2, y:y2, w:w, h:h, t:_APP.m_draw._VRAM_view[index+t] } );
-					}
-				}
-			}
-
-			// Perform the clears.
 			let finalLayerCtx = _MOD.layers[_MOD.layers.length-1].ctx;
-			for(let clear_i=0; clear_i<clearCommands.length; clear_i+=1){
-				finalLayerCtx.clearRect(
-					clearCommands[clear_i].x, clearCommands[clear_i].y, 
-					clearCommands[clear_i].w, clearCommands[clear_i].h
-				);
-			}
+			let w = _APP.m_config.config.lcd.tileset.tileWidth;
+			let h = _APP.m_config.config.lcd.tileset.tileHeight;
+			let x;
+			let y;
+			let rec;
+			let change;
 
-			// Perform the draws.
-			for(let draw_i=0; draw_i<drawCommands.length; draw_i+=1){
-				finalLayerCtx.drawImage(
-					_MOD.tileCache[ drawCommands[draw_i].t ].canvas,
-					drawCommands[draw_i].x, drawCommands[draw_i].y)
-				;
-			}
+			// Pre-clear region and then write each tile to it.
+			for(change in _APP.m_draw._VRAM_changes){
+				// Get the record.
+				rec = _APP.m_draw._VRAM_changes[change];
 
+				// Create x,y with actual canvas coordinates.
+				x = rec.x * _APP.m_config.config.lcd.tileset.tileWidth;
+				y = rec.y * _APP.m_config.config.lcd.tileset.tileHeight;
+
+				// Clear the region. 
+				finalLayerCtx.clearRect( x, y, w, h );
+
+				// Draw each tile to the region in order.
+				finalLayerCtx.drawImage( _MOD.tileCache[ rec.t0 ].canvas, x, y) ;
+				finalLayerCtx.drawImage( _MOD.tileCache[ rec.t1 ].canvas, x, y) ;
+				finalLayerCtx.drawImage( _MOD.tileCache[ rec.t2 ].canvas, x, y) ;
+			}
+			
 			// Create a raw buffer from the last layer. 
-			_MOD.rawBuffer = _MOD.layers[_MOD.layers.length-1].canvas.toBuffer('raw');
+			_MOD.rawBuffer = finalLayerCtx.canvas.toBuffer('raw');
 
 			// Send the raw buffer to update the LCD screen.
 			fs.write(_MOD.fb, _MOD.rawBuffer, 0, _MOD.rawBuffer.bytelength, 0, (err,fd)=>{
 				if(err){ console.log("fs.write ERROR:", err); reject(err); return; }
-				// console.log(fd);
 				
 				// End.
 				resolve();
 			});
-			
-		});
-	},
-
-	// Draws to the LCD framebuffer based on the passed changes.
-	clears:{},
-	draws :{},
-	OLD2drawLayersUpdateFramebuffer: async function(_changesFullFlat){
-		return new Promise(async function(resolve,reject){
-			// Clear the arrays.
-			_MOD.clears = {};
-			_MOD.draws = {};
-
-			// Cache the length of _MOD.layers.
-			let len = _MOD.layers.length;
-
-			// Key for the clears object.
-			let key;
-
-			// Create the records for clears and draws.
-			for(let i=0; i<_changesFullFlat.length; i+=4){
-				// Create the coords object.
-				let coords = {
-					l:(_changesFullFlat[i+0]),
-					x:(_changesFullFlat[i+1] * _APP.m_config.config.lcd.tileset.tileWidth),
-					y:(_changesFullFlat[i+2] * _APP.m_config.config.lcd.tileset.tileHeight),
-					t:(_changesFullFlat[i+3]),
-					w:(_MOD.tileCache[_changesFullFlat[i+3]].canvas.width), 
-					h:(_MOD.tileCache[_changesFullFlat[i+3]].canvas.height),
-				}
-
-				// Generate the key for the clears object.
-				key = `X${coords.x}Y${coords.y}`;
-
-				// Add to the clears obj if the key does not exist. (Used to make sure that the final layer has the clears too.
-				if(!_MOD.clears[key]){ _MOD.clears[key] = coords; }
-
-				// Add to the draws array. (Add the layer key/array if needed.
-				if(!Array.isArray(_MOD.draws[rec.l])){ _MOD.draws[rec.l] = []; }
-				_MOD.draws[rec.l].push(coords);
-			}
-
-			// Perform the drawings on the layers. 
-			for(let L in _MOD.draws){
-				for(let C=0; C<_MOD.draws[L].length; C+=1){
-					// Clear the region to which this tile will be drawn.
-					_MOD.layers[_MOD.draws[L][C].l].ctx.clearRect(_MOD.draws[L][C].x, _MOD.draws[L][C].y, _MOD.draws[L][C].w, _MOD.draws[L][C].h);
-
-					// Draw the tile to this layer.
-					_MOD.layers[_MOD.draws[L][C].l].ctx.drawImage(_MOD.tileCache[_MOD.draws[L][C].t].canvas, _MOD.draws[L][C].x, _MOD.draws[L][C].y, _MOD.draws[L][C].w, _MOD.draws[L][C].h);
-				}
-			}
-
-			// Clear the regions of the final canvas where there have been tile updates to the other layers.
-			for(let key in _MOD.clears){
-				_MOD.layers[len-1].ctx.clearRect(_MOD.clears[key].x, _MOD.clears[key].y, _MOD.clears[key].w, _MOD.clears[key].h);
-			}
-			
-			// Combine the canvas layers into the final canvas.
-			for(let i=0; i<len; i+=1){
-				_MOD.layers[len-1].ctx.drawImage(_MOD.layers[i].canvas, 0, 0);
-			}
-
-			// Create a raw buffer from the last layer. 
-			_MOD.rawBuffer = _MOD.layers[len-1].canvas.toBuffer('raw');
-
-			// Send the raw buffer to update the LCD screen.
-			fs.write(_MOD.fb, _MOD.rawBuffer, 0, _MOD.rawBuffer.bytelength, 0, (err,fd)=>{
-				if(err){ console.log("fs.write ERROR:", err); reject(err); return; }
-				// console.log(fd);
-				
-				// End.
-				resolve();
-			});
-		});
-	},
-
-	// Draws to the LCD framebuffer based on the passed changes.
-	OLD1drawLayersUpdateFramebuffer: async function(_changesFullFlat){
-		return new Promise(async function(resolve,reject){
-			// Get the width and the height of a tile.
-			let tileWidth  = _APP.m_config.config.lcd.tileset.tileWidth;
-			let tileHeight = _APP.m_config.config.lcd.tileset.tileHeight;
-
-			let clears = [];
-
-			for(let i=0; i<_changesFullFlat.length; i+=4){
-				// Create the record object.
-				let rec = {
-					l:_changesFullFlat[i+0],
-					x:_changesFullFlat[i+1],
-					y:_changesFullFlat[i+2],
-					t:_changesFullFlat[i+3],
-				};
-
-				// Determine destination x and y on the canvas.
-				dx = rec.x*tileWidth;
-				dy = rec.y*tileHeight;
-
-				// Get the new tile canvas.
-				let newTileCanvas = _MOD.tileCache[rec.t].canvas;
-			
-				// Determine which canvas needed to be drawn to.
-				ctx = _MOD.layers[rec.l].ctx;
-
-				// Add to the clears array. (Used to make sure that the final layer has the clears too.
-				clears.push({ x:(rec.x*tileWidth), y:(rec.y*tileHeight), w:(newTileCanvas.width), h:(newTileCanvas.height) });
-
-				// Clear the region to which this tile will be drawn.
-				ctx.clearRect(rec.x*tileWidth, rec.y*tileHeight, newTileCanvas.width, newTileCanvas.height);
-
-				// Draw the tile to this layer.
-				ctx.drawImage(newTileCanvas, rec.x*tileWidth, rec.y*tileHeight);
-			}
-
-			// Pre-clear the changed tiles on the final canvas (helps with transparency issues.)
-			for(let i=0; i<clears.length; i+=1){
-				_MOD.layers[_MOD.layers.length-1].ctx.clearRect(clears[i].x, clears[i].y, clears[i].w, clears[i].h);
-			}
-			
-			// Combine the canvas layers.
-			for(let i=0; i<_MOD.layers.length; i+=1){
-				_MOD.layers[_MOD.layers.length-1].ctx.drawImage(_MOD.layers[i].canvas, 0, 0);
-			}
-
-			// Create a raw buffer from the last layer. 
-			_MOD.rawBuffer = _MOD.layers[_MOD.layers.length-1].canvas.toBuffer('raw');
-
-			// Send the raw buffer to update the LCD screen.
-			fs.writeSync(_MOD.fb, _MOD.rawBuffer, 0, _MOD.rawBuffer.bytelength, 0);
-
-			// End.
-			resolve();
-		});
-	},
-
-	// Can be used for error messages.
-	displayMessage: async function(str, x, y, w, h){
-		return new Promise(async function(resolve,reject){
-			// _APP.m_canvas.displayMessage("TEST", 0,0,10,10);
-			// Pause the appLoop.
-			try{ _APP.drawLoop.pause(); } catch(e){ console.log("Cannot pause", "displayMessage"); }
-
-			// Reset updates/changes/drawflags.
-			_APP.m_draw.clearDrawingFlags();
-
-			// Clear the entire screen.
-			_APP.m_draw.fillTile(" ", 0, 0, _APP.m_config.config.lcd.tileset.cols, _APP.m_config.config.lcd.tileset.rows, 0);
-			_APP.m_draw.fillTile(" ", 0, 0, _APP.m_config.config.lcd.tileset.cols, _APP.m_config.config.lcd.tileset.rows, 1);
-			_APP.m_draw.fillTile(" ", 0, 0, _APP.m_config.config.lcd.tileset.cols, _APP.m_config.config.lcd.tileset.rows, 2);
-
-
-			// Outer box.
-			_APP.m_draw.fillTile("tile3"        , x, y,  w, h); 
-
-			// Inner box.
-			_APP.m_draw.fillTile("tile1"        , x+1, y+1,  w-2, h-2); 
-
-			// Message.
-			_APP.m_draw.print(`${str}` , x+2 , y+2);
-
-			// Get the changes.
-			let _changesFullFlat = _APP.m_drawLoop.loop.getChanges();
-
-			_APP.m_draw.updatingLCD=true;
-			await _APP.m_canvas.drawLayersUpdateFramebuffer(_changesFullFlat);
-
-			// Unpause the appLoop.
-			try{ _APP.drawLoop.unpause(); } catch(e){ console.log("Cannot unpause", "displayMessage");  }
-
-			// End.
-			resolve();
 		});
 	},
 
@@ -308,7 +102,7 @@ let _MOD = {
 				let ts   = conf.tileset;
 
 				// Create the layers.
-				let layerCount = ts.tilesInCol + 1;
+				let layerCount = 1;
 				for(let i=0; i<layerCount; i+=1){
 					// Create the canvas. 
 					let canvas = createCanvas( (conf.width), (conf.height) )
@@ -424,9 +218,10 @@ let _MOD = {
 
 				// Add to the tileCache.
 				_MOD.tileCache.push({
-					"key"       : key,                                    // tileName.
-					"canvas"    : tmpCanvas,                              // Canvas of this tile. 
-					"index"     : _MOD.tileCache.length,                  // tileId.
+					"index"     : _MOD.tileCache.length, // tileId.
+					"key"       : key,                   // tileName.
+					"canvas"    : tmpCanvas,             // Canvas of this tile. 
+					// "ctx"       : tmpCtx,                // Drawing context of this tile. 
 					// "pattern"   : tmpCtx.createPattern(tmpCanvas, 'no-repeat'), // Pattern of this tile. 
 				});
 

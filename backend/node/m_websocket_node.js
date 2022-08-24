@@ -10,11 +10,12 @@ let _MOD = {
 
 	ws:null,
 	subscriptionKeys: [
-		"VRAM_FULL",
-		"VRAM_CHANGES",
-		"STATS1",
-		"STATS2",
-		"STATS3",
+		"VRAM_FULL",    // arraybuffer: Sends entire VRAM.
+		"VRAM_CHANGES", // arraybuffer: Sends VRAM changes.
+		"STATS0",       // JSON:        Sends _APP.m_draw._VRAM_changes.
+		"STATS1",       // JSON:        Sends _APP.m_draw._VRAM_updateStats.
+		"STATS2",       // JSON:        Sends _APP.stats.fps.
+		"STATS3",       // JSON:        Sends _APP.timeIt_timings_prev.
 	],
 
 	// Init this module.
@@ -101,7 +102,7 @@ let _MOD = {
 				// ws.send(new Uint8Array(_APP.m_draw._VRAM).buffer);
 				ws.send( new Uint8Array( Array.from([
 					..._APP.m_draw._VRAM_view, 
-					...Array.from("FULL").map(d=>d.charCodeAt(0))
+					...Array.from("FULL__").map(d=>d.charCodeAt(0))
 				]) ).buffer );
 			},
 			// Expected origin: Web client by request.
@@ -154,7 +155,7 @@ let _MOD = {
 
 					// Unpause. This should be the beginning of the next drawLoop.
 					if(_APP.drawLoop) { _APP.drawLoop.unpause(); }
-				}, _APP.timeIt_timings_prev["APPLOOP__"]["FULLLOOP"].t || _APP.stats.interval);
+				}, _APP.timeIt_timings_prev["m_drawLoop.js"]["FULLLOOP"].t || _APP.stats.interval);
 			},
 		},
 		TEXT:{
@@ -164,12 +165,6 @@ let _MOD = {
 				// Send the client's current subscription list. 
 				ws.send(JSON.stringify({"mode":"GET_SUBSCRIPTIONS", "data":ws.subscriptions}));
 			},
-			// GET_SUBSCRIPTIONS_LIST:      async function(ws, key){
-			// 	// console.log(`${key}:`, ws.subscriptions);
-
-			// 	// Send the client's current subscription list. 
-			// 	ws.send(JSON.stringify({"mode":"GET_SUBSCRIPTIONS_LIST", "data":_MOD.subscriptionKeys}));
-			// }
 		},
 	},
 	ws_utilities: {
@@ -188,6 +183,20 @@ let _MOD = {
 			_MOD.ws.clients.forEach(function each(ws) { 
 				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
 					i+=1 
+				}
+			});
+			return i;
+		},
+
+		// Returns a list of connected clients that have the specified subscription. 
+		getClientCount_bySubscription: function(eventType){
+			// _APP.m_lcd.WebSocket.getClientCount_bySubscription("VRAM_CHANGES");
+			let i=0;
+			_MOD.ws.clients.forEach(function each(ws) { 
+				if (ws.readyState === _MOD.ws_readyStates.OPEN) {
+					if(ws.subscriptions.indexOf(eventType) != -1){
+						i+=1 
+					}
 				}
 			});
 			return i;
@@ -338,18 +347,19 @@ let _MOD = {
 	},
 	initWss: function(){
 		_MOD.ws.on("connection", function connection(clientWs){
-			// ws.binaryType = "arraybuffer";
-
 			// GENERATE A UNIQUE ID FOR THIS CONNECTION. 
 			clientWs.id = _MOD.ws_utilities.uuidv4();
 			
-			// Add subscriptions array to this connection. 
+			// ADD THE SUBSCRIPTIONS ARRAY TO THIS CONNECTION. 
 			clientWs.subscriptions = [];
+
+			// AUTO-ADD SOME SUBSCRIPTIONS. 
 			// _MOD.ws_utilities.addSubscription(clientWs, "VRAM_FULL");
 			_MOD.ws_utilities.addSubscription(clientWs, "VRAM_CHANGES");
+			// _MOD.ws_utilities.addSubscription(clientWs, "STATS0");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS1");
 			_MOD.ws_utilities.addSubscription(clientWs, "STATS2");
-			_MOD.ws_utilities.addSubscription(clientWs, "STATS3");
+			// _MOD.ws_utilities.addSubscription(clientWs, "STATS3");
 
 			console.log("Node WebSockets Server: CONNECT:", clientWs.id);
 
@@ -359,9 +369,7 @@ let _MOD = {
 			// SEND THE NEW CONNECTION MESSAGE.
 			clientWs.send(JSON.stringify( {"mode":"WELCOMEMESSAGE", data:`WELCOME TO COMMAND-ER MINI.`} ));
 
-			// clientWs.send(new Uint8Array(_APP.m_draw._VRAM).buffer);
-
-			// ADD LISTENERS.
+			// ADD EVENT LISTENERS.
 			clientWs.addEventListener('message', (event)=>_MOD.ws_events.el_message(clientWs, event) );
 			clientWs.addEventListener('close'  , (event)=>_MOD.ws_events.el_close  (clientWs, event) );
 			clientWs.addEventListener('error'  , (event)=>_MOD.ws_events.el_error  (clientWs, event) );

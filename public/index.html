@@ -3,6 +3,7 @@
 
 <head>
 	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' data: fonts.gstatic.com;"> -->
 
 	<title>Command-Er Mini (debug)</title>
@@ -15,6 +16,13 @@
 <body>
 
 	<div id="vram_cont">
+		<div class="title taller">
+			WebSocket Connect 
+			<button id="ws_connect" class="button">CONNECT</button>
+			<button id="ws_disconnect" class="button">CLOSE</button>
+			<span id="ws_status">&#11035;</span> 
+		</div>
+
 		<div id="vram_div_all">
 			<div class="title taller">ALL DISPLAY LAYERS</div>
 			<canvas class="" id="vram_all" width="240" height="240"></canvas>
@@ -27,22 +35,20 @@
 			<div id="controls_cont_nav_post" view="controls_cont_view_post" onclick="nav.showOne(this.id);" class="title navButton">POST</div>
 			<div id="controls_cont_nav_vram" view="controls_cont_view_vram" onclick="nav.showOne(this.id);" class="title navButton">VRAM</div>
 			<div id="controls_cont_nav_stats" view="controls_cont_view_stats" onclick="nav.showOne(this.id);" class="title navButton">STATS</div>
+			<span onclick="shared.toggleFullscreen();" id="fullscreen">&#8983;</span>
 		</div>
 		
 		<div id="controls_cont_views">
 			<!-- WS VIEW -->
 			<div class="view" id="controls_cont_view_ws">
 				<div class="title taller">
-					WebSocket Connect 
+					Via WebSocket 
 					<span id="ws_autoReconnectDiv">
 						<label>
 							Auto-reconnect
 							<input id="ws_autoReconnect" type="checkbox">	
 						</label>
 					</span> 
-					<button id="ws_connect" class="button">CONNECT</button>
-					<button id="ws_disconnect" class="button">CLOSE</button>
-					<span id="ws_status">&#11035;</span> 
 				</div>
 		
 				<div id="controls_top">
@@ -203,8 +209,8 @@
 			</div>
 			
 			<!-- STATS VIEW -->
-			<div class="view" id="controls_cont_view_stats">
-				<div id="controls_cont_view_stats_output"></div>
+			<div class="view ws disconnected" id="controls_cont_view_stats">
+				<div id="controls_cont_view_stats_output" class="padding width100"></div>
 			</div>
 		</div>
 

@@ -109,7 +109,7 @@ let screen = {
 		};
 	},
 	init: async function(){
-		_APP.timeIt("init", "s", "host_select");
+		_APP.timeIt("init", "s", __filename);
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
 		console.log("SCREEN: init:", _APP.currentScreen);
@@ -140,7 +140,7 @@ let screen = {
 
 		// Init vars.
 		thisScreen.inited = true;
-		_APP.timeIt("init", "e", "host_select");
+		_APP.timeIt("init", "e", __filename);
 
 	},
 	
@@ -156,13 +156,13 @@ let screen = {
 			let ts = conf.tileset;
 
 			// Display/Update the time/battery data sections as needed.
-			_APP.timeIt("time", "s", "host_select");
+			_APP.timeIt("time", "s", __filename);
 			thisScreen.shared.time.updateIfNeeded(0, 29, "tile3");
-			_APP.timeIt("time", "e", "host_select");
+			_APP.timeIt("time", "e", __filename);
 
-			_APP.timeIt("battery", "s", "host_select");
+			_APP.timeIt("battery", "s", __filename);
 			thisScreen.shared.battery.updateIfNeeded(23, 29, "tile3");
-			_APP.timeIt("battery", "e", "host_select");
+			_APP.timeIt("battery", "e", __filename);
 
 			if(thisScreen.menu1.dialogs.choose_host.active){
 				thisScreen.menu1.dialogs.choose_host.box.draw();

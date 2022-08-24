@@ -59,118 +59,143 @@ let _MOD = {
 	},
 
 	loop: {
-		getChanges: function(){
-			// Determine changes.
-			let _changesFullFlat = [];
-			let len1, len2, layer, keys, key, layer_i, k_i;
+		doChangesExist: function(obj){
+			// Return true at the first sign of a property in the object.
+			for(var prop in obj) { if (obj.hasOwnProperty(prop)) { return true;} }
+			return false;
+		},
 
-			// Go through each _VRAM_changes layer. 
-			len1 = _APP.m_draw._VRAM_changes.length;
-			for(layer_i=0; layer_i<len1; layer_i+=1){
-				// Get the layer.
-				layer = _APP.m_draw._VRAM_changes[layer_i];
-				
-				// Key the layer's keys. 
-				keys = Object.keys(layer);
-				
-				// Go through each key in the layer.
-				len2 = keys.length;
-				for(k_i=0; k_i<keys.length; k_i+=1){
-					key = keys[k_i];
-				
-					// Is this a change?
-					if(layer[key].c){
-						// Add the change to _changesFullFlat.
-						_changesFullFlat.push( layer[key].l, layer[key].x, layer[key].y, layer[key].t );
-					}
-				}
-
-				// Update _VRAM_updateStats for real and overwrites.
-				_APP.m_draw._VRAM_updateStats[layer_i].overwrites = _APP.m_draw._VRAM_updateStats[layer_i].updates - _APP.m_draw._VRAM_updateStats[layer_i].real;
+		getChangesFlat: function(){
+			// Create a flat Uint8Array from the _VRAM_changes.
+			let _changesFullFlat2 = new Uint8Array( Object.keys(_APP.m_draw._VRAM_changes).length * 5);
+			let index = 0;
+			for(let key in _APP.m_draw._VRAM_changes){
+				let values = Object.values(_APP.m_draw._VRAM_changes[key]);
+				_changesFullFlat2[index+0] = values[0];
+				_changesFullFlat2[index+1] = values[1];
+				_changesFullFlat2[index+2] = values[2];
+				_changesFullFlat2[index+3] = values[3];
+				_changesFullFlat2[index+4] = values[4];
+				index += 5;
 			}
-
-			return new Uint8Array(_changesFullFlat) ;
-			// return _changesFullFlat ;
+			return _changesFullFlat2 ;
 		},
 		sendToWsClients: function(data){
 			// Update the web clients.
 			if(_APP.m_websocket_node.ws_utilities.getClientCount()){
-				// VRAM_FULL - (ArrayBuffer) (Appends the binary of "FULL" to differentiate it.)
-				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
-					new Uint8Array( Array.from([
-						..._APP.m_draw._VRAM_view, 
-						...Array.from("FULL").map(d=>d.charCodeAt(0))
-					])
-					), "VRAM_FULL"
-				);
 
-				// VRAM_CHANGES only - (ArrayBuffer) (Appends the binary of "PART" to differentiate it.)
-				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
-					new Uint8Array( Array.from([
-						...data._changesFullFlat, 
-						...Array.from("PART").map(d=>d.charCodeAt(0))
-					])
-					), "VRAM_CHANGES"
-				);
+				// VRAM_FULL - (ArrayBuffer) (Appends the binary of "FULL__" to differentiate it.)
+				_APP.timeIt("______WSSEND_VRAM_FULL", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("VRAM_FULL")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
+						new Uint8Array( Array.from([
+							..._APP.m_draw._VRAM_view, 
+							...Array.from("FULL__").map(d=>d.charCodeAt(0))
+						])
+						), "VRAM_FULL"
+					);
+				}
+				_APP.timeIt("______WSSEND_VRAM_FULL", "e", __filename);
+
+				// VRAM_CHANGES only - (ArrayBuffer) (Appends the binary of "PART__" to differentiate it.)
+				_APP.timeIt("______WSSEND_VRAM_CHANGES", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("VRAM_CHANGES")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
+						new Uint8Array( Array.from([
+							..._MOD.loop.getChangesFlat(), 
+							...Array.from("PART__").map(d=>d.charCodeAt(0))
+						])
+						), "VRAM_CHANGES"
+					);
+				}
+				_APP.timeIt("______WSSEND_VRAM_CHANGES", "e", __filename);
+
+				// VRAM update stats0. - (JSON)
+				_APP.timeIt("______WSSEND_STATS0", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS0")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS0", data:_APP.m_draw._VRAM_changes}), "STATS0" );
+				}
+				_APP.timeIt("______WSSEND_STATS0", "e", __filename);
 
 				// VRAM update stats1. - (JSON)
-				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1" );
+				_APP.timeIt("______WSSEND_STATS1", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS1")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1" );
+				}
+				_APP.timeIt("______WSSEND_STATS1", "e", __filename);
 
 				// VRAM update stats2. - (JSON)
-				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2" );
+				_APP.timeIt("______WSSEND_STATS2", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS2")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2" );
+				}
+				_APP.timeIt("______WSSEND_STATS2", "e", __filename);
 				
 				// stats3. - (JSON)
-				_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS3", data:_APP.timeIt_timings_prev}), "STATS3" );
+				_APP.timeIt("______WSSEND_STATS3", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS3")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS3", data:_APP.timeIt_timings_prev}), "STATS3" );
+					// let data = new Uint8Array( Array.from([
+					// 	// ..._APP.m_draw._VRAM_view, 
+					// 	...Array.from(JSON.stringify(_APP.timeIt_timings_prev,null,0)).map(d=>d.charCodeAt(0)), 
+					// 	...Array.from("STATS3").map(d=>d.charCodeAt(0))
+					// ]));
+					// _APP.m_websocket_node.ws_utilities.sendToAllSubscribers( data, "STATS3" );
+				}
+				_APP.timeIt("______WSSEND_STATS3", "e", __filename);
+
 			}
 		},
 		appLoop: async function(){
-			_APP.timeIt("FULLLOOP", "s", "APPLOOP__");
+			_APP.timeIt("FULLLOOP", "s", __filename);
 			_APP.drawLoop.pause();
 
 			// BUTTONS
-			_APP.timeIt("GPIO", "s", "APPLOOP__");
+			_APP.timeIt("__GPIO", "s", __filename);
 			await _APP.m_gpio.readAll();
-			_APP.timeIt("GPIO", "e", "APPLOOP__");
+			_APP.timeIt("__GPIO", "e", __filename);
 			
 			// STATE
-			_APP.timeIt("LOGIC", "s", "APPLOOP__");
+			_APP.timeIt("__LOGIC", "s", __filename);
 			await _APP.screenLogic.screens[_APP.currentScreen].func();
-			_APP.timeIt("LOGIC", "e", "APPLOOP__");
+			_APP.timeIt("__LOGIC", "e", __filename);
 
 			// Is a draw needed?
+			
 			if(_APP.m_draw.lcdUpdateNeeded){
+				_APP.timeIt("__DISPLAY", "s", __filename);
+				
 				// Set the updatingLCD flag.
 				_APP.m_draw.updatingLCD=true;
 
-				// Start the timeIt.
-				_APP.timeIt("DISPLAY", "s", "APPLOOP__");
-				
 				// Determine changes.
-				let _changesFullFlat = _MOD.loop.getChanges();
-
+				// _APP.timeIt("__DOCHANGESEXIST", "s", __filename);
+				let changesExist = _MOD.loop.doChangesExist(_APP.m_draw._VRAM_changes);
+				// _APP.timeIt("__DOCHANGESEXIST", "e", __filename);
+				
 				// Is a draw required?
-				if(_changesFullFlat.length){
-					// Send 
-					_MOD.loop.sendToWsClients({
-						_changesFullFlat: _changesFullFlat
-					});
-					
+				if(changesExist){
 					// Update LCD.
 					if( _APP.m_config.config.toggles.isActive_lcd ){
 						// Updates via m_canvas.
-						await _APP.m_canvas.drawLayersUpdateFramebuffer(_changesFullFlat);
+						_APP.timeIt("____ACTUALDRAW", "s", __filename);
+						await _APP.m_canvas.drawLayersUpdateFramebuffer();
+						_APP.timeIt("____ACTUALDRAW", "e", __filename);
 					}
+
+					// Send 
+					_APP.timeIt("____WSSEND", "s", __filename);
+					_MOD.loop.sendToWsClients({});
+					_APP.timeIt("____WSSEND", "e", __filename);
+
+					// Reset the draw flags.
+					_APP.m_draw.clearDrawingFlags();
+
+					// Update the timeIt stamps.
+					_APP.timeIt("__DISPLAY", "e", __filename);
+					_APP.timeIt("FULLLOOP", "e", __filename);
+					_APP.drawLoop.unpause();
 				}
-
-				// Finish the appLoop.
-
-				// Reset the draw flags.
-				_APP.m_draw.clearDrawingFlags();
-
-				// Update the timeIt stamps.
-				_APP.timeIt("DISPLAY", "e", "APPLOOP__");
-				_APP.timeIt("FULLLOOP", "e", "APPLOOP__");
-				_APP.drawLoop.unpause();
 			}
 
 			// No draw needed. Unpause the loop so that it can be called again.
@@ -187,7 +212,6 @@ class drawLoop extends EventEmitter {
 	}
 
 	// Internal variables.
-	_running    = false;
 	_paused     = false;
 	_now        = false;
 	_delta      = false;
@@ -201,55 +225,55 @@ class drawLoop extends EventEmitter {
 	// Setters.
 	//
 
-	start() {
-		// console.log("start");
-		this._running = true;
-		// this.emit('start');
-		this._loop();
-	}
-	
-	stop() {
-		// console.log("stop");
-		this._running = false;
-		// this.emit('stop');
-	}
-	pause() {
-		// console.log("pause");
-		this._paused = true;
-	}
-	unpause() {
-		// console.log("unpause");
-		this._paused = false;
-	}
+	start() { this._paused = false; this._loop(); }
+	stop() { this.pause(); }
+	pause() { this._paused = true; }
+	unpause() { this._paused = false; }
 
 	_loop(now) {
-		if(this._running){
-			if(!this._paused){
-				// How long has it been since a full loop has been completed?
-				// this._now       = performance.now();
-				this._now       = now;
-				this._delta     = this._now - (_APP.stats._then);
-				this._lastDiff  = (_APP.stats.interval - this._delta);
+		// Is the loop not on pause?
+		if(!this._paused){
+			// How long has it been since a full loop has been completed?
+			// this._now       = performance.now();
+			this._now       = now;
+			this._delta     = this._now - (_APP.stats._then);
+			this._lastDiff  = (_APP.stats.interval - this._delta);
 
-				// Should the full loop run?
-				this._runLoop = (this._delta >= _APP.stats.interval) ? true : false;
-				this._flagsCheck = (!_APP.m_draw.updatingLCD)        ? true : false;
-				if(this._runLoop && this._flagsCheck){ 
-					// Track performance.
-					_APP.fps.tick(now);
-					_APP.stats.lastDiff = this._lastDiff; 
-					_APP.stats._then    = _APP.fps._lastTick_; 
-					_APP.stats.now      = this._now;
-					_APP.stats.delta    = this._delta;
+			// Should the full loop run?
+			this._runLoop = (this._delta >= _APP.stats.interval) ? true : false;
+			this._flagsCheck = (!_APP.m_draw.updatingLCD)        ? true : false;
+			if(this._runLoop && this._flagsCheck){ 
+				// Track performance.
+				_APP.fps.tick(now);
+				_APP.stats.lastDiff = this._lastDiff; 
+				_APP.stats._then    = _APP.fps._lastTick_; 
+				_APP.stats.now      = this._now;
+				_APP.stats.delta    = this._delta;
 
-					// Request an appLoop update.
-					this.emit('update'); 
-				}
+				// Request an appLoop update.
+				this.emit('update'); 
+
+				// Schedule the next potential appLoop run. (1/1 frame later.)
+				setTimeout(() => this._loop(performance.now()), 1); // Varying CPU % but 30%-50% less than setImmediate.
+				// console.log("type (1) --- ---", this._delta.toFixed(2));
 			}
-
-			// Schedule the next potential update.
-			setTimeout(() => this._loop(performance.now()), 0); // Varying CPU % but 30%-50% less than setImmediate.
+			else{
+				// Schedule the next potential appLoop run. (1/16 frame later.)
+				setTimeout(() => this._loop(performance.now()), _APP.stats.interval/16); // 
+				// console.log("type --- (2) ---", this._delta.toFixed(2));
+			}
 		}
+		
+		// It is paused.
+		else{
+			// Schedule the next potential appLoop run. (1/16 frame later.)
+			setTimeout(() => this._loop(performance.now()), _APP.stats.interval/16); // 
+			// console.log("type --- --- (3)");
+		}
+
+		// Schedule the next potential update.
+		// setTimeout(() => this._loop(performance.now()), 100); // Varying CPU % but 30%-50% less than setImmediate.
+		// setTimeout(() => this._loop(performance.now()), _APP.stats.interval); // Varying CPU % but 30%-50% less than setImmediate.
 	}
 };
 

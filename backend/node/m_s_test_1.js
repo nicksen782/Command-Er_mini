@@ -109,16 +109,10 @@ let screen = {
 			thisScreen.lines2.push(`MS OVER BY  : ${(_APP.stats.delta - _APP.stats.interval)   .toFixed(2).padStart(7, " ") }`);
 			thisScreen.lines2.push(`${"*".repeat(30)}`);
 			
-			let totalTime     = _APP.timeIt_timings_prev["APPLOOP__"]["FULLLOOP"].t;
-			let gpio          = _APP.timeIt_timings_prev["APPLOOP__"]["GPIO"].t;     let gpio_p          = ((gpio          / totalTime)*100).toFixed(2);
-			let logic         = _APP.timeIt_timings_prev["APPLOOP__"]["LOGIC"].t;    let logic_p         = ((logic         / totalTime)*100).toFixed(2);
-			let displayupdate = _APP.timeIt_timings_prev["APPLOOP__"]["DISPLAY"].t;  let displayupdate_p = ((displayupdate / totalTime)*100).toFixed(2);
-			thisScreen.lines2.push( `GPIO    :${gpio         .toFixed(2).padStart(7, " ")} / ${(gpio_p          + '%').padStart(9, " ")}` );
-			thisScreen.lines2.push( `LOGIC   :${logic        .toFixed(2).padStart(7, " ")} / ${(logic_p         + '%').padStart(9, " ")}` );
-			thisScreen.lines2.push( `DISPLAY :${displayupdate.toFixed(2).padStart(7, " ")} / ${(displayupdate_p + '%').padStart(9, " ")}` );
 			// FULL LOOP line.
 			(
 				function(){
+					let totalTime = _APP.timeIt_timings_prev["m_drawLoop.js"]["FULLLOOP"].t;
 					let isOver = Math.sign((totalTime) - _APP.stats.interval) == 1 ;
 					let line1="";
 					let line2="";

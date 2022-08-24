@@ -180,6 +180,9 @@ let websocket = {
 			},
 
 			// VRAM UPDATES
+			STATS0: function(data){
+				console.log(data.data);
+			},
 			STATS1: function(data){
 				{
 					let tables = document.querySelectorAll("#controls_cont_view_vram .updateStats");
@@ -257,33 +260,7 @@ let websocket = {
 				}
 			},
 			STATS3: function(data){
-				let dest = document.getElementById("controls_cont_view_stats_output");
-				let output = "";
-				
-				// Display the main keys in reverse order.
-				let keys1 = Object.keys(data.data);
-				keys1.reverse();
-				// keys1 = [
-				// 	"STARTUP__",
-				// 	"APPLOOP__",
-				// ];
-
-				for(let key1 of keys1){
-					let longestKey2 = 0;
-					for(let key in data.data[key1]){ if(key.length > longestKey2){ longestKey2 = key.length; } }
-
-					output += `${"*".repeat(40)}\n`;
-					output += `${key1} :\n`;
-					
-					// Display the sub keys in reverse order.
-					let keys2 = Object.keys(data.data[key1]).reverse();
-					for(let key2 of keys2){
-						let value = data.data[key1][key2].t.toFixed(2);
-						output += `    ${key2.padEnd(longestKey2, " ")} : ${value.padStart(10, " ")} ms\n`;
-					}
-				}
-				output += `${"*".repeat(40)}\n`;
-				dest.innerText = output;
+				draw.display_stats3(data.data);
 			},
 		},
 		TEXT  : {
@@ -467,24 +444,37 @@ let websocket = {
 			
 			// Expects VRAM in event.data.
 			else if(tests.isArrayBuffer){
-				// Draw the new VRAM.
-				if(!draw.isDrawing){
-					// Apply view to the ArrayBuffer.
-					data = new Uint8Array(data);
-
-					// Strip off the last 4 bytes and convert to string.
-					let type = data.slice(-4).reduce((p,c) => p + String.fromCharCode(c), "");
-
-					// Separate out the actual data.
-					data = data.slice(0, -4);
-
-					// Run the correct drawing function based on the value of part.
-					switch(type){
-						case "FULL": { draw.drawVram_FULL(data); break; }
-						case "PART": { draw.drawVram_CHANGES(data); break; }
-						default    : { console.log("Unknown type:", type); break; }
-					};
-				} else{ console.log("ALREADY IN A DRAW"); }
+				// Apply view to the ArrayBuffer.
+				data = new Uint8Array(data);
+				
+				// Strip off the last 4 bytes and convert to string.
+				let type = data.slice(-6).reduce((p,c) => p + String.fromCharCode(c), "");
+				
+				// Separate out the actual data.
+				let newData = data.slice(0, -6);
+				
+				// Run the correct drawing function based on the value of part.
+				switch(type){
+					// Draw the new VRAM.
+					case "FULL__": { 
+						if(!draw.isDrawing){ draw.drawVram_FULL(newData); } 
+						else{ console.log("ALREADY IN A DRAW"); }
+						break; 
+					}
+					// Draw the new VRAM.
+					case "PART__": { 
+						if(!draw.isDrawing){ draw.drawVram_CHANGES(newData); } 
+						else{ console.log("ALREADY IN A DRAW"); }
+						break; 
+					}
+					// Draw the stats.
+					case "STATS3": { 
+						newData = JSON.parse( String.fromCharCode.apply(null, newData) );
+						draw.display_stats3(newData);
+						break; 
+					}
+					default    : { console.log("Unknown type:", type, newData); break; }
+				};
 			}
 			
 			// else if(tests.isBlob){
@@ -599,6 +589,77 @@ let draw = {
 
 	// Draws only the specified changes to canvas and updates VRAM. (Expects Uint8Array)
 	drawVram_CHANGES: async function(_changesFull){
+		window.requestAnimationFrame(function(){
+			let updateLayerCanvases = function(){
+				let finalLayerCtx = draw.canvases["vram_all"];
+				let w = draw.configs.config.lcd.tileset.tileWidth;
+				let h = draw.configs.config.lcd.tileset.tileHeight;
+				let x;
+				let y;
+				let rec;
+
+				for(let i=0; i<_changesFull.length; i+=5){
+					// Create the record.
+					rec = {
+						y:_changesFull[i+0],
+						x:_changesFull[i+1],
+						t0:_changesFull[i+2],
+						t1:_changesFull[i+3],
+						t2:_changesFull[i+4],
+					};
+					// console.log(`Change: ${(i/5)+1} of ${_changesFull.length/5}`, " :: rec:", rec);
+
+					// Determine destination x and y on the canvas.
+					x = rec.x * w;
+					y = rec.y * h;
+	
+					// Clear and draw to the individual layers..
+					draw.canvases["vram_l0"].clearRect( x, y, w, h );
+					draw.canvases["vram_l0"].drawImage( draw.tilesCache[ rec.t0 ], x, y) ;
+					draw.canvases["vram_l1"].clearRect( x, y, w, h );
+					draw.canvases["vram_l1"].drawImage( draw.tilesCache[ rec.t1 ], x, y) ;
+					draw.canvases["vram_l2"].clearRect( x, y, w, h );
+					draw.canvases["vram_l2"].drawImage( draw.tilesCache[ rec.t2 ], x, y) ;
+
+					// Clear and draw to finalLayerCtx.
+					finalLayerCtx.clearRect( x, y, w, h );
+					finalLayerCtx.drawImage( draw.tilesCache[ rec.t0 ], x, y) ;
+					finalLayerCtx.drawImage( draw.tilesCache[ rec.t1 ], x, y) ;
+					finalLayerCtx.drawImage( draw.tilesCache[ rec.t2 ], x, y) ;
+
+					// Update VRAM.
+					draw._VRAM_prev[draw.configs.indexByCoords[rec.y][rec.x] + 0] = rec.t0;
+					draw._VRAM_prev[draw.configs.indexByCoords[rec.y][rec.x] + 1] = rec.t1;
+					draw._VRAM_prev[draw.configs.indexByCoords[rec.y][rec.x] + 2] = rec.t2;
+				}
+			};
+			
+			draw.isDrawing=true;
+			let now = performance.now();
+			draw.fps.tick(now);
+			draw.lastDraw = now;
+
+			// Init _VRAM_prev if needed.
+			if(!draw._VRAM_prev.length || !ArrayBuffer.isView(draw._VRAM_prev)){
+				let rows       = draw.configs.config.lcd.tileset.rows;
+				let cols       = draw.configs.config.lcd.tileset.cols;
+				let tilesInCol = draw.configs.config.lcd.tileset.tilesInCol;
+				draw._VRAM_prev =  new Uint8Array( rows * cols * tilesInCol );
+				draw._VRAM_prev.fill(0);
+			}
+
+			updateLayerCanvases();
+			let oldTime = draw.DOM.info_lastDraw.innerText;
+			let newTime = draw.getTime();
+			if(oldTime!= newTime){ draw.DOM.info_lastDraw.innerText = newTime; }
+			// draw.draws += 1;
+			// draw.DOM.info_draws.innerText = draw.draws;
+			// draw.fps.updateDisplay();
+			draw.isDrawing=false;
+		});
+	}, 
+	// Draws only the specified changes to canvas and updates VRAM. (Expects Uint8Array)
+	OLDdrawVram_CHANGES: async function(_changesFull){
 		window.requestAnimationFrame(function(){
 			let updateLayerCanvases = function(){
 				let tileWidth  = draw.configs.config.lcd.tileset.tileWidth;
@@ -899,20 +960,60 @@ let draw = {
 				data = new Uint8Array(data);
 
 				// Strip off the last 4 bytes and convert to string.
-				let type = data.slice(-4).reduce((p,c) => p + String.fromCharCode(c), "");
+				let type = data.slice(-6).reduce((p,c) => p + String.fromCharCode(c), "");
 
 				// Separate out the actual data.
-				data = data.slice(0, -4);
+				let newData = data.slice(0, -6);
 
 				// Run the correct drawing function based on the value of part.
 				switch(type){
-					case "FULL": { draw.drawVram_FULL(data); break; }
-					case "PART": { draw.drawVram_CHANGES(data); break; }
-					default    : { console.log("Unknown type:", type); break; }
+					case "FULL__": { draw.drawVram_FULL(newData); break; }
+					case "PART__": { draw.drawVram_CHANGES(newData); break; }
+					default    : { console.log("Unknown type:", type, newData); break; }
 				};
 			} else{ console.log("ALREADY IN A DRAW"); }
 		}
 	},	
+
+	display_stats3: function(data){
+		// console.log("display_stats3:", data);
+		let dest = document.getElementById("controls_cont_view_stats_output");
+		let output = "";
+		
+		// Display the main keys in reverse order.
+		let keys1 = Object.keys(data);
+		keys1.reverse();
+
+		for(let key1 of keys1){
+			let longestKey2 = 0;
+			for(let key in data[key1]){ if(key.length > longestKey2){ longestKey2 = key.length; } }
+
+			// output += `${"*".repeat(45)}\n`;
+			output += `${"-".repeat(key1.length + 4)}\n`;
+			output += `| ${key1} |\n`;
+			output += `${"-".repeat(key1.length + 4)}\n`;
+			
+			// Display the sub keys in reverse order.
+			// let keys2 = Object.keys(data[key1]).reverse();
+			let keys2 = Object.keys(data[key1]);
+			for(let key2 of keys2){
+				let value;
+				try{
+					value = data[key1][key2].t.toFixed(2);
+				}
+				catch(e){
+					// console.log("key:", key2, "does not have a value.");
+					value = "?????";
+				}
+				output += ` ->  ${key2.padEnd(longestKey2, " ")} : ${value.padStart(10, " ")} ms\n`;
+			}
+			output += " \n";
+		}
+		// output += " \n";
+	
+		// output += `${"*".repeat(45)}\n`;
+		dest.innerText = output;
+	},
 };
 // BUTTON INPUT
 let buttons = {
@@ -1176,7 +1277,30 @@ let nav = {
 		view.classList.add("active");
 	},
 };
-
+// SHARED
+let shared = {
+	toggleFullscreen : function(elem) {
+		if(!elem) { elem = document.documentElement; }
+	  
+		if (
+			!document.fullscreenElement && 
+			!document.mozFullScreenElement &&
+			!document.webkitFullscreenElement && 
+			!document.msFullscreenElement
+		){
+			if      (elem.requestFullscreen)       { elem.requestFullscreen(); } 
+			else if (elem.msRequestFullscreen)     { elem.msRequestFullscreen(); } 
+			else if (elem.mozRequestFullScreen)    { elem.mozRequestFullScreen(); } 
+			else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT); }
+		} 
+		else {
+			if      (document.exitFullscreen)       { document.exitFullscreen(); } 
+			else if (document.msExitFullscreen)     { document.msExitFullscreen(); } 
+			else if (document.mozCancelFullScreen)  { document.mozCancelFullScreen(); } 
+			else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+		}
+	},
+};
 // APP INIT
 window.onload = async function(){
 	window.onload = null;
