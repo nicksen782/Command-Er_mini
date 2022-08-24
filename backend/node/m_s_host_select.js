@@ -39,7 +39,11 @@ let screen = {
 	inited: false,
 
 	menu1: {}, // Populated via intVars.
-	
+	remoteConfigLoaded: false,
+	activeRemote: {},
+	remoteConfig: {},
+	uuids: [],
+
 	// CONSTANTS:
 	
 	// INIT:
@@ -59,8 +63,36 @@ let screen = {
 		_APP.m_config.remoteConf.forEach( (d,i)=>{ 
 			let newYIndex = lines.length + dims.y+2;
 			actions.push(
-				function(){ 
-					console.log("TODO: CONNECT TO : ", d.name, d.URL);
+				async function(){ 
+					console.log("Get config data from: ", `${d.URL}${d.getAll}`);
+					
+					let json1;
+					let json2;
+					try{ 
+						json1 = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" } ); 
+						json1 = await json1.json();
+						thisScreen.remoteConfig = json1;
+						thisScreen.remoteConfigLoaded = true;
+						thisScreen.activeRemote = d;
+						
+						json2 = await _APP.fetch( `${d.URL}${d.getUUIDs}`, { method: "POST" } ); 
+						json2 = await json2.json();
+						thisScreen.uuids = json2;
+
+						// console.log("sections.length:", thisScreen.remoteConfig.sections.length);
+						// console.log("groups.length  :", thisScreen.remoteConfig.groups.length);
+						// console.log("commands.length:", thisScreen.remoteConfig.commands.length);
+
+						if(!json2.length){
+							console.log("No uuids have a 'mini' terminal attached.");
+							thisScreen.menu1.dialogs.choose_host.box.close();
+							thisScreen.menu1.dialogs.choose_host.active=true;
+						}
+						else{
+							thisScreen.shared.changeScreen.specific("m_s_command_chooser");
+						}
+					}
+					catch(e){ console.log("ERROR:", e); }
 				}
 			);
 			cursor.cursorIndexes.push( newYIndex );
@@ -80,33 +112,11 @@ let screen = {
 
 		thisScreen.menu1 = {
 			dialogs: {
-				// OLDchoose_host: thisScreen.shared.createDialogObject({
-				// 	"name"   : "choose_host",
-				// 	"x": 3, "y": 7, "w": 24, "h": 7,
-				// 	 "t1": "tile3", "t2": "tile2", "t3": "tile4",
-				// 	 "bgClearTile": "tile4",
-				// 	 "usesCursor":true,
-				// 	"lines"  : [
-				// 		` : PROCESS.EXIT`,
-				// 		` : PM2 RESTART`,
-				// 		` : CLOSE DIALOG BOX`,
-				// 	],
-				// 	"actions": [
-				// 		function(){ console.log("ACTION: LINE 0"); this.thisScreen.shared.process.exit();    }, // LINE 0
-				// 		function(){ console.log("ACTION: LINE 1"); this.thisScreen.shared.pm2    .restart(); }, // LINE 1,
-				// 		function(){ 
-				// 			// try{ console.log("*ACTION**: this:", this);                      } catch(e){ console.log("fail: 1"); } 
-				// 			try{ 
-				// 				console.log("*ACTION**: this.close:", this.box.close); 
-				// 				this.box.close();
-				// 			} 
-				// 			catch(e){ console.log("fail: 4"); } 
-				// 		}, // LINE 2,
-				// 	],
-				// }),
 				choose_host: thisScreen.createDialog_choose_host(),
 			},
 		};
+		thisScreen.remoteConfigLoaded = false;
+		thisScreen.remoteConfig = {};
 	},
 	init: async function(){
 		_APP.timeIt("init", "s", __filename);

@@ -55,7 +55,7 @@ let _MOD = {
 		_APP.addToRouteList({ path: "GET_VRAM"         , method: "ws", args: [], file: __filename, desc: "(JSON): Return _VRAM buffer" });
 		_APP.addToRouteList({ path: "CHANGE_FPS"       , method: "ws", args: [], file: __filename, desc: "(JSON): Change FPS" });
 		_APP.addToRouteList({ path: "SUBSCRIBE"        , method: "ws", args: [], file: __filename, desc: "(JSON): Subscript to event." });
-		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unubscript from event." });
+		_APP.addToRouteList({ path: "UNSUBSCRIBE"      , method: "ws", args: [], file: __filename, desc: "(JSON): Unsubscribe from event." });
 		_APP.addToRouteList({ path: "PRESS_BUTTONS"    , method: "ws", args: [], file: __filename, desc: "(JSON): PRESS_BUTTONS" });
 		_APP.addToRouteList({ path: "DEBUGCMD"         , method: "ws", args: [], file: __filename, desc: "(JSON): Send debug command (fixed list.)" });
 		_APP.addToRouteList({ path: "CHANGE_SCREEN"    , method: "ws", args: [], file: __filename, desc: "(JSON): CHANGE_SCREEN" });

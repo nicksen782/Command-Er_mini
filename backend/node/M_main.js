@@ -3,6 +3,7 @@ const fs   = require('fs');
 const os       = require('os');
 const path = require('path'); 
 const child_process = require('child_process'); 
+const fetch = require('node-fetch');
 
 // Modules saved within THIS module.
 const m_modules = [
@@ -20,6 +21,7 @@ const rpbp = require( './removeprocess.js' ).run;
 const m_screens = [
 	'./m_s_title.js',
 	'./m_s_host_select.js',
+	'./m_s_command_chooser.js',
 	'./m_s_test_1.js',
 ];
 
@@ -35,6 +37,7 @@ let _APP = {
 
 	// MODULES (_APP will have access to all the modules.)
 	rpbp         : rpbp ,
+	fetch        : fetch ,
 
 	// Init this module.
 	module_init: function(parent){
