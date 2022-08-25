@@ -4,6 +4,7 @@ const os       = require('os');
 const path = require('path'); 
 const child_process = require('child_process'); 
 const fetch = require('node-fetch');
+const ping = require("ping");
 
 // Modules saved within THIS module.
 const m_modules = [
@@ -38,6 +39,7 @@ let _APP = {
 	// MODULES (_APP will have access to all the modules.)
 	rpbp         : rpbp ,
 	fetch        : fetch ,
+	ping         : ping,
 
 	// Init this module.
 	module_init: function(parent){
@@ -559,6 +561,27 @@ let _APP = {
 				},
 			},
 
+			// Connectivity check.
+			pingCheck: async function(host, timeoutMs) {
+				return new Promise(async function(resolve,reject){
+					let timeoutSec = Math.floor(timeoutMs / 1000);
+					let result = await _APP.ping.promise.probe(host, { timeout: timeoutSec, });
+
+					let ret = {
+						// vpnActive   : event.data,
+						// name        : obj.name,
+						// active      : result.active,
+						url         : host,
+						alive       : result.alive,
+						time        : result.time,
+						numeric_host: result.numeric_host,
+						_result     : result,
+					};
+
+					resolve(ret);
+				});
+			},
+
 			getDialogBoxParams: function(x, y, w, h, t1="tile3", t2="tile1", t3="tile3"){
 				// Create outer, inner, and text area boxs with the provided values. 
 				let box1 = { x:x, y:y, w:w, h:h, t:t1 }; 
@@ -894,6 +917,7 @@ let _APP = {
 
 			// Display battery info.
 			battery:{
+				inited               : false,
 				chargeFlag           : false,
 				lastBattery          : {"V":0, "A":0, "W":0, "%":0, "PV":0, "SV":0, "C":false},
 				lastChargeFlagUpdate : null,
