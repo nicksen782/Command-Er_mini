@@ -266,8 +266,8 @@ class drawLoop extends EventEmitter {
 		
 		// It is paused.
 		else{
-			// Schedule the next potential appLoop run. (1/16 frame later.)
-			setTimeout(() => this._loop(performance.now()), _APP.stats.interval/16); // 
+			// Schedule the next potential appLoop run. (1/32 frame later.)
+			setTimeout(() => this._loop(performance.now()), _APP.stats.interval/32); // 
 			// console.log("type --- --- (3)");
 		}
 

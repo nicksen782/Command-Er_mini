@@ -53,7 +53,7 @@ let screen = {
 		thisScreen.menu1 = {
 			dialogs: {
 				WELCOME: thisScreen.shared.createDialogObject({
-					"name"   : "WELCOME",
+					// "name"   : "WELCOME",
 					"x": 1, "y": 11, "w": 28, "h": 8,
 					 "t1": "tile3", "t2": "tile1", "t3": "tile1",
 					 "bgClearTile": "tile4",

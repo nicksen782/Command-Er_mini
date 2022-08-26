@@ -45,94 +45,159 @@ let screen = {
 	remoteConfig: {},
 	uuids: [],
 
+	// File that provides the available hosts to connect to.
+	remoteConf : [],
+
 	// CONSTANTS:
 	
 	// INIT:
 	createDialog_choose_host: async function(){
 		return new Promise(async function(resolve,reject){
 			let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
-			let dims = { "x": 0, "y": 4, "w": 30, "h": 22 };
-			let tiles = { "t1": "tile3", "t2": "tile2", "t3": "tile4", "bgClearTile": "tile4" };
-			let cursor = { "usesCursor":true, "cursorIndexes":[] }
-			let cursors = { "t1":"cursor4", "t2":"cursor5" }
+			let dims = { "x": 0, "y": 3, "w": 30, "h": 22 };
+			let tiles = { "t1": "tile2", "t2": "tile2", "t3": "tile2", "bgClearTile": "tile4" };
+			let cursor = { "usesCursor":true, "cursorIndexes":[] };
+			let cursors = { "t1":"cursor4", "t2":"cursor5" };
+			let highlightLines = {}; //{ "0":"tile_blue" };
 			let actions = [];
-			let lines   = [
-				// TITLE
-				`SELECT A HOST`,
-				
-				// ROWS (added later.)
-				//
-			];
+			let topLines      = [ `SELECT A HOST`, `` ];
+			let activeLines   = [ `AVAILABLE` ];
+			let inActiveLines = [ `UNAVAILABLE` ];
+			let totalLineLength = 0;
+			
 			for(let d of _APP.m_config.remoteConf){
 				// Skip disabled hosts.
 				if(d.disabled){ continue; }
+
+				// Generate the total line length;
+				totalLineLength = topLines.length + activeLines.length + inActiveLines.length;
+
+				// Don't allow more lines than can fit.
+				if( totalLineLength > dims.h){ 
+					console.log(" MAXED1", activeLines.length); 
+					break; 
+				}
+
+				// Ask each host for a list of UUIDs that have a "MINI" terminal.
 
 				// Ping.
 				try{
 					let pingCheck = await _APP.screenLogic.shared.pingCheck(d.host, 1000);
 					if(!pingCheck.alive){
-						console.log("FAIL1: pingCheck:", d.host, pingCheck.alive);
+						// console.log("FAIL: pingCheck (no response):", d.host, pingCheck.alive);
+						inActiveLines.push(`${d.host.padEnd(14, " ") } (PING FAIL)`); 
+						totalLineLength += 1;
+						continue;
 					}
 				}
 				catch(e){
-					console.log("FAIL2: pingCheck:", d.host, pingCheck.alive);
+					console.log("FAIL: pingCheck: (error thrown):", d.host, pingCheck.alive, e);
+					inActiveLines.push(`${d.host.padEnd(14, " ") } (ping fail)`); 
+					totalLineLength += 1;
 					continue;
 				}
 
 				// Has a "MINI"?
 				try{ 
-					let uuids = await _APP.fetch( `${d.URL}${d.getStatus}`, { method: "POST" } ); 
-					uuids = await uuids.json(); 
-					console.log(d.host, uuids);
-
-					let newYIndex = lines.length + dims.y+2;
-					actions.push(
-						async function(){ 
-							console.log("Get config data from: ", `${d.URL}${d.getAll}`);
-							
-							let json1;
-							let json2;
-							try{ 
-								json1 = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" } ); 
-								json1 = await json1.json();
-								thisScreen.remoteConfig = json1;
-								thisScreen.remoteConfigLoaded = true;
-								thisScreen.activeRemote = d;
-								
-								json2 = await _APP.fetch( `${d.URL}${d.getUUIDs}`, { method: "POST" } ); 
-								json2 = await json2.json();
-								thisScreen.uuids = json2;
-	
-								// console.log("sections.length:", thisScreen.remoteConfig.sections.length);
-								// console.log("groups.length  :", thisScreen.remoteConfig.groups.length);
-								// console.log("commands.length:", thisScreen.remoteConfig.commands.length);
-	
-								if(!json2.length){
-									console.log("No uuids have a 'mini' terminal attached.");
-									thisScreen.menu1.dialogs.choose_host.box.close();
-									thisScreen.menu1.dialogs.choose_host.active=true;
-								}
-								else{
-									thisScreen.shared.changeScreen.specific("m_s_command_chooser");
-								}
-							}
-							catch(e){ console.log("ERROR:", e); }
+					let resp = await _APP.fetch( `${d.URL}${d.getStatus}`, { method: "POST" } ); 
+					let uuids;
+					
+					// Only accept JSON. 
+					let contentType = resp.headers.get("Content-Type");
+					if(contentType == "application/json; charset=utf-8"){
+						try{ uuids = await resp.json(); }
+						catch(e){
+							console.log("ERROR: contentType:", contentType);
+							console.log("ERROR: e:",  e);
+							continue;
 						}
-					);
-					cursor.cursorIndexes.push( newYIndex );
+					}
+					// A text response indicates an error.
+					else if(contentType == "text/html; charset=utf-8"){
+						// console.log(`ERROR: NOT JSON: contentType: ${contentType}, status: ${resp.status}, statusText: ${resp.statusText}`);
+						// console.log( await resp.text() );
+						inActiveLines.push(`${d.host.padEnd(14, " ") } (ERROR)`); 
+						totalLineLength += 1;
+						continue; 
+					}
+					// Handle any potential edge-cases.
+					else{ console.log(`ERROR (unexpected): NOT JSON: contentType: ${contentType}, status: ${resp.status}, statusText: ${resp.statusText}`); continue; }
 
-					lines.push(`  ${d.name}`);
+					// Create the host line and all UUID lines.
+					if(uuids.length){ 
+						activeLines.push(`${d.host.padEnd(14, " ") }`); 
+						totalLineLength += 1;
+
+						// Create a line for each UUID.
+						for(let uuid of uuids){
+							// console.log("uuid:", uuid, `(TOTAL: ${uuids.length})`);
+
+							let newYIndex = topLines.length + activeLines.length + dims.y+0;
+
+							actions.push(
+								async function(){ 
+									// console.log("Get config data from: ", `${d.URL}${d.getAll}`);
+									
+									let remoteConfig;
+									try{ 
+										remoteConfig = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" } ); 
+										remoteConfig = await remoteConfig.json();
+										thisScreen.remoteConfig = remoteConfig;
+										thisScreen.remoteConfigLoaded = true;
+										thisScreen.activeRemote = d;
+										thisScreen.uuid = uuid;
+										thisScreen.menu1.dialogs.choose_host.box.close();
+										thisScreen.shared.changeScreen.specific("m_s_command_chooser");
+									}
+									catch(e){ 
+										console.log("ERROR:", e); 
+									}
+								}
+							);
+							cursor.cursorIndexes.push( newYIndex );
+		
+							activeLines.push(`   CLIENT UUID: ${uuid.split("-")[0]}`);
+							totalLineLength += 1;
+						}
+
+						// Add a blank line after.
+						activeLines.push(``); 
+						totalLineLength += 1;
+					}
+					else{ 
+						console.log(`${d.name}: NO AVAILABLE UUIDS SET TO 'MINI'`); 
+						inActiveLines.push(`${d.host.padEnd(14, " ") } (NO MINI TERM)`); 
+					}
+
 				}
 				catch(e){
-					console.log("FAIL2: getStatus:", d.host);
+					console.log("FAIL2: getStatus:", d.host, e);
 					continue;
 				}
 			}
 
+			// Combine the lines. 
+			lines = [...topLines, ...activeLines, ...inActiveLines ];
+			 
+			// Highlight the top header line.
+			highlightLines["0"] = "tile_blue";
+			
+			// If there are available hosts then highlight that header line. 
+			highlightLines[(topLines.length).toString()] = "tile_orange";
+			
+			// If there are unavailable hosts then highlight that header line. 
+			highlightLines[(topLines.length + activeLines.length).toString()] = "tile_red";
+
+			// Set the height of the box to the lines length. 
+			dims.h = lines.length;
+
 			let obj = thisScreen.shared.createDialogObject({
-				"name"   : "choose_host",
+				// "name"   : "choose_host",
 				...dims, ...tiles, ...cursor,
+				boxCount: 1,
+				highlightLines: highlightLines,
 				cursors:cursors,
+				cursorX_adjust:1,
 				"lines"  : lines,
 				"actions": actions
 			});
@@ -144,6 +209,10 @@ let screen = {
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		// console.log("SCREEN: initVars:", _APP.currentScreen);
 
+		// Get the remoteConf file or create it if it does not exist.
+		// await _APP.m_config.get_remote_conf(true); // Rereads the file from disk.
+		await _APP.m_config.get_remote_conf(false); // Uses the cached copy if it has already been read.
+
 		thisScreen.menu1 = {
 			dialogs: {
 				choose_host: await thisScreen.createDialog_choose_host(),
@@ -154,13 +223,15 @@ let screen = {
 	},
 	init: async function(){
 		_APP.timeIt("init", "s", __filename);
+		console.log("SCREEN: init:", _APP.currentScreen);
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
-		console.log("SCREEN: init:", _APP.currentScreen);
 		thisScreen.initing = true;
 
 		await thisScreen.intVars();
-	
+		// 2affcaa4-2eb6-496e-bb4d-233ea32409b0
+		// xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
 	
@@ -185,6 +256,7 @@ let screen = {
 
 		_APP.timeIt("init", "e", __filename);
 
+		// Init vars.
 		thisScreen.initing = false;
 		thisScreen.inited = true;
 	},

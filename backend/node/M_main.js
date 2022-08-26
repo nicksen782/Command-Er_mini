@@ -568,9 +568,6 @@ let _APP = {
 					let result = await _APP.ping.promise.probe(host, { timeout: timeoutSec, });
 
 					let ret = {
-						// vpnActive   : event.data,
-						// name        : obj.name,
-						// active      : result.active,
 						url         : host,
 						alive       : result.alive,
 						time        : result.time,
@@ -684,7 +681,7 @@ let _APP = {
 					},
 					cursor: {
 						// Position.
-						x : dialogDims.text.x, 
+						x : config.cursorX_adjust ? dialogDims.text.x + config.cursorX_adjust : dialogDims.text.x, 
 						y : dialogDims.text.y, 
 						index: 0,
 						cursorIndexes: config.cursorIndexes || [],
@@ -728,21 +725,23 @@ let _APP = {
 							// Draw the tile.
 							// _APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.y); 
 							// console.log(dialog.cursor.cursorIndexes, dialog.cursor.index, dialog.cursor.cursorIndexes[dialog.cursor.index]);
-							try{
-								// fails here?
-								_APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.cursorIndexes[dialog.cursor.index]); 
-							}
-							catch(e){
-								console.log(
-									"FAIL in 'cursor.draw': ", 
-									{
-										"dialog.cursor.t":      dialog.cursor.t, 
-										"dialog.cursor.x":      dialog.cursor.x, 
-										"cursor.cursorIndexes": dialog.cursor.cursorIndexes, 
-										"cursor.index":         dialog.cursor.index, 
-										"cursor new y":         dialog.cursor.cursorIndexes[dialog.cursor.index]
-									}
-								);
+							if(dialog.cursor.cursorIndexes.length){
+								try{
+									// fails here?
+									_APP.m_draw.setTile(dialog.cursor.t, dialog.cursor.x, dialog.cursor.cursorIndexes[dialog.cursor.index]); 
+								}
+								catch(e){
+									console.log(
+										"FAIL in 'cursor.draw': ", 
+										{
+											"dialog.cursor.t":      dialog.cursor.t, 
+											"dialog.cursor.x":      dialog.cursor.x, 
+											"cursor.cursorIndexes": dialog.cursor.cursorIndexes, 
+											"cursor.index":         dialog.cursor.index, 
+											"cursor new y":         dialog.cursor.cursorIndexes[dialog.cursor.index]
+										}
+									);
+								}
 							}
 						},
 						move: function(){
@@ -799,22 +798,22 @@ let _APP = {
 									return; 
 								}
 
+								// if there are text actions then run the action for the line. 
 								else if(dialog.cursor.cursorIndexes.length){
 									dialog.text.actions[dialog.cursor.index]();
 								}
 		
-								// Otherwise run the function that matches the current line.
+								// Otherwise run the function at the actions index for the current line.
 								else if(dialog.text.actions[dialog.cursor.index]) { dialog.text.actions[dialog.cursor.index](); }
 
-								//
+								// Uses cursor but no actions? 
 								else{
-									console.log("TEXT.SELECT: NO ACTION IS AVAILABLE.");
+									console.log(`dialog.text.select: NO ACTION IS AVAILABLE at cursorIndex: ${dialog.cursor.index}`);
 								}
 							}
 						},
 						lines: config.lines,
 						actions: [],
-						// actions: config.actions,
 					},
 				};
 		
@@ -824,6 +823,7 @@ let _APP = {
 					dialog.text.actions.push( func.bind(dialog) );
 				}
 				
+				// Return the completed object.
 				return dialog;
 			},
 

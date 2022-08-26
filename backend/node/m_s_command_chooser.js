@@ -36,7 +36,9 @@ let _MOD = {
 
 let screen = {
 	// VARIABLES:
+	initing: false,
 	inited: false,
+	doNotRun: false,
 
 	menu1: {}, // Populated via intVars.
 	currentSectionIndex: 0,
@@ -48,8 +50,8 @@ let screen = {
 	sendCommand: async function(body){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		
-		body.uuid = thisScreen.host_select.uuids[0];
-		let url =  `${thisScreen.host_select.activeRemote.URL}MINI/RUNCMD` ;
+		body.uuid = _APP.screenLogic.screens["m_s_host_select"].uuid;
+		let url =  `${_APP.screenLogic.screens["m_s_host_select"].activeRemote.URL}MINI/RUNCMD` ;
 		let options = { 
 			method: "POST", 
 			headers : { 
@@ -85,13 +87,12 @@ let screen = {
 	createDialog_choose_cmd: function(newSection){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
-		let dims = { "x": 0, "y": 3, "w": 30, "h": 24 };
-		// let tiles = { "t1": "tile3", "t2": "tile2", "t3": "tile4", "bgClearTile": "tile4" };
+		let dims = { "x": 0, "y": 3, "w": 30, "h": 25 };
 		let tiles = { "t1": "tile2", "t2": "tile2", "t3": "tile2", "bgClearTile": "tile4" };
 		let cursor = { "usesCursor":true, "cursorIndexes":[] }
 		let cursors = { "t1":"cursor4", "t2":"cursor5" }
 		let actions = [];
-		let filtered = thisScreen.host_select.remoteConfig.commands.filter(d=>d.sectionName==newSection);
+		let filtered = _APP.screenLogic.screens["m_s_host_select"].remoteConfig.commands.filter(d=>d.sectionName==newSection);
 		let lines   = [
 			// SECTION
 			`s:${newSection} (${thisScreen.sectionKeys.indexOf(newSection)+1}/${thisScreen.sectionKeys.length})`,
@@ -106,7 +107,7 @@ let screen = {
 		let lastGroupId = null;
 		filtered.forEach( (d,i,a)=>{ 
 			if(lines.length+3>dims.h){ 
-				// console.log(" MAXED1", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title); 
+				console.log(" MAXED1", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title); 
 				return ; 
 			}
 			// console.log(" ADDED ", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title);
@@ -114,8 +115,8 @@ let screen = {
 			// New group?
 			if(d.gId != lastGroupId){
 				// console.log(`New group: ${d.groupName}(${d.gId}), Old groupId: ${lastGroupId}`);
-				let numInGroup = thisScreen.host_select.remoteConfig.commands.filter(dd=>dd.groupName==d.groupName && dd.sectionName==d.sectionName).length;
-				// if(lastGroupId != null) { lines.push(``); }
+				let numInGroup = _APP.screenLogic.screens["m_s_host_select"].remoteConfig.commands.filter(dd=>dd.groupName==d.groupName && dd.sectionName==d.sectionName).length;
+				
 				if(lines.length+4>dims.h){ 
 					console.log(" MAXED2", lines.length, i, a.length, "sectionName:", d.sectionName, ", groupName:", d.groupName, ", title:", d.title); 
 					return ; 
@@ -126,23 +127,24 @@ let screen = {
 			}
 
 			// Add to group.
-			// else{
-				let newYIndex = lines.length + dims.y+0;
-				actions.push(
-					async function(){ 
-						await thisScreen.sendCommand( { type:"FROMCONFIG", cmd: d.cmd, sId: d.sId, gId: d.gId, cId: d.cId } );
-					}
-				);
-				cursor.cursorIndexes.push( newYIndex );
-				lines.push(`  c:${d.title}`);
-			// }
+			let newYIndex = lines.length + dims.y+0;
+			actions.push(
+				function(){ 
+					thisScreen.sendCommand( { type:"FROMCONFIG", cmd: d.cmd, sId: d.sId, gId: d.gId, cId: d.cId } );
+				}
+			);
+			cursor.cursorIndexes.push( newYIndex );
+			lines.push(`  c:${d.title}`);
 		} );
 		
 		// Display the section name. 
 		// _APP.m_draw.print(` SECTION: ${newSection}`.padEnd(ts.cols, " ") , 0 , 2);
 		
+		// Set the height of the box to the lines length. 
+		dims.h = lines.length;
+
 		return thisScreen.shared.createDialogObject({
-			"name"   : "choose_cmd",
+			// "name"   : "choose_cmd",
 			...dims, ...tiles, ...cursor,
 			boxCount: 1,
 			highlightLines: { "0":"tile_blue", "1":"tile_blue" },
@@ -151,31 +153,48 @@ let screen = {
 			"actions": actions
 		});
 	},
-	intVars: function(newSection){
+	intVars: async function(newSection){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 
+		// Reset/populate the section keys and current section key index. 
+		// Fail, return to m_s_host_select if the try throws and error.
 		thisScreen.currentSectionIndex = 0;
-		thisScreen.sectionKeys = (thisScreen.host_select.remoteConfig.sections.map(d=>d.name));
+		try{
+			thisScreen.sectionKeys = (_APP.screenLogic.screens["m_s_host_select"].remoteConfig.sections.map(d=>d.name));
+		}
+		catch(e){
+			console.log("ERROR: No remoteconfig was loaded?\n");
+			console.log("... Returning to m_s_host_select.");
+			thisScreen.shared.changeScreen.specific("m_s_host_select");
+			thisScreen.doNotRun = true;
+			return;
+		}
 
+		// If the newSection was not provided then use the first section. 
 		if(!newSection){ newSection = thisScreen.sectionKeys[0]; }
-
+		
 		thisScreen.menu1 = {
 			dialogs: {
 				choose_cmd: thisScreen.createDialog_choose_cmd(newSection),
 			},
 		};
+
+		thisScreen.doNotRun = false;
 	},
 	init: async function(){
 		_APP.timeIt("init", "s", __filename);
+		console.log("SCREEN: init:", _APP.currentScreen);
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		thisScreen.shared = _APP.screenLogic.shared;
-		thisScreen.host_select = _APP.screenLogic.screens["m_s_host_select"];
-		// console.log("SCREEN: init:", _APP.currentScreen);
-		
+		thisScreen.initing = true;
+
+		_APP.screenLogic.screens["m_s_host_select"] = _APP.screenLogic.screens["m_s_host_select"];
+
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
 
-		thisScreen.intVars(null);
+		await thisScreen.intVars(null);
+		if(thisScreen.doNotRun){ return; }
 		
 		// Get the LCD config.
 		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
@@ -185,7 +204,7 @@ let screen = {
 		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen.substring(4)} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
 
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
-		_APP.m_draw.print(` REMOTE: ${thisScreen.host_select.activeRemote.name}` , 0 , 1);
+		_APP.m_draw.print(`REMOTE: ${_APP.screenLogic.screens["m_s_host_select"].activeRemote.name} (${_APP.screenLogic.screens["m_s_host_select"].uuid.split("-")[0]})` , 0 , 1);
 		
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
 
@@ -199,22 +218,25 @@ let screen = {
 		thisScreen.menu1.dialogs.choose_cmd.active=true;
 
 		// Init vars.
+		thisScreen.initing = false;
 		thisScreen.inited = true;
 		_APP.timeIt("init", "e", __filename);
 
-		// console.log( Object.keys(thisScreen.host_select.remoteConfig) );
-		// console.log( "sections.length   :", thisScreen.host_select.remoteConfig.sections.length);
-		// console.log( "groups.length     :", thisScreen.host_select.remoteConfig.groups.length);
-		// console.log( "commands.length   :", thisScreen.host_select.remoteConfig.commands.length);
-		// console.log( "remoteConfigLoaded:", thisScreen.host_select.remoteConfigLoaded);
-		// console.log( "activeRemote      :", thisScreen.host_select.activeRemote);
-		// console.log( "uuids             :", thisScreen.host_select.uuids);
+		// console.log( Object.keys(_APP.screenLogic.screens["m_s_host_select"].remoteConfig) );
+		// console.log( "sections.length   :", _APP.screenLogic.screens["m_s_host_select"].remoteConfig.sections.length);
+		// console.log( "groups.length     :", _APP.screenLogic.screens["m_s_host_select"].remoteConfig.groups.length);
+		// console.log( "commands.length   :", _APP.screenLogic.screens["m_s_host_select"].remoteConfig.commands.length);
+		// console.log( "remoteConfigLoaded:", _APP.screenLogic.screens["m_s_host_select"].remoteConfigLoaded);
+		// console.log( "activeRemote      :", _APP.screenLogic.screens["m_s_host_select"].activeRemote);
+		// console.log( "uuid              :", _APP.screenLogic.screens["m_s_host_select"].uuid);
 	},
 	
 	// MAIN FUNCTION:
 	func: async function(){
 		return new Promise(async function(resolve,reject){
 			let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
+			if(thisScreen.initing){ resolve(); return; }
+			if(thisScreen.doNotRun){ resolve(); return; }
 			if(!thisScreen.inited){ thisScreen.init(); resolve(); return; }
 	
 			// Get the LCD config.
@@ -246,7 +268,10 @@ let screen = {
 					thisScreen.changeSection( newSection );
 				}
 				else{
-					console.log("You pressed LEFT but you are already at the beginning.", thisScreen.currentSectionIndex, thisScreen.sectionKeys.length-1);
+					// console.log("You pressed LEFT but you are already at the beginning.", thisScreen.currentSectionIndex, thisScreen.sectionKeys.length-1);
+					thisScreen.currentSectionIndex = thisScreen.sectionKeys.length-1;
+					let newSection = thisScreen.sectionKeys[thisScreen.currentSectionIndex];
+					thisScreen.changeSection( newSection );
 				}
 			}
 			if( _APP.m_gpio.isPress ("KEY_RIGHT_PIN") ){
@@ -256,7 +281,10 @@ let screen = {
 					thisScreen.changeSection( newSection );
 				}
 				else{
-					console.log("You pressed RIGHT but you are already at the END.", thisScreen.currentSectionIndex, thisScreen.sectionKeys.length-1);
+					// console.log("You pressed RIGHT but you are already at the END.", thisScreen.currentSectionIndex, thisScreen.sectionKeys.length-1);
+					thisScreen.currentSectionIndex = 0;
+					let newSection = thisScreen.sectionKeys[thisScreen.currentSectionIndex];
+					thisScreen.changeSection( newSection );
 				}
 			}
 
