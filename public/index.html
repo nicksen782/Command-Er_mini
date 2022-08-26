@@ -24,8 +24,18 @@
 		</div>
 
 		<div id="vram_div_all">
-			<div class="title taller">ALL DISPLAY LAYERS</div>
-			<canvas class="" id="vram_all" width="240" height="240"></canvas>
+			<div class="title taller">
+				<!-- ALL DISPLAY LAYERS -->
+				DISPLAY: 
+				<label><input id="dispChk_display" type="checkbox">Main display</label>
+				<label><input id="dispChk_numbers" type="checkbox">Numbers</label>
+				<label><input id="dispChk_grid" type="checkbox">Grid</label>
+			</div>
+			<div id="vram_all_container">
+				<canvas class="" id="vram_all_l1" width="256" height="256"></canvas>
+				<canvas class="" id="vram_all_l2" width="256" height="256"></canvas>
+				<canvas class="transparencyGraphic" id="vram_all" width="240" height="240"></canvas>
+			</div>
 		</div>
 	</div>
 
@@ -189,21 +199,21 @@
 					<div class="vram_div_layer" vramLayer="0">
 						<div class="title taller">L0 (fillTile)</div>
 						<div class="ws updateStats"></div>
-						<canvas class="vramCanvas" id="vram_l0" width="240" height="240"></canvas>
+						<canvas class="vramCanvas transparencyGraphic" id="vram_l0" width="240" height="240"></canvas>
 					</div>
 			
 					<!-- VRAM LAYER 1 -->
 					<div class="vram_div_layer" vramLayer="1">
 						<div class="title taller">L1 (setTile)</div>
 						<div class="ws updateStats"></div>
-						<canvas class="vramCanvas" id="vram_l1" width="240" height="240"></canvas>
+						<canvas class="vramCanvas transparencyGraphic" id="vram_l1" width="240" height="240"></canvas>
 					</div>
 			
 					<!-- VRAM LAYER 2 -->
 					<div class="vram_div_layer" vramLayer="2">
 						<span class="title taller">L2 (setTile/print)</span>
 						<div class="ws updateStats"></div>
-						<canvas class="vramCanvas" id="vram_l2" width="240" height="240"></canvas>
+						<canvas class="vramCanvas transparencyGraphic" id="vram_l2" width="240" height="240"></canvas>
 					</div>
 				</div>
 			</div>

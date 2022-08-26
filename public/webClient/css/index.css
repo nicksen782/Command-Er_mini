@@ -106,7 +106,6 @@ body {
 }
 #controls_cont {
 	border: 1px solid darkblue;
-	display: inline-block;
 	padding: 5px;
 	margin: 0px;
 	background-color: lightsteelblue;
@@ -160,13 +159,18 @@ body {
 #vram_div_layers .vram_div_layer .updateStats {
 	margin-bottom: 5px;
 }
+.transparencyGraphic{
+	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAADNJREFUOE9jTEtL+8+ABxgbG+ORZWBgwitLhOSoAYMhEFkIxfPZs2fxRuZoNA6GaKQ4FgBJLQXs1RURXgAAAABJRU5ErkJggg==');
+	background-size: 16px;
+	background-repeat: repeat;
+}
 .vramCanvas {
 	margin: 0px;
 	background-color: #2b2b2b;
 	/* border: 2px solid #51bfcb; */
-	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAADNJREFUOE9jTEtL+8+ABxgbG+ORZWBgwitLhOSoAYMhEFkIxfPZs2fxRuZoNA6GaKQ4FgBJLQXs1RURXgAAAABJRU5ErkJggg==');
+	/* background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAADNJREFUOE9jTEtL+8+ABxgbG+ORZWBgwitLhOSoAYMhEFkIxfPZs2fxRuZoNA6GaKQ4FgBJLQXs1RURXgAAAABJRU5ErkJggg==');
 	background-size: 16px;
-	background-repeat: repeat;
+	background-repeat: repeat; */
 	width: 240px;
 }
 .center {
@@ -178,10 +182,48 @@ body {
 }
 #vram_l3 {
 }
+#vram_all_container{
+	position:
+	relative;
+	width: 375px;
+	height: 375px;
+	/* background-color: green; */
+	/* border: 2px solid black; */
+	/* left: 0px; */
+	text-align: left;
+}
 #vram_all {
-	width: 100%;
-	background-color: darkgray;
-	border: 2px solid black;
+	position: absolute;
+	left: 12px;
+	top: 12px;
+	width: 349px;
+	height: 349px;
+	z-index:100;
+	background-color: red;
+	border: 1px solid gray;
+}
+#vram_all_l1{ 
+	z-index:50;
+	left: 0px;
+	top: 0px;
+	/* background-color: blue; */
+	/* border: 1px solid blue; */
+	/* background-color: black; */
+}
+#vram_all_l2{ 
+	z-index:200;
+	left: 1px;
+	top: 1px;
+	/* background-color: yellow; */
+	/* border: 1px solid yellow; */
+}
+#vram_all_l1, 
+#vram_all_l2 {
+	/* background-color: gray; */
+	position: absolute;
+	width: 373px;
+	height: 373px;
+	/* width: 100%; */
 }
 span#ws_status {
 	position: absolute;
@@ -320,3 +362,4 @@ span#ws_autoReconnectDiv:hover {
     font-size: 20px;
 }
 #fullscreen:hover{background-color: #d9d5d5;}
+.displayNone{ display:none; }

@@ -561,6 +561,11 @@ let draw = {
 	showIndividualLayers: true,
 	serverFps:1,
 
+	//
+	dispChk_numbers : false,
+	dispChk_grid    : false,
+	dispChk_display : true,
+
 	// showVramLayers: function(){
 	// 	draw.DOM.vram_div_layers.classList.remove("hide");
 	// },
@@ -577,6 +582,7 @@ let draw = {
 		for(let key in draw.canvases){
 			draw.canvases[key].canvas.width = draw.configs.config.lcd.width;
 			draw.canvases[key].canvas.height = draw.configs.config.lcd.height;
+			draw.setPixelated(draw.canvases[key]);
 		}
 		draw.clearAllCanvases();
 	},
@@ -899,6 +905,14 @@ let draw = {
 		// },
 	},
 
+	setPixelated: function(ctx){
+		ctx.mozImageSmoothingEnabled    = false; // Firefox
+		ctx.imageSmoothingEnabled       = false; // Firefox
+		ctx.oImageSmoothingEnabled      = false; //
+		ctx.webkitImageSmoothingEnabled = false; //
+		ctx.msImageSmoothingEnabled     = false; //
+	},
+
 	// REQUESTS
 	getGraphics: async function(){
 		return new Promise(function(resolve,reject){
@@ -919,11 +933,12 @@ let draw = {
 					tileCanvas.height = draw.configs.config.lcd.tileset.tileHeight;
 					
 					let tileCanvasCtx = tileCanvas.getContext("2d");
-					tileCanvasCtx.mozImageSmoothingEnabled    = false; // Firefox
-					tileCanvasCtx.imageSmoothingEnabled       = false; // Firefox
-					tileCanvasCtx.oImageSmoothingEnabled      = false; //
-					tileCanvasCtx.webkitImageSmoothingEnabled = false; //
-					tileCanvasCtx.msImageSmoothingEnabled     = false; //
+					// tileCanvasCtx.mozImageSmoothingEnabled    = false; // Firefox
+					// tileCanvasCtx.imageSmoothingEnabled       = false; // Firefox
+					// tileCanvasCtx.oImageSmoothingEnabled      = false; //
+					// tileCanvasCtx.webkitImageSmoothingEnabled = false; //
+					// tileCanvasCtx.msImageSmoothingEnabled     = false; //
+					draw.setPixelated(tileCanvasCtx);
 
 					tileCanvasCtx.drawImage(
 						draw.tilesetCanvas, 
@@ -1013,6 +1028,99 @@ let draw = {
 	
 		// output += `${"*".repeat(45)}\n`;
 		dest.innerText = output;
+	},
+
+	initDebugCanvasLayers: function(){
+		let clearDebugCanvases = function(){
+			let vram_all_l1 = document.getElementById("vram_all_l1");
+			let vram_all_l1_ctx = vram_all_l1.getContext("2d");
+			draw.setPixelated(vram_all_l1_ctx);
+			vram_all_l1_ctx.clearRect(0,0,vram_all_l1.width, vram_all_l1.height);
+		
+			let vram_all_l2 = document.getElementById("vram_all_l2");
+			let vram_all_l2_ctx = vram_all_l2.getContext("2d");
+			draw.setPixelated(vram_all_l2_ctx);
+			vram_all_l2_ctx.clearRect(0,0,vram_all_l2.width, vram_all_l2.height);
+		};
+		let drawNumbers = function(){
+			let ts = draw.configs.config.lcd.tileset;
+			let tw = ts.tileWidth;
+			let th = ts.tileHeight;
+			let rows = ts.rows;
+			let cols = ts.cols;
+
+			let numberTiles = [
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n0"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n1"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n2"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n3"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n4"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n5"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n6"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n7"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n8"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["n9"] ],
+
+				draw.tilesCache[ draw.configs.tileIdsByTilename["A"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["B"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["C"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["D"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["E"] ],
+				draw.tilesCache[ draw.configs.tileIdsByTilename["F"] ],
+			];
+			// let bgTile1 = draw.tilesCache[ draw.configs.tileIdsByTilename["tile1"] ]; // Teal.
+			// let bgTile2 = draw.tilesCache[ draw.configs.tileIdsByTilename["tile2"] ]; // Gray/Black.
+			// let bgTile3 = draw.tilesCache[ draw.configs.tileIdsByTilename["tile3"] ]; // Dark teal.
+			let bgTile4 = draw.tilesCache[ draw.configs.tileIdsByTilename["tile4"] ]; // Mostly black.
+
+			// Draw the numbers on row 0 and the last row.
+			let vram_all_l1 = document.getElementById("vram_all_l1");
+			let vram_all_l1_ctx = vram_all_l1.getContext("2d");
+			let currentNumber = 0;
+			for(let x=1; x<=cols; x+=1){
+				vram_all_l1_ctx.drawImage( bgTile4, x*tw, 0*th) ; 
+				vram_all_l1_ctx.drawImage( bgTile4, x*tw, (rows+1)*th) ; 
+				vram_all_l1_ctx.drawImage( numberTiles[currentNumber], x*tw, 0*th) ; 
+				vram_all_l1_ctx.drawImage( numberTiles[currentNumber], x*tw, (rows+1)*th) ; 
+				currentNumber += 1;
+				if(currentNumber > 15){ currentNumber = 0; }
+			}
+
+			// Draw the numbers on the column 0 and the last column.
+			currentNumber = 0;
+			for(let y=1; y<=cols; y+=1){
+				vram_all_l1_ctx.drawImage( bgTile4, 0*tw, y*th) ; 
+				vram_all_l1_ctx.drawImage( bgTile4, (cols+1)*tw, y*th) ; 
+				vram_all_l1_ctx.drawImage( numberTiles[currentNumber], 0*tw, y*th) ; 
+				vram_all_l1_ctx.drawImage( numberTiles[currentNumber], (cols+1)*tw, y*th) ; 
+				currentNumber += 1;
+				if(currentNumber > 15){ currentNumber = 0; }
+			}
+		};
+		let drawGrid = function(){
+			let vram_all_l2 = document.getElementById("vram_all_l2");
+			let vram_all_l2_ctx = vram_all_l2.getContext("2d");
+
+			let ts = draw.configs.config.lcd.tileset;
+			let tw = ts.tileWidth;
+			let th = ts.tileHeight;
+			let rows = ts.rows;
+			let cols = ts.cols;
+
+			let w = vram_all_l2.width;
+			let h = vram_all_l2.height;
+			let tile = draw.tilesCache[ draw.configs.tileIdsByTilename["grid1"] ];
+
+			for (let x=0; x<=w; x+=1) {
+				for (let y=0; y<=h; y+=1) {
+					vram_all_l2_ctx.drawImage( tile, x*tw, y*th) ; 
+				}
+			}
+		};
+		
+		clearDebugCanvases();
+		drawNumbers();
+		drawGrid();
 	},
 };
 // BUTTON INPUT
@@ -1320,6 +1428,7 @@ window.onload = async function(){
 		if(!websocket.autoReconnect){ console.log("*"); clearTimeout(websocket.autoReconnect_id); }
 	}, false);
 	buttons.DOM.ws_autoReconnect.checked = websocket.autoReconnect;
+	buttons.DOM.ws_autoReconnect.dispatchEvent(new Event("click"));
 
 	// FPS changes.
 	draw.DOM.info_changeFps = document.getElementById("info_changeFps");
@@ -1369,4 +1478,39 @@ window.onload = async function(){
 	nav.showOne("controls_cont_nav_ws");
 	// nav.showOne("controls_cont_nav_post");
 	// nav.showOne("controls_cont_nav_vram");
+
+	buttons.DOM.dispChk_numbers = document.getElementById("dispChk_numbers");
+	buttons.DOM.dispChk_numbers.addEventListener("click", function(){
+		console.log(this.id);
+		draw.dispChk_numbers = this.checked;
+		let canvas = document.getElementById("vram_all_l1");
+		if(this.checked){ canvas.classList.remove("displayNone"); }
+		else{ canvas.classList.add("displayNone"); }
+	}, false);
+	buttons.DOM.dispChk_numbers.checked = draw.dispChk_numbers;
+	buttons.DOM.dispChk_numbers.dispatchEvent(new Event("click"));
+
+	buttons.DOM.dispChk_grid    = document.getElementById("dispChk_grid");
+	buttons.DOM.dispChk_grid.addEventListener("click", function(){
+		console.log(this.id);
+		draw.dispChk_grid = this.checked;
+		let canvas = document.getElementById("vram_all_l2");
+		if(this.checked){ canvas.classList.remove("displayNone"); }
+		else{ canvas.classList.add("displayNone"); }
+	}, false);
+	buttons.DOM.dispChk_grid   .checked = draw.dispChk_grid   ;
+	buttons.DOM.dispChk_grid.dispatchEvent(new Event("click"));
+
+	buttons.DOM.dispChk_display = document.getElementById("dispChk_display");
+	buttons.DOM.dispChk_display.addEventListener("click", function(){
+		console.log(this.id);
+		draw.dispChk_display = this.checked;
+		let canvas = document.getElementById("vram_all");
+		if(this.checked){ canvas.classList.remove("displayNone"); }
+		else{ canvas.classList.add("displayNone"); }
+	}, false);
+	buttons.DOM.dispChk_display.checked = draw.dispChk_display;
+	buttons.DOM.dispChk_display.dispatchEvent(new Event("click"));
+
+	draw.initDebugCanvasLayers();
 }
