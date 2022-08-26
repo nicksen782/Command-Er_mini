@@ -49,7 +49,8 @@ let screen = {
 	// INIT:
 	sendCommand: async function(body){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
-		
+		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
+
 		body.uuid = _APP.screenLogic.screens["m_s_host_select"].uuid;
 		let url =  `${_APP.screenLogic.screens["m_s_host_select"].activeRemote.URL}MINI/RUNCMD` ;
 		let options = { 
@@ -61,8 +62,13 @@ let screen = {
 			body: JSON.stringify(body)
 		} ;
 
+		_APP.m_draw.print("*", 16, ts.rows-1); 
+
 		let json = await _APP.fetch( url, options );
 		json = await json.json();
+
+		_APP.m_draw.print(" ", 16, ts.rows-1); 
+
 		console.log("RESPONSE:", json);
 	},
 	changeSection: function(newSection){
@@ -130,7 +136,7 @@ let screen = {
 			let newYIndex = lines.length + dims.y+0;
 			actions.push(
 				function(){ 
-					thisScreen.sendCommand( { type:"FROMCONFIG", cmd: d.cmd, sId: d.sId, gId: d.gId, cId: d.cId } );
+					thisScreen.sendCommand( { type:"FROMCONFIG", cmd: "", sId: d.sId, gId: d.gId, cId: d.cId } );
 				}
 			);
 			cursor.cursorIndexes.push( newYIndex );
@@ -288,9 +294,19 @@ let screen = {
 				}
 			}
 
+			// Back to host_select.
+			if( _APP.m_gpio.isPress ("KEY1_PIN") ){
+				thisScreen.shared.changeScreen.specific("m_s_host_select");
+				resolve(); return; 
+			}
+
 			// PRESS CTRL+C ANYWHERE.
 			if( _APP.m_gpio.isPress ("KEY2_PIN") ){
-				await thisScreen.sendCommand( { type:"RAW", cmd: "\u0003" } );
+				thisScreen.sendCommand( { type:"RAW", cmd: "\u0003", sId: 0, gId: 0, cId: 0 } );
+			}
+
+			// ??
+			if( _APP.m_gpio.isPress ("KEY3_PIN") ){
 			}
 
 			resolve();

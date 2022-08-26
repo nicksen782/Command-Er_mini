@@ -331,4 +331,4 @@ let setErrorHandlers = function(){
 		});
 	})();
 
-})()
+})();

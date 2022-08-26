@@ -65,6 +65,86 @@ let screen = {
 			let inActiveLines = [ `UNAVAILABLE` ];
 			let totalLineLength = 0;
 			
+			// Do the async stuff first all at once. (ping and getStatus.)
+			let proms = [];
+			for(let i=0; i<_APP.m_config.remoteConf.length; i+=1){
+				let d = _APP.m_config.remoteConf[i];
+				d._pingSuccess=false;
+				d._getStatusSuccess=false;
+				d._error="";
+				d._uuids=[];
+				proms.push(
+					new Promise(async function(res,rej){
+						// Ping.
+						try{
+							let pingCheck = await _APP.screenLogic.shared.pingCheck(d.host, 1000);
+							if(!pingCheck.alive){
+								d._pingSuccess=false;
+								d._error="(PING FAIL)";
+								res(false); return; 
+							}
+							else{
+								d._pingSuccess=true;
+							}
+						}
+						catch(e){
+							d._pingSuccess=false;
+							d._error="(PING FAIL)";
+							res(false); return; 
+						}
+		
+						// Has a "MINI"?
+						try{ 
+							let resp = await _APP.fetch( `${d.URL}${d.getStatus}`, { method: "POST" } ); 
+							let uuids;
+							
+							// Only accept JSON. 
+							let contentType = resp.headers.get("Content-Type");
+							if(contentType == "application/json; charset=utf-8"){
+								try{ uuids = await resp.json(); }
+								catch(e){
+									d._getStatusSuccess=false;
+									d._error="(error)";
+									res(false); return; 
+								}
+							}
+							// A text response indicates an error.
+							else if(contentType == "text/html; charset=utf-8"){
+								d._getStatusSuccess=false;
+								d._error="(ERROR)";
+								res(false); return; 
+							}
+							// Handle any potential edge-cases.
+							else{ 
+								d._getStatusSuccess=false;
+								d._error="(CONTENT ERR)";
+								res(false); return; 
+							}
+		
+							if(!uuids.length){
+								d._getStatusSuccess=false;
+								d._error="(NO MINI TERM)";
+								res(false); return; 
+							}
+							else{
+								d._getStatusSuccess=true;
+								d._uuids=uuids;
+								res(true); 
+							}
+						}
+						catch(e){
+							d._getStatusSuccess=false;
+							d._error="(UNKNOWN)";
+							res(false); return; ; 
+						}
+
+						res(false); return; 
+					})
+				);
+			}
+			await Promise.all(proms);
+
+			// Create lines for the menu.
 			for(let d of _APP.m_config.remoteConf){
 				// Skip disabled hosts.
 				if(d.disabled){ continue; }
@@ -78,101 +158,67 @@ let screen = {
 					break; 
 				}
 
-				// Ask each host for a list of UUIDs that have a "MINI" terminal.
-
-				// Ping.
-				try{
-					let pingCheck = await _APP.screenLogic.shared.pingCheck(d.host, 1000);
-					if(!pingCheck.alive){
-						// console.log("FAIL: pingCheck (no response):", d.host, pingCheck.alive);
-						inActiveLines.push(`${d.host.padEnd(14, " ") } (PING FAIL)`); 
-						totalLineLength += 1;
-						continue;
-					}
-				}
-				catch(e){
-					console.log("FAIL: pingCheck: (error thrown):", d.host, pingCheck.alive, e);
-					inActiveLines.push(`${d.host.padEnd(14, " ") } (ping fail)`); 
+				// TEST: Ping.
+				if(!d._pingSuccess){
+					inActiveLines.push(`${d.name.padEnd(14, " ") } ${d._error}`); 
 					totalLineLength += 1;
 					continue;
 				}
 
-				// Has a "MINI"?
-				try{ 
-					let resp = await _APP.fetch( `${d.URL}${d.getStatus}`, { method: "POST" } ); 
-					let uuids;
-					
-					// Only accept JSON. 
-					let contentType = resp.headers.get("Content-Type");
-					if(contentType == "application/json; charset=utf-8"){
-						try{ uuids = await resp.json(); }
-						catch(e){
-							console.log("ERROR: contentType:", contentType);
-							console.log("ERROR: e:",  e);
-							continue;
-						}
-					}
-					// A text response indicates an error.
-					else if(contentType == "text/html; charset=utf-8"){
-						// console.log(`ERROR: NOT JSON: contentType: ${contentType}, status: ${resp.status}, statusText: ${resp.statusText}`);
-						// console.log( await resp.text() );
-						inActiveLines.push(`${d.host.padEnd(14, " ") } (ERROR)`); 
-						totalLineLength += 1;
-						continue; 
-					}
-					// Handle any potential edge-cases.
-					else{ console.log(`ERROR (unexpected): NOT JSON: contentType: ${contentType}, status: ${resp.status}, statusText: ${resp.statusText}`); continue; }
-
-					// Create the host line and all UUID lines.
-					if(uuids.length){ 
-						activeLines.push(`${d.host.padEnd(14, " ") }`); 
-						totalLineLength += 1;
-
-						// Create a line for each UUID.
-						for(let uuid of uuids){
-							// console.log("uuid:", uuid, `(TOTAL: ${uuids.length})`);
-
-							let newYIndex = topLines.length + activeLines.length + dims.y+0;
-
-							actions.push(
-								async function(){ 
-									// console.log("Get config data from: ", `${d.URL}${d.getAll}`);
-									
-									let remoteConfig;
-									try{ 
-										remoteConfig = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" } ); 
-										remoteConfig = await remoteConfig.json();
-										thisScreen.remoteConfig = remoteConfig;
-										thisScreen.remoteConfigLoaded = true;
-										thisScreen.activeRemote = d;
-										thisScreen.uuid = uuid;
-										thisScreen.menu1.dialogs.choose_host.box.close();
-										thisScreen.shared.changeScreen.specific("m_s_command_chooser");
-									}
-									catch(e){ 
-										console.log("ERROR:", e); 
-									}
-								}
-							);
-							cursor.cursorIndexes.push( newYIndex );
-		
-							activeLines.push(`   CLIENT UUID: ${uuid.split("-")[0]}`);
-							totalLineLength += 1;
-						}
-
-						// Add a blank line after.
-						activeLines.push(``); 
-						totalLineLength += 1;
-					}
-					else{ 
-						console.log(`${d.name}: NO AVAILABLE UUIDS SET TO 'MINI'`); 
-						inActiveLines.push(`${d.host.padEnd(14, " ") } (NO MINI TERM)`); 
-					}
-
+				// TEST: getStatus.
+				else if(!d._getStatusSuccess){
+					inActiveLines.push(`${d.name.padEnd(14, " ") } ${d._error}`); 
+					totalLineLength += 1;
+					continue; 
 				}
-				catch(e){
-					console.log("FAIL2: getStatus:", d.host, e);
+
+				// TEST: Has a "MINI" UUID.
+				else if(!d._uuids.length){
+					inActiveLines.push(`${d.name.padEnd(14, " ") } ${d._error}`); 
 					continue;
+				}
+
+				// This is an AVAILABLE host.
+				else{
+					// Create the host line and all UUID lines.
+					activeLines.push(`${d.name.padEnd(14, " ") }`); 
+					totalLineLength += 1;
+
+					// Create a line for each UUID.
+					for(let uuid of d._uuids){
+						// console.log("uuid:", uuid, `(TOTAL: ${uuids.length})`);
+
+						let newYIndex = topLines.length + activeLines.length + dims.y+0;
+
+						actions.push(
+							async function(){ 
+								// console.log("Get config data from: ", `${d.URL}${d.getAll}`);
+								
+								let remoteConfig;
+								try{ 
+									remoteConfig = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" } ); 
+									remoteConfig = await remoteConfig.json();
+									thisScreen.remoteConfig = remoteConfig;
+									thisScreen.remoteConfigLoaded = true;
+									thisScreen.activeRemote = d;
+									thisScreen.uuid = uuid;
+									thisScreen.menu1.dialogs.choose_host.box.close();
+									thisScreen.shared.changeScreen.specific("m_s_command_chooser");
+								}
+								catch(e){ 
+									console.log("ERROR:", e); 
+								}
+							}
+						);
+						cursor.cursorIndexes.push( newYIndex );
+	
+						activeLines.push(`   CLIENT UUID: ${uuid.split("-")[0]}`);
+						totalLineLength += 1;
+					}
+
+					// Add a blank line after.
+					activeLines.push(``); 
+					totalLineLength += 1;
 				}
 			}
 
@@ -229,8 +275,6 @@ let screen = {
 		thisScreen.initing = true;
 
 		await thisScreen.intVars();
-		// 2affcaa4-2eb6-496e-bb4d-233ea32409b0
-		// xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
@@ -287,6 +331,12 @@ let screen = {
 				thisScreen.menu1.dialogs.choose_host.cursor.move();
 				thisScreen.menu1.dialogs.choose_host.cursor.blink();
 				thisScreen.menu1.dialogs.choose_host.text.select();
+			}
+
+			// Refresh the list.
+			if( _APP.m_gpio.isPress ("KEY1_PIN") ){
+				thisScreen.shared.changeScreen.specific("m_s_host_select");
+				resolve(); return; 
 			}
 
 			resolve();
