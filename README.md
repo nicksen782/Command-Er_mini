@@ -7,18 +7,21 @@ Designed to interact with this software:
   * [Command-Er (currently private)](https://github.com/nicksen782/Command-Er) 
 
 ## Features:
-- Portable mostly self-contained client for Command-Er (or anything else really.)
-- Battery as UPS, and LCD with button controls to control the application.
+- Use Command-Er MINI to send commands to Command-Er.
+  - Command-Er MINI therefore acts like a remote control for Command-Er.
+- Portable mostly self-contained remote client for Command-Er (potentially anything else too.)
+- Battery as UPS
+- LCD with button controls to control the application.
 - Web server built-in for debugging.
   - The Web Client receives:
     - Canvas drawing changes (What is on the LCD screen.)
     - Various statistics.
   - The Web Client sends:
-    - Debug commands
     - Button presses
     - Can set the server FPS.
+    - Debug commands
   - Most features use WebSockets. Some use POST. 
-  - Many of these features are available with both types.
+    - Many of these features are available with both types.
 
 ## Tested with:
 - Raspberry Pi Zero W
@@ -26,12 +29,16 @@ Designed to interact with this software:
 - NodeJs 16.9.1
 - npm 7.2.1 or npm 8.18.0
 
+## Connectivity:
+- WiFi
+- USB/Ethernet Gadget mode
+
 # INSTALL INSTRUCTIONS:
 ## WRITE RASPBERRY PI OS LITE IMAGE TO THE SD CARD
   - Install Raspberry Pi Imager from: [Raspberry Pi Imager - https://www.raspberrypi.com/software/](https://www.raspberrypi.com/software/) 
     - Run the program.
     - CHOOSE OS > Raspberry PI OS (other) > Raspberry Pi OS Lite (32-bit)
-    - CHOOSE STORAGE > <pick from the list.> (Be careful to choose the SD card.)
+    - CHOOSE STORAGE > <pick from the list.> (Be careful to choose the correct device/SD card)
     - (GEAR at the lower-right) > Configure as many settings as you can.
       - Specifically: Enable SSH, Configure wifi, Wifi country, Set locale settings.
         - I recommend also setting "Allow public-key authentication" and "Set authorized_keys for 'pi'".
@@ -95,3 +102,36 @@ git clone https://github.com/nicksen782/Command-Er_mini.git MINI
 - Connection to Command-Er to send commands through a selected terminal or a default terminal.
 - Menu system to govern the usage of the device. 
 - Status updates on a command that is sent. 
+
+# TODO: USB/ETHERNET GADGET:
+https://forums.raspberrypi.com/viewtopic.php?t=229208#p1405398
+echo 'options g_ether host_addr='$(dmesg | awk '/: HOST MAC/{print $NF}')' dev_addr='$(dmesg | awk '/: MAC/{print $NF}') | sudo tee /etc/modprobe.d/g_ether.conf
+sudo nano /etc/modprobe.d/g_ether.conf (replace line.)
+g_ether.host_addr=e2:d2:89:d2:b2:e9 g_ether.dev_addr=e2:d2:89:d2:b2:eb
+sudo nano /boot/cmdline.txt (add to the end.)
+modules-load=dwc2,g_ether g_ether.host_addr=e2:d2:89:d2:b2:e9 g_ether.dev_addr=e2:d2:89:d2:b2:eb
+
+# TODO:
+Menus:
+  Display connectivity data such as IP addresses and port.
+  Turn on/off WiFi.
+  Restart APP.
+  Restart Linux.
+  Shutdown Linux.
+  Switch to other screens.
+# TODO:
+Menu Overlays:
+  A method to copy the VRAM for the region to overwritten by the new menu.
+  A method to overlay a smaller menu on the screen.
+  A method to disable the previous menu cursors but still leave the uncovered portion of the previos menu displayed.
+  A method to close the new menu, clear it, and restore the previous VRAM.
+  A way to overlay the screen but save the previous VRAM in that region fir
+
+# TODO: RPI3 Install:
+~/MINI/setupScripts/01_rpi_config.sh
+~/MINI/setupScripts/02_linux.sh
+~/MINI/setupScripts/03_node_npm.sh
+~/MINI/setupScripts/04_python.sh
+~/MINI/setupScripts/05_fbcp.sh
+~/MINI/setupScripts/06_app_install.sh
+~/MINI/setupScripts/07_pm2.sh

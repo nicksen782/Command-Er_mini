@@ -117,8 +117,13 @@ let _MOD = {
 			// Real button read?
 			if(!_MOD.statesOverride_flag){
 				for(k in _MOD.inputs){
-					let value = _MOD.inputs[k].readSync() ? 1 : 0;
-					_MOD.states[k] = value ? 1 : 0;
+					if( _APP.m_config.config.toggles.isActive_gpio ){ 
+						let value = _MOD.inputs[k].readSync() ? 1 : 0;
+						_MOD.states[k] = value;
+					}
+					else{
+						_MOD.states[k] = 0;
+					}
 				}
 			}
 

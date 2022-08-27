@@ -1,7 +1,7 @@
 
-# *********************************
-# START : ADDED BY: COMMAND-ER MINI
-# *********************************
+# ********************************************
+# DISPLAY_SETTINGS : ADDED BY: COMMAND-ER MINI
+# ********************************************
 
 # TURN ON/OFF.
 camera_auto_detect=0
@@ -13,6 +13,8 @@ dtparam=act_led_trigger=actpwr
 # dtparam=spi=on     # Set via raspi-config
 
 # DISPLAY SETTINGS. # http://wiki.sunfounder.cc/index.php?title=Adjust_Resolution_for_Raspberry_Pi
+framebuffer_width=240
+framebuffer_height=240
 gpu_mem=128
 disable_overscan=1
 hdmi_force_hotplug=1
@@ -20,10 +22,3 @@ hdmi_cvt=240 240 30 1 0 0 1
 hdmi_group=2
 hdmi_mode=87
 display_rotate=0
-
-# GPIO SETTINGS.
-gpio=6,19,5,26,13,21,20,16=pu
-
-# *********************************
-# FINISH: ADDED BY: COMMAND-ER MINI
-# *********************************

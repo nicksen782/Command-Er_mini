@@ -44,8 +44,8 @@ make -j
 # Edit /etc/rc.local so that fbcp is run at start up and so that the console cursor does not blink.
 echo
 echo "-- ADD TO /etc/rc.local: START FBCP, DISABLE BLINKING CURSOR ON STARTUP --"
-FINDTHIS="exit 0"
-REPLACEWITH=""\
+local FINDTHIS="exit 0"
+local REPLACEWITH=""\
 "# Start: Framebuffer Copy.\n"\
 "/home/pi/waveshare_fbcp/build/fbcp \&\n\n"\
 "# Disable terminal blinking cursor.\n"\

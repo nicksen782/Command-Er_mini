@@ -2,6 +2,7 @@
 
 cd ~
 
+# time bash ~/MINI/setupScripts/01_rpi_config.sh
 time bash ~/MINI/setupScripts/02_linux.sh
 time bash ~/MINI/setupScripts/03_node_npm.sh
 time bash ~/MINI/setupScripts/04_python.sh

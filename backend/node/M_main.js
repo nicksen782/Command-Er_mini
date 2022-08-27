@@ -933,19 +933,22 @@ let _APP = {
 					this.inited               = true; 
 				},
 				updateIfNeeded: function(x = 23, y = 29, tile = "tile3"){
-					// Is it time to request a battery update? 
-					if(performance.now() - this.lastBatteryUpdate >= this.batteryUpdateMs ){
-						_APP.m_websocket_python.getBatteryUpdate();
-						this.lastBatteryUpdate = performance.now();
-					}
-					// No? Do we already have an update to display?
-					else if(this.hasUpdate){
-						// console.log(_APP.screenLogic.shared.battery.lastBattery);
-						_APP.screenLogic.shared.battery.display(x,y,tile);
-						this.hasUpdate = false;
+					if( _APP.m_config.config.toggles.isActive_battery ){ 
+						// Is it time to request a battery update? 
+						if(performance.now() - this.lastBatteryUpdate >= this.batteryUpdateMs ){
+							_APP.m_websocket_python.getBatteryUpdate();
+							this.lastBatteryUpdate = performance.now();
+						}
+						// No? Do we already have an update to display?
+						else if(this.hasUpdate){
+							// console.log(_APP.screenLogic.shared.battery.lastBattery);
+							_APP.screenLogic.shared.battery.display(x,y,tile);
+							this.hasUpdate = false;
+						}
 					}
 				},
 				display: function(x = 23, y = 29, tile = "tile3"){
+					if( ! _APP.m_config.config.toggles.isActive_battery ){ return; }
 					let json = this.lastBattery;
 					firstLoad=false;
 					try{

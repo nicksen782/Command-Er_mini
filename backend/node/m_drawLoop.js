@@ -82,75 +82,77 @@ let _MOD = {
 		},
 		sendToWsClients: function(data){
 			// Update the web clients.
-			if(_APP.m_websocket_node.ws_utilities.getClientCount()){
+			if( _APP.m_config.config.toggles.isActive_nodeWsServer ){ 
+				if(_APP.m_websocket_node.ws_utilities.getClientCount()){
 
-				// VRAM_FULL - (ArrayBuffer) (Appends the binary of "FULL__" to differentiate it.)
-				_APP.timeIt("______WSSEND_VRAM_FULL", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("VRAM_FULL")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
-						new Uint8Array( Array.from([
-							..._APP.m_draw._VRAM_view, 
-							...Array.from("FULL__").map(d=>d.charCodeAt(0))
-						])
-						), "VRAM_FULL"
-					);
+					// VRAM_FULL - (ArrayBuffer) (Appends the binary of "FULL__" to differentiate it.)
+					_APP.timeIt("______WSSEND_VRAM_FULL", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("VRAM_FULL")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
+							new Uint8Array( Array.from([
+								..._APP.m_draw._VRAM_view, 
+								...Array.from("FULL__").map(d=>d.charCodeAt(0))
+							])
+							), "VRAM_FULL"
+						);
+					}
+					_APP.timeIt("______WSSEND_VRAM_FULL", "e", __filename);
+
+					// VRAM_CHANGES only - (ArrayBuffer) (Appends the binary of "PART__" to differentiate it.)
+					_APP.timeIt("______WSSEND_VRAM_CHANGES", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("VRAM_CHANGES")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
+							new Uint8Array( Array.from([
+								..._MOD.loop.getChangesFlat(), 
+								...Array.from("PART__").map(d=>d.charCodeAt(0))
+							])
+							), "VRAM_CHANGES"
+						);
+					}
+					_APP.timeIt("______WSSEND_VRAM_CHANGES", "e", __filename);
+
+					// VRAM update stats0. - (JSON)
+					_APP.timeIt("______WSSEND_STATS0", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS0")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS0", data:_APP.m_draw._VRAM_changes}), "STATS0" );
+					}
+					_APP.timeIt("______WSSEND_STATS0", "e", __filename);
+
+					// VRAM update stats1. - (JSON)
+					_APP.timeIt("______WSSEND_STATS1", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS1")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1" );
+					}
+					_APP.timeIt("______WSSEND_STATS1", "e", __filename);
+
+					// VRAM update stats2. - (JSON)
+					_APP.timeIt("______WSSEND_STATS2", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS2")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2" );
+					}
+					_APP.timeIt("______WSSEND_STATS2", "e", __filename);
+
+					// stats3. - (JSON)
+					_APP.timeIt("______WSSEND_STATS3", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS3")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS3", data:_APP.timeIt_timings_prev}), "STATS3" );
+						// let data = new Uint8Array( Array.from([
+						// 	// ..._APP.m_draw._VRAM_view, 
+						// 	...Array.from(JSON.stringify(_APP.timeIt_timings_prev,null,0)).map(d=>d.charCodeAt(0)), 
+						// 	...Array.from("STATS3").map(d=>d.charCodeAt(0))
+						// ]));
+						// _APP.m_websocket_node.ws_utilities.sendToAllSubscribers( data, "STATS3" );
+					}
+					_APP.timeIt("______WSSEND_STATS3", "e", __filename);
+
+					// lastBattery. - (JSON)
+					_APP.timeIt("______WSSEND_STATS4", "s", __filename);
+					if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS4")){
+						_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS4", data:_APP.screenLogic.shared.battery.lastBattery}), "STATS4" );
+					}
+					_APP.timeIt("______WSSEND_STATS4", "e", __filename);
+
 				}
-				_APP.timeIt("______WSSEND_VRAM_FULL", "e", __filename);
-
-				// VRAM_CHANGES only - (ArrayBuffer) (Appends the binary of "PART__" to differentiate it.)
-				_APP.timeIt("______WSSEND_VRAM_CHANGES", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("VRAM_CHANGES")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers(
-						new Uint8Array( Array.from([
-							..._MOD.loop.getChangesFlat(), 
-							...Array.from("PART__").map(d=>d.charCodeAt(0))
-						])
-						), "VRAM_CHANGES"
-					);
-				}
-				_APP.timeIt("______WSSEND_VRAM_CHANGES", "e", __filename);
-
-				// VRAM update stats0. - (JSON)
-				_APP.timeIt("______WSSEND_STATS0", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS0")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS0", data:_APP.m_draw._VRAM_changes}), "STATS0" );
-				}
-				_APP.timeIt("______WSSEND_STATS0", "e", __filename);
-
-				// VRAM update stats1. - (JSON)
-				_APP.timeIt("______WSSEND_STATS1", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS1")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS1", data:_APP.m_draw._VRAM_updateStats}), "STATS1" );
-				}
-				_APP.timeIt("______WSSEND_STATS1", "e", __filename);
-
-				// VRAM update stats2. - (JSON)
-				_APP.timeIt("______WSSEND_STATS2", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS2")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2" );
-				}
-				_APP.timeIt("______WSSEND_STATS2", "e", __filename);
-
-				// stats3. - (JSON)
-				_APP.timeIt("______WSSEND_STATS3", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS3")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS3", data:_APP.timeIt_timings_prev}), "STATS3" );
-					// let data = new Uint8Array( Array.from([
-					// 	// ..._APP.m_draw._VRAM_view, 
-					// 	...Array.from(JSON.stringify(_APP.timeIt_timings_prev,null,0)).map(d=>d.charCodeAt(0)), 
-					// 	...Array.from("STATS3").map(d=>d.charCodeAt(0))
-					// ]));
-					// _APP.m_websocket_node.ws_utilities.sendToAllSubscribers( data, "STATS3" );
-				}
-				_APP.timeIt("______WSSEND_STATS3", "e", __filename);
-
-				// lastBattery. - (JSON)
-				_APP.timeIt("______WSSEND_STATS4", "s", __filename);
-				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS4")){
-					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS4", data:_APP.screenLogic.shared.battery.lastBattery}), "STATS4" );
-				}
-				_APP.timeIt("______WSSEND_STATS4", "e", __filename);
-
 			}
 		},
 		appLoop: async function(){
