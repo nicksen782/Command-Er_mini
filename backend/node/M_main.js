@@ -999,6 +999,13 @@ let _APP = {
 
 					// Display the battery string.
 					_APP.m_draw.print(str, x+1, y);
+
+					// DEBUG: Show AMPS
+					if(json && undefined != json['A']){
+						let padLength = 8;
+						let str2 = `A:${json['A'].toFixed(4)}`;
+						_APP.m_draw.print(str2, 13, y);
+					}
 			
 				},
 			},

@@ -130,7 +130,7 @@ let _MOD = {
 					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS2", data:_APP.stats.fps}), "STATS2" );
 				}
 				_APP.timeIt("______WSSEND_STATS2", "e", __filename);
-				
+
 				// stats3. - (JSON)
 				_APP.timeIt("______WSSEND_STATS3", "s", __filename);
 				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS3")){
@@ -143,6 +143,13 @@ let _MOD = {
 					// _APP.m_websocket_node.ws_utilities.sendToAllSubscribers( data, "STATS3" );
 				}
 				_APP.timeIt("______WSSEND_STATS3", "e", __filename);
+
+				// lastBattery. - (JSON)
+				_APP.timeIt("______WSSEND_STATS4", "s", __filename);
+				if(_APP.m_websocket_node.ws_utilities.getClientCount_bySubscription("STATS4")){
+					_APP.m_websocket_node.ws_utilities.sendToAllSubscribers( JSON.stringify({mode:"STATS4", data:_APP.screenLogic.shared.battery.lastBattery}), "STATS4" );
+				}
+				_APP.timeIt("______WSSEND_STATS4", "e", __filename);
 
 			}
 		},

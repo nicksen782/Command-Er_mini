@@ -222,6 +222,13 @@ let screen = {
 				}
 			}
 
+			// If there are no AVAILABLE lines then put a blank space there.
+			if(activeLines.length == 1){
+				// Add a blank line after.
+				activeLines.push(``); 
+				totalLineLength += 1;
+			}
+
 			// Combine the lines. 
 			lines = [...topLines, ...activeLines, ...inActiveLines ];
 			 

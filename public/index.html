@@ -44,7 +44,8 @@
 			<div id="controls_cont_nav_ws"   view="controls_cont_view_ws"   onclick="nav.showOne(this.id);" class="title navButton">WS</div>
 			<div id="controls_cont_nav_post" view="controls_cont_view_post" onclick="nav.showOne(this.id);" class="title navButton">POST</div>
 			<div id="controls_cont_nav_vram" view="controls_cont_view_vram" onclick="nav.showOne(this.id);" class="title navButton">VRAM</div>
-			<div id="controls_cont_nav_stats" view="controls_cont_view_stats" onclick="nav.showOne(this.id);" class="title navButton">STATS</div>
+			<div id="controls_cont_nav_stats" view="controls_cont_view_stats" onclick="nav.showOne(this.id);" class="title navButton">STATS3</div>
+			<div id="controls_cont_nav_stats4" view="controls_cont_view_stats" onclick="nav.showOne(this.id);" class="title navButton">STATS4</div>
 			<span onclick="shared.toggleFullscreen();" id="fullscreen">&#8983;</span>
 		</div>
 		
@@ -91,6 +92,7 @@
 							<td colspan="1"> <div class="title">COMMANDS</div> </td>
 							<td colspan="5">
 								<button id="ws_requestVramDraw" class="button">Get _VRAM</button>
+								<button id="ws_requestToggleBacklight" class="button">Toggle Backlight</button>
 							</td>
 						</tr>
 
@@ -172,6 +174,7 @@
 							<td colspan="1"> <div class="title">COMMANDS</div> </td>
 							<td colspan="1">
 								<button id="post_requestVramDraw" class="button">Get _VRAM</button>
+								<button id="post_requestToggleBacklight" class="button">Toggle Backlight</button>
 								<button id="post_requestDrawFlags" class="button">Request GET_DRAW_FLAGS</button>
 							</td>
 						</tr>
@@ -221,6 +224,11 @@
 			<!-- STATS VIEW -->
 			<div class="view ws disconnected" id="controls_cont_view_stats">
 				<div id="controls_cont_view_stats_output" class="padding width100"></div>
+			</div>
+			
+			<!-- STATS4 VIEW -->
+			<div class="view ws disconnected" id="controls_cont_view_stats4">
+				<div id="controls_cont_view_stats4_output" class="padding width100"></div>
 			</div>
 		</div>
 

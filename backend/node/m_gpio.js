@@ -67,6 +67,38 @@ let _MOD = {
 
 	// Adds routes for this module.
 	addRoutes: function(app, express){
+		//
+		_APP.addToRouteList({ path: "/TOGGLE_BACKLIGHT", method: "post", args: [], file: __filename, desc: "get_config" });
+		app.post('/TOGGLE_BACKLIGHT'    ,express.json(), async (req, res) => {
+			// Init the buttons.
+			if( _APP.m_config.config.toggles.isActive_gpio ){ 
+				_MOD.toggleBacklight("BL_PIN");
+				res.json("m_gpio: gpi_toggleBacklight: DONE");
+			}
+			else{
+				res.json("m_gpio: module_init: GPIO DISABLED IN CONFIG");
+			}
+		});
+	},
+
+	// Intended for the backlight.
+	toggleBacklight: async function(buttonKey){
+		return new Promise(async function(resolve,reject){
+			// Estimated:
+			// Backlight off saves in AMPS:
+			// A: 0.04 - A: 0.07
+			
+			if( _APP.m_config.config.toggles.isActive_gpio ){ 
+				let currentState = _MOD.outputs[buttonKey].readSync() ? 1 : 0; 
+				let newState     = currentState ? 0 : 1;
+				_MOD.outputs[buttonKey].writeSync(newState);
+				resolve(`toggleBacklight: ${buttonKey} to: ${newState}`);
+			}
+			else{
+				console.log("m_gpio: toggleBacklight: GPIO DISABLED IN CONFIG");
+				resolve(`toggle_pin: ${buttonKey} GPIO DISABLED IN CONFIG`);
+			}
+		});
 	},
 
 	//

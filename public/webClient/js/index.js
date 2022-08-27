@@ -179,6 +179,10 @@ let websocket = {
 				buttons.updateSubscriptionList(data.data);
 			},
 
+			TOGGLE_BACKLIGHT: function(data){
+				console.log(`mode: ${data.mode}, data:`, data.data);
+			},
+
 			// VRAM UPDATES
 			STATS0: function(data){
 				console.log(data.data);
@@ -261,6 +265,9 @@ let websocket = {
 			},
 			STATS3: function(data){
 				draw.display_stats3(data.data);
+			},
+			STATS4: function(data){
+				draw.display_stats4(data.data);
 			},
 		},
 		TEXT  : {
@@ -989,12 +996,106 @@ let draw = {
 			} else{ console.log("ALREADY IN A DRAW"); }
 		}
 	},	
+	toggleBacklight: async function(type){
+		// Draw the new VRAM.
+		if(type=="ws" && websocket.activeWs){
+			if(websocket.activeWs){
+				websocket.activeWs.send(JSON.stringify({"mode":"TOGGLE_BACKLIGHT", "data":"BL_PIN"}));
+			}
+		}
+		else if(type=="post"){
+			if(!draw.isDrawing){
+				let data = await http.post("TOGGLE_BACKLIGHT", {pin: "BL_PIN"}, "json");
+				console.log(data);
+			} else{ console.log("ALREADY IN A DRAW"); }
+		}
+	},
 
 	display_stats3: function(data){
 		// console.log("display_stats3:", data);
 		let dest = document.getElementById("controls_cont_view_stats_output");
 		let output = "";
 		
+		// Display the main keys in reverse order.
+		let keys1 = Object.keys(data);
+		keys1.reverse();
+
+		for(let key1 of keys1){
+			let longestKey2 = 0;
+			for(let key in data[key1]){ if(key.length > longestKey2){ longestKey2 = key.length; } }
+
+			// output += `${"*".repeat(45)}\n`;
+			output += `${"-".repeat(key1.length + 4)}\n`;
+			output += `| ${key1} |\n`;
+			output += `${"-".repeat(key1.length + 4)}\n`;
+			
+			// Display the sub keys in reverse order.
+			// let keys2 = Object.keys(data[key1]).reverse();
+			let keys2 = Object.keys(data[key1]);
+			for(let key2 of keys2){
+				let value;
+				try{
+					value = data[key1][key2].t.toFixed(2);
+				}
+				catch(e){
+					// console.log("key:", key2, "does not have a value.");
+					value = "?????";
+				}
+				output += ` ->  ${key2.padEnd(longestKey2, " ")} : ${value.padStart(10, " ")} ms\n`;
+			}
+			output += " \n";
+		}
+		// output += " \n";
+	
+		// output += `${"*".repeat(45)}\n`;
+		dest.innerText = output;
+	},
+
+	display_stats4: function(data){
+		console.log("display_stats4:", data);
+		let dest = document.getElementById("controls_cont_view_stats4_output");
+		let output = "";
+		return;
+		
+
+		// Create the table and data row if it is missing.
+			// console.log(d, thisTable);
+			// console.log("Missing table. Creating.", d, thisTable);
+			let table = document.createElement("table");
+
+			// Add the headers row.
+			let tr = table.insertRow(-1);
+			let key = keys[k];
+			tr.insertCell(-1).outerHTML = `<th title="%">%</th>`;
+			tr.insertCell(-1).outerHTML = `<th title="V</th>`;
+			tr.insertCell(-1).outerHTML = `<th title="A</th>`;
+			tr.insertCell(-1).outerHTML = `<th title="C</th>`;
+			tr.insertCell(-1).outerHTML = `<th title="PV</th>`;
+			tr.insertCell(-1).outerHTML = `<th title="SV</th>`;
+			tr.insertCell(-1).outerHTML = `<th title="W</th>`;
+
+			// Add the data row.
+			tr = table.insertRow(-1);
+			for(let k=0; k<keys.length; k+=1){
+				let key = keys[k];
+				let td = tr.insertCell(-1);
+				td.setAttribute("name", "updates_" + key);
+				td.setAttribute("layer", i);
+			}
+
+			//
+			d.append(table);
+
+			// Save the table to local var. 
+			thisTable = table;
+
+		// draw.tilesCache[ draw.configs.tileIdsByTilename["battcharge1"] ],
+		// draw.tilesCache[ draw.configs.tileIdsByTilename["battcharge2"] ],
+		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt1"] ],
+		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt2"] ],
+		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt3"] ],
+		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt4"] ],
+
 		// Display the main keys in reverse order.
 		let keys1 = Object.keys(data);
 		keys1.reverse();
@@ -1150,8 +1251,10 @@ let buttons = {
 		buttons.DOM["ws_b2"]                = document.getElementById("ws_b2");
 		buttons.DOM["ws_b3"]                = document.getElementById("ws_b3");
 		buttons.DOM["ws_requestVramDraw"]   = document.getElementById("ws_requestVramDraw");
-
+		buttons.DOM["ws_requestToggleBacklight"] = document.getElementById("ws_requestToggleBacklight");
+		
 		buttons.DOM["post_requestVramDraw"] = document.getElementById("post_requestVramDraw");
+		buttons.DOM["post_requestToggleBacklight"] = document.getElementById("post_requestToggleBacklight");
 		buttons.DOM["post_requestDrawFlags"] = document.getElementById("post_requestDrawFlags");
 
 		// Add listeners for each button.
@@ -1181,8 +1284,10 @@ let buttons = {
 		buttons.DOM["ws_b2"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY2_PIN");}, false);
 		buttons.DOM["ws_b3"]   .addEventListener("click", ()=>{buttons.PRESS_BUTTONS("ws", "KEY3_PIN");}, false);
 		buttons.DOM["ws_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('ws');}, false);
-
+		buttons.DOM["ws_requestToggleBacklight"].addEventListener("click", ()=>{draw.toggleBacklight('ws');}, false);
+		
 		buttons.DOM["post_requestVramDraw"].addEventListener("click", ()=>{draw.getVram('post');}, false);
+		buttons.DOM["post_requestToggleBacklight"].addEventListener("click", ()=>{draw.toggleBacklight('post');}, false);
 		buttons.DOM["post_requestDrawFlags"].addEventListener("click", async ()=>{
 			let data = await http.post("GET_DRAW_FLAGS", {}, "json");
 			console.log( 

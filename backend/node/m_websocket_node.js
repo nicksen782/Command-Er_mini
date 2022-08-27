@@ -16,6 +16,7 @@ let _MOD = {
 		"STATS1",       // JSON:        Sends _APP.m_draw._VRAM_updateStats.
 		"STATS2",       // JSON:        Sends _APP.stats.fps.
 		"STATS3",       // JSON:        Sends _APP.timeIt_timings_prev.
+		"STATS4",       // JSON:        Sends _APP.screenLogic.shared.battery.lastBattery.
 	],
 
 	// Init this module.
@@ -59,6 +60,7 @@ let _MOD = {
 		_APP.addToRouteList({ path: "PRESS_BUTTONS"    , method: "ws", args: [], file: __filename, desc: "(JSON): PRESS_BUTTONS" });
 		_APP.addToRouteList({ path: "DEBUGCMD"         , method: "ws", args: [], file: __filename, desc: "(JSON): Send debug command (fixed list.)" });
 		_APP.addToRouteList({ path: "CHANGE_SCREEN"    , method: "ws", args: [], file: __filename, desc: "(JSON): CHANGE_SCREEN" });
+		_APP.addToRouteList({ path: "TOGGLE_BACKLIGHT" , method: "ws", args: [], file: __filename, desc: "(JSON): TOGGLE_BACKLIGHT" });
 		_APP.addToRouteList({ path: "GET_SUBSCRIPTIONS", method: "ws", args: [], file: __filename, desc: "(TEXT): Get list of active subscriptions." });
 	},
 
@@ -105,6 +107,12 @@ let _MOD = {
 					...Array.from("FULL__").map(d=>d.charCodeAt(0))
 				]) ).buffer );
 			},
+
+			TOGGLE_BACKLIGHT:    async function(ws, data){
+				let resp = await _APP.m_gpio.toggleBacklight("BL_PIN");
+				ws.send(resp);
+			},
+
 			// Expected origin: Web client by request.
 			CHANGE_FPS:    async function(ws, data){
 				// Stop the AppLoop.
