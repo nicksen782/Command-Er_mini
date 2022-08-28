@@ -1051,84 +1051,12 @@ let draw = {
 		dest.innerText = output;
 	},
 
+	// TODO
 	display_stats4: function(data){
 		console.log("display_stats4:", data);
 		let dest = document.getElementById("controls_cont_view_stats4_output");
 		let output = "";
 		return;
-		
-
-		// Create the table and data row if it is missing.
-			// console.log(d, thisTable);
-			// console.log("Missing table. Creating.", d, thisTable);
-			let table = document.createElement("table");
-
-			// Add the headers row.
-			let tr = table.insertRow(-1);
-			let key = keys[k];
-			tr.insertCell(-1).outerHTML = `<th title="%">%</th>`;
-			tr.insertCell(-1).outerHTML = `<th title="V</th>`;
-			tr.insertCell(-1).outerHTML = `<th title="A</th>`;
-			tr.insertCell(-1).outerHTML = `<th title="C</th>`;
-			tr.insertCell(-1).outerHTML = `<th title="PV</th>`;
-			tr.insertCell(-1).outerHTML = `<th title="SV</th>`;
-			tr.insertCell(-1).outerHTML = `<th title="W</th>`;
-
-			// Add the data row.
-			tr = table.insertRow(-1);
-			for(let k=0; k<keys.length; k+=1){
-				let key = keys[k];
-				let td = tr.insertCell(-1);
-				td.setAttribute("name", "updates_" + key);
-				td.setAttribute("layer", i);
-			}
-
-			//
-			d.append(table);
-
-			// Save the table to local var. 
-			thisTable = table;
-
-		// draw.tilesCache[ draw.configs.tileIdsByTilename["battcharge1"] ],
-		// draw.tilesCache[ draw.configs.tileIdsByTilename["battcharge2"] ],
-		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt1"] ],
-		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt2"] ],
-		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt3"] ],
-		// draw.tilesCache[ draw.configs.tileIdsByTilename["batt4"] ],
-
-		// Display the main keys in reverse order.
-		let keys1 = Object.keys(data);
-		keys1.reverse();
-
-		for(let key1 of keys1){
-			let longestKey2 = 0;
-			for(let key in data[key1]){ if(key.length > longestKey2){ longestKey2 = key.length; } }
-
-			// output += `${"*".repeat(45)}\n`;
-			output += `${"-".repeat(key1.length + 4)}\n`;
-			output += `| ${key1} |\n`;
-			output += `${"-".repeat(key1.length + 4)}\n`;
-			
-			// Display the sub keys in reverse order.
-			// let keys2 = Object.keys(data[key1]).reverse();
-			let keys2 = Object.keys(data[key1]);
-			for(let key2 of keys2){
-				let value;
-				try{
-					value = data[key1][key2].t.toFixed(2);
-				}
-				catch(e){
-					// console.log("key:", key2, "does not have a value.");
-					value = "?????";
-				}
-				output += ` ->  ${key2.padEnd(longestKey2, " ")} : ${value.padStart(10, " ")} ms\n`;
-			}
-			output += " \n";
-		}
-		// output += " \n";
-	
-		// output += `${"*".repeat(45)}\n`;
-		dest.innerText = output;
 	},
 
 	initDebugCanvasLayers: function(){
@@ -1222,6 +1150,59 @@ let draw = {
 		clearDebugCanvases();
 		drawNumbers();
 		drawGrid();
+	},
+
+	// POST.
+	remoteConf: {
+		DOM:{},
+		// Request the remoteConf.json file from the server.
+		reload: async function(){
+			// Request the data.
+			let data = await http.post("get_remoteConf", {}, "json");
+
+			// Save the data.
+			draw.configs.remoteConf = data;
+
+			// Display the data.
+			draw.remoteConf.display();
+		},
+
+		// Display the current cached remoteConf.json data.
+		display: function(){
+			let dest = draw.remoteConf.DOM.output;
+			dest.value = JSON.stringify(draw.configs.remoteConf,null,1);
+		},
+
+		// Update local and the server with the displayed remoteConf.json data.
+		update: async function(){
+			let src;
+
+			// Make sure that the JSON is parsable.
+			try{ src = JSON.parse(draw.remoteConf.DOM.output.value); }
+			catch(e){
+				console.log(e);
+				alert("The JSON could not be parsed. Please check it before trying again.");
+				return;
+			}
+
+			// Send the data.
+			let resp = await http.post("update_remoteConf", {remoteConf: src}, "json");
+		},
+
+		// Init this section. 
+		init: function() {
+			// DOM
+			draw.remoteConf.DOM.reload = document.getElementById("remoteConf_reload");
+			draw.remoteConf.DOM.update = document.getElementById("remoteConf_update");
+			draw.remoteConf.DOM.output = document.getElementById("controls_cont_view_remoteConf_output");
+
+			// EVENT LISTENERS.
+			draw.remoteConf.DOM.reload.addEventListener("click", draw.remoteConf.reload, false);
+			draw.remoteConf.DOM.update.addEventListener("click", draw.remoteConf.update, false);
+
+			// DISPLAY
+			draw.remoteConf.display();
+		}
 	},
 };
 // BUTTON INPUT
@@ -1586,7 +1567,6 @@ window.onload = async function(){
 
 	buttons.DOM.dispChk_numbers = document.getElementById("dispChk_numbers");
 	buttons.DOM.dispChk_numbers.addEventListener("click", function(){
-		console.log(this.id);
 		draw.dispChk_numbers = this.checked;
 		let canvas = document.getElementById("vram_all_l1");
 		if(this.checked){ canvas.classList.remove("displayNone"); }
@@ -1597,7 +1577,6 @@ window.onload = async function(){
 
 	buttons.DOM.dispChk_grid    = document.getElementById("dispChk_grid");
 	buttons.DOM.dispChk_grid.addEventListener("click", function(){
-		console.log(this.id);
 		draw.dispChk_grid = this.checked;
 		let canvas = document.getElementById("vram_all_l2");
 		if(this.checked){ canvas.classList.remove("displayNone"); }
@@ -1608,7 +1587,6 @@ window.onload = async function(){
 
 	buttons.DOM.dispChk_display = document.getElementById("dispChk_display");
 	buttons.DOM.dispChk_display.addEventListener("click", function(){
-		console.log(this.id);
 		draw.dispChk_display = this.checked;
 		let canvas = document.getElementById("vram_all");
 		if(this.checked){ canvas.classList.remove("displayNone"); }
@@ -1618,4 +1596,6 @@ window.onload = async function(){
 	buttons.DOM.dispChk_display.dispatchEvent(new Event("click"));
 
 	draw.initDebugCanvasLayers();
+
+	draw.remoteConf.init();
 }

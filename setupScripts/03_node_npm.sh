@@ -25,9 +25,9 @@ rm node-v16.9.1-linux-armv6l.tar.gz
 rm -rf node-v16.9.1-linux-armv6l
 
 # Set ownership of ~/.npm.
-echo
-echo "-- SET OWNERSHIP OF ~/.npm --"
-sudo chown -R $(whoami) "$HOME/.npm"
+# echo
+# echo "-- SET OWNERSHIP OF ~/.npm --"
+# sudo chown -R $(whoami) "$HOME/.npm"
 
 # # Update NPM.
 # echo

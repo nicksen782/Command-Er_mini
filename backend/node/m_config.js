@@ -63,12 +63,30 @@ let _MOD = {
 					tilenamesByIndex : _MOD.tilenamesByIndex,
 					subscriptionKeys : _APP.m_websocket_node.subscriptionKeys,
 					screens          : _APP.screens,
+					// remoteConf       : _MOD.remoteConf,
+					// remoteConf       :  fs.readFileSync(_MOD.remoteConf_filename,'utf8') ,
+					remoteConf       : JSON.parse( fs.readFileSync(_MOD.remoteConf_filename,'utf8') ),
 				};
 				res.json(result);
 			}
 			catch(e){
 				res.json(e);
 			}
+		});
+
+		//
+		_APP.addToRouteList({ path: "/get_remoteConf", method: "post", args: [], file: __filename, desc: "" });
+		app.post('/get_remoteConf'    ,express.json(), async (req, res) => {
+			let data = JSON.parse( fs.readFileSync(_MOD.remoteConf_filename,'utf8') );
+			res.json(data);
+		});
+
+		//
+		_APP.addToRouteList({ path: "/get_remoteConf", method: "post", args: [], file: __filename, desc: "" });
+		app.post('/update_remoteConf'    ,express.json(), async (req, res) => {
+			let data = req.body.remoteConf;
+			fs.writeFileSync(_MOD.remoteConf_filename, JSON.stringify(data,null,1) );
+			res.json(`update_remoteConf`);
 		});
 
 	},

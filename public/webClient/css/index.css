@@ -335,7 +335,7 @@ span#ws_autoReconnectDiv:hover {
 	padding: 5px;
 }
 .width100 {
-	width: 100% 
+	width: 100%;
 }
 #controls_cont_view_stats_output {
 	white-space: pre;
@@ -363,3 +363,12 @@ span#ws_autoReconnectDiv:hover {
 }
 #fullscreen:hover{background-color: #d9d5d5;}
 .displayNone{ display:none; }
+
+textarea#controls_cont_view_remoteConf_output{
+    height: 90%;
+    width: 100%;
+    white-space: pre;
+    font-family: monospace;
+}
+#remoteConf_reload{}
+#remoteConf_update{}

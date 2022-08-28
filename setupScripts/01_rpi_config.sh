@@ -69,14 +69,19 @@ function rpi_config(){
 					# Append to the /boot/config.txt file.
 					cat boot/config_partial1.txt | sudo tee -a /boot/config.txt > /dev/null
 
+					# Update framebuffer_width
+					FINDTHIS="#framebuffer_width=1280"
+					REPLACEWITH="framebuffer_width=240"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+					# Update framebuffer_height
+					FINDTHIS="#framebuffer_height=720"
+					REPLACEWITH="framebuffer_height=240"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
 					# Comment-out: dtoverlay=vc4-kms-v3d
 					FINDTHIS="dtoverlay=vc4-kms-v3d"
 					REPLACEWITH="#dtoverlay=vc4-kms-v3d"
-					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
-
-					# Disable audio: 
-					FINDTHIS="dtparam=audio=on"
-					REPLACEWITH="dtparam=audio=off"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
 					# Comment-out: max_framebuffers=2
@@ -84,27 +89,22 @@ function rpi_config(){
 					REPLACEWITH="#max_framebuffers=2"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
-					# Comment-out: camera_auto_detect
+					# Disable audio: 
+					FINDTHIS="dtparam=audio=on"
+					REPLACEWITH="dtparam=audio=off"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+					# Disable: camera_auto_detect
 					FINDTHIS="camera_auto_detect=1"
-					REPLACEWITH="#camera_auto_detect=1"
+					REPLACEWITH="camera_auto_detect=0"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
-					# Comment-out: display_auto_detect
+					# Disable: display_auto_detect
 					FINDTHIS="display_auto_detect=1"
-					REPLACEWITH="#display_auto_detect=0"
+					REPLACEWITH="display_auto_detect=0"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
-					# Update framebuffer_width
-					FINDTHIS="#framebuffer_width=1280"
-					REPLACEWITH="#framebuffer_width=240"
-					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
-					
-					# Update framebuffer_height
-					FINDTHIS="#framebuffer_height=720"
-					REPLACEWITH="framebuffer_height=240"
-					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
-
-					# Disable the blinking console terminal at start-up.
+					# Disable: Blinking console terminal at start-up.
 					FINDTHIS="exit 0"
 					REPLACEWITH="# Disable terminal blinking cursor.\n"
 					REPLACEWITH+="echo 0 | tee /sys/class/graphics/fbcon/cursor_blink\n\n"

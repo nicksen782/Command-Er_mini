@@ -114,27 +114,29 @@ function pm2() {
 function rpi0w_autoConfig() {
 	echo "rpi0w_autoConfig"
 	
-	linux
-	node_npm
-	python
-	fbcp
-	app_install
-	pm2
+	linux            # Linux packages/config
+	node_npm         # NodeJs/NPM install.
+	python           # Python modules for WebSockets/smbus.
+	fbcp             # Framebuffer Copy for the Waveshare LCD.
+	app_install      # Run npm install for the app.
+	pm2              # Install/configure PM2 for app persistence. 
 }
 function rpi3b_autoConfig() {
 	echo "rpi3b_autoConfig"
 
-	linux
-	node_npm
-	# python # Not needed.
-	# fbcp # Not needed.
-
-	rpi3b_flagConfig
-
-	app_install
-	pm2
+	linux            # Linux packages/config
+	node_npm         # NodeJs/NPM install.
+	# python           # Python modules for WebSockets/smbus.
+	# fbcp             # Framebuffer Copy for the Waveshare LCD.
+	rpi3b_flagConfig # Disables some app config flags before npm install.
+	app_install      # Run npm install for the app.
+	pm2              # Install/configure PM2 for app persistence. 
 }
 function rpi3b_flagConfig() {
+	# Change to home directory, download and unpack Node (unofficial build.)
+	echo
+	echo "-- DISABLE pythonWsServer, battery, gpio IN THE APP. --"
+
 	# A typical RPI3B is not going to have the same battery/UPS attachment as the package used with the RPI0.
 	# Disable some "toggles flags" here before installing the app.
 	local s1=".toggles.isActive_pythonWsServer=false"
@@ -188,17 +190,17 @@ func_menu_individuals() {
 
 			# Perform the action that matches the user's CHOICE.
 			case "$CHOICE" in
-				0)	clear && break ;;
-				1)	clear && rpi_config ;;
-				2)	clear && linux ;;
-				3)	clear && node_npm ;;
-				4)	clear && python ;;
-				5)	clear && fbcp ;;
-				6)	clear && 06_app_install ;;
-				7)	clear && rpi3b_flagConfig ;;
-				8)	clear && pm2 ;;
+				0)	break ;;
+				1)	rpi_config ;;
+				2)	linux ;;
+				3)	node_npm ;;
+				4)	python ;;
+				5)	fbcp ;;
+				6)	06_app_install ;;
+				7)	rpi3b_flagConfig ;;
+				8)	pm2 ;;
 				9)	sudo reboot ;;
-				# 10)	clear && help_func2  ;;
+				# 10)	help_func2  ;;
 			esac
 
 		# If a selection was not made (specifically CANCEL) then exit.
@@ -249,13 +251,13 @@ func_menu(){
 
 			# Perform the action that matches the user's CHOICE.
 			case "$CHOICE" in
-				0)	clear && exit ;;
-				1)	clear && rpi_config ;;
-				2)	clear && rpi0w_autoConfig ;;
-				3)	clear && rpi3b_autoConfig ;;
-				4)	clear && func_menu_individuals ;;
+				0)	exit ;;
+				1)	rpi_config ;;
+				2)	rpi0w_autoConfig ;;
+				3)	rpi3b_autoConfig ;;
+				4)	func_menu_individuals ;;
 				5)	sudo reboot  ;;
-				# 6)	clear && help1_func ;;
+				# 6)	help1_func ;;
 			esac
 
 		# If a selection was not made (specifically CANCEL) then exit.
