@@ -140,8 +140,8 @@ function rpi3b_flagConfig() {
 	local s1=".toggles.isActive_pythonWsServer=false"
 	local s2=".toggles.isActive_battery=false"
 	local s3=".toggles.isActive_gpio=false"
-	contents="$(jq "$s1 | $s2 | $s3" ../MINI/public/shared/config.json)"
-	echo "$contents" > ../MINI/public/shared/config.json
+	contents="$(jq "$s1 | $s2 | $s3" ../public/shared/config.json)"
+	echo "$contents" > ../public/shared/config.json
 }
 
 func_menu_individuals() { 
@@ -159,7 +159,7 @@ func_menu_individuals() {
 	OPTIONS+=( 3 "03_node_npm.sh     # Installs NodeJS and NPM.")
 	OPTIONS+=( 4 "04_python.sh       # Installs Python modules.")
 	OPTIONS+=( 5 "05_fbcp.sh         # Installs fbcp (framebuffer copy.)")
-	OPTIONS+=( 6 "05_fbcp.sh         # Installs fbcp (framebuffer copy.)")
+	OPTIONS+=( 6 "06_app_install.sh  # Installs the npm packages for the app. ")
 	OPTIONS+=( 7 "rpi3b_flagConfig   # Sets flags specific to the rpi3b. ")
 	OPTIONS+=( 8 "07_pm2.sh          # Installs pm2 and configures it.")
 	OPTIONS+=( 9 "REBOOT")
@@ -189,15 +189,15 @@ func_menu_individuals() {
 			# Perform the action that matches the user's CHOICE.
 			case "$CHOICE" in
 				0)	clear && break ;;
-				1)	clear && rpi_config  ;;
-				2)	clear && linux       ;;
-				3)	clear && node_npm    ;;
-				4)	clear && python      ;;
-				5)	clear && fbcp        ;;
-				6)	clear && rpi3b_flagConfig ;;
-				7)	clear && app_install ;;
-				8)	clear && pm2         ;;
-				9)	sudo reboot          ;;
+				1)	clear && rpi_config ;;
+				2)	clear && linux ;;
+				3)	clear && node_npm ;;
+				4)	clear && python ;;
+				5)	clear && fbcp ;;
+				6)	clear && 06_app_install ;;
+				7)	clear && rpi3b_flagConfig ;;
+				8)	clear && pm2 ;;
+				9)	sudo reboot ;;
 				# 10)	clear && help_func2  ;;
 			esac
 

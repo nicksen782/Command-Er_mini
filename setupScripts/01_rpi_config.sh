@@ -55,6 +55,9 @@ function rpi_config(){
 					local CHECK1=$(sudo grep -q "# DISPLAY_SETTINGS : ADDED BY: COMMAND-ER MINI" "/boot/config.txt" && echo "1" || echo "0")
 					if [ "$CHECK1" == "1" ]; then echo "DISPLAY_SETTINGS have already been set!"; sleep 3; break; fi
 					
+					local FINDTHIS=
+					local REPLACEWITH=
+
 					# Generate a datetime string.
 					local DATE_WITH_TIME=`date "+%Y%m%d-%H%M%S"`
 
@@ -88,23 +91,24 @@ function rpi_config(){
 
 					# Comment-out: display_auto_detect
 					FINDTHIS="display_auto_detect=1"
-					REPLACEWITH="#display_auto_detect=1"
+					REPLACEWITH="#display_auto_detect=0"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
-					# Add framebuffer width and height directly BEFORE disable_overscan
-					FINDTHIS="disable_overscan=1"
-					REPLACEWITH=""\
-					"framebuffer_width=240\n"\
-					"framebuffer_height=240\n"\
-					"disable_overscan=1\n"
+					# Update framebuffer_width
+					FINDTHIS="#framebuffer_width=1280"
+					REPLACEWITH="#framebuffer_width=240"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+					
+					# Update framebuffer_height
+					FINDTHIS="#framebuffer_height=720"
+					REPLACEWITH="framebuffer_height=240"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
 					# Disable the blinking console terminal at start-up.
-					local FINDTHIS="exit 0"
-					local REPLACEWITH=""\
-					"# Disable terminal blinking cursor.\n"\
-					"echo 0 | tee /sys/class/graphics/fbcon/cursor_blink\n\n"\
-					"exit 0"
+					FINDTHIS="exit 0"
+					REPLACEWITH="# Disable terminal blinking cursor.\n"
+					REPLACEWITH+="echo 0 | tee /sys/class/graphics/fbcon/cursor_blink\n\n"
+					REPLACEWITH+="exit 0"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /etc/rc.local
 
 					# Use raspi-config nonint to turn ON I2C.

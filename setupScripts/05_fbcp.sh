@@ -44,9 +44,8 @@ make -j
 # Edit /etc/rc.local so that fbcp is run at start up and so that the console cursor does not blink.
 echo
 echo "-- ADD TO /etc/rc.local: START FBCP --"
-local FINDTHIS="exit 0"
-local REPLACEWITH=""\
-"# Start: Framebuffer Copy.\n"\
-"/home/pi/waveshare_fbcp/build/fbcp \&\n\n"\
-"exit 0"
+FINDTHIS="exit 0"
+REPLACEWITH="# Start: Framebuffer Copy.\n"
+REPLACEWITH+="/home/pi/waveshare_fbcp/build/fbcp \&\n\n"
+REPLACEWITH+="exit 0"
 sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /etc/rc.local
