@@ -26,6 +26,39 @@ const m_screens = [
 	'./m_s_test_1.js',
 ];
 
+// https://dmitripavlutin.com/timeout-fetch-request/
+let fetchWithTimeout = async function(url, options, timeoutMs=5000){
+	return new Promise(async function(resolve,reject){
+		const controller = new AbortController();
+		const id = setTimeout(() => controller.abort(), timeoutMs);
+		let aborted = false;
+		
+		const response = await fetch(url, {
+			...options,
+			signal: controller.signal
+		})
+		.catch(e=>{
+			clearTimeout(id);
+			if(e.type=="aborted"){
+				resolve(e.type);
+				return; 
+			}
+			else{
+				console.log("CATCH:");
+				console.log(" e.type:", e.type);
+				console.log(" e.toString():", e.toString());
+				reject(e);
+				return;
+			}
+		});
+		;
+		if(!aborted){
+			clearTimeout(id);
+			resolve(response);
+		}
+	});
+};
+
 // Main app.
 let _APP = {
 	// Express variables.
@@ -38,7 +71,7 @@ let _APP = {
 
 	// MODULES (_APP will have access to all the modules.)
 	rpbp         : rpbp ,
-	fetch        : fetch ,
+	fetch        : fetchWithTimeout ,
 	ping         : ping,
 
 	// Init this module.

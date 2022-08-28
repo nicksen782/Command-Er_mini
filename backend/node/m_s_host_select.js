@@ -61,8 +61,8 @@ let screen = {
 			let highlightLines = {}; //{ "0":"tile_blue" };
 			let actions = [];
 			let topLines      = [ `SELECT A HOST`, `` ];
-			let activeLines   = [ `AVAILABLE` ];
-			let inActiveLines = [ `UNAVAILABLE` ];
+			let activeLines   = [ `AVAILABLE:` ];
+			let inActiveLines = [ `UNAVAILABLE:` ];
 			let totalLineLength = 0;
 			
 			// Do the async stuff first all at once. (ping and getStatus.)
@@ -75,36 +75,68 @@ let screen = {
 				d._uuids=[];
 				proms.push(
 					new Promise(async function(res,rej){
+						// Skip disabled hosts.
+						if(d.disabled){ res(false); return; }
+
 						// Ping.
 						try{
+							d._pingSuccess=true;
+							// console.log("pinging:", d.name, d.host);
 							let pingCheck = await _APP.screenLogic.shared.pingCheck(d.host, 1000);
 							if(!pingCheck.alive){
 								d._pingSuccess=false;
 								d._error="(PING FAIL)";
+								// console.log(d._error, d.name, d.host);
 								res(false); return; 
 							}
-							else{
-								d._pingSuccess=true;
-							}
+							// console.log("  ping success:", d.name, d.host);
 						}
 						catch(e){
 							d._pingSuccess=false;
-							d._error="(PING FAIL)";
+							d._error="(PING FAIL2)";
+							// console.log(d._error, d.name, d.host);
 							res(false); return; 
 						}
 		
 						// Has a "MINI"?
 						try{ 
-							let resp = await _APP.fetch( `${d.URL}${d.getStatus}`, { method: "POST" } ); 
-							let uuids;
-							
+							let resp;
+							try{ 
+								resp = await _APP.fetch( `${d.URL}${d.getStatus}`, { method: "POST" }, 3000 ); 
+							} 
+							catch(e){ 
+								d._getStatusSuccess=false;
+								d._error="(REQ_ERROR1)";
+								// console.log(d._error, d.name, d.host, e);
+								res(false); return; 
+							}
+
+							if(resp=="aborted"){
+								d._getStatusSuccess=false;
+								d._error="(REQ_ERROR2)";
+								// console.log(d._error, d.name, d.host, resp);
+								res(false); return; 
+							}
+
 							// Only accept JSON. 
-							let contentType = resp.headers.get("Content-Type");
+							d._getStatusSuccess=true;
+							let contentType;
+							try{ contentType = resp.headers.get("Content-Type"); } 
+							catch(e){
+								d._getStatusSuccess=false;
+								d._error="(BAD_RESP)";
+								// console.log(d._error, d.name, d.host);
+								res(false); return; 
+							}
+
+							let uuids;
+
 							if(contentType == "application/json; charset=utf-8"){
 								try{ uuids = await resp.json(); }
 								catch(e){
 									d._getStatusSuccess=false;
 									d._error="(error)";
+									// console.log(d._error, d.name, d.host);
 									res(false); return; 
 								}
 							}
@@ -112,32 +144,40 @@ let screen = {
 							else if(contentType == "text/html; charset=utf-8"){
 								d._getStatusSuccess=false;
 								d._error="(ERROR)";
+								// console.log(d._error, d.name, d.host);
 								res(false); return; 
 							}
 							// Handle any potential edge-cases.
 							else{ 
 								d._getStatusSuccess=false;
 								d._error="(CONTENT ERR)";
+								// console.log(d._error, d.name, d.host);
 								res(false); return; 
 							}
 		
+							// Data response was good. Do we have UUIDS?
 							if(!uuids.length){
 								d._getStatusSuccess=false;
 								d._error="(NO MINI TERM)";
+								// console.log(d._error, d.name, d.host);
 								res(false); return; 
 							}
-							else{
-								d._getStatusSuccess=true;
-								d._uuids=uuids;
-								res(true); 
-							}
+
+							// Save the uuids. This host is done. 
+							d._uuids=uuids;
+							res(true); 
+							// console.log("SUCCESS:", d.name, d.host);
+							return;
 						}
 						catch(e){
 							d._getStatusSuccess=false;
 							d._error="(UNKNOWN)";
+							console.log("try/catch thrown on getStatus", d.name, d.host, d._error, e);
 							res(false); return; ; 
 						}
 
+						// Shouldn't get here.
+						console.log("Got to the end of the ping/uuid promise. This shouldn't happen.", d);
 						res(false); return; 
 					})
 				);
@@ -148,6 +188,8 @@ let screen = {
 			for(let d of _APP.m_config.remoteConf){
 				// Skip disabled hosts.
 				if(d.disabled){ continue; }
+
+				// console.log("Displaying lines for:", d.name, d.host, `d._pingSuccess: ${d._pingSuccess}, d._getStatusSuccess: ${d._getStatusSuccess}`);
 
 				// Generate the total line length;
 				totalLineLength = topLines.length + activeLines.length + inActiveLines.length;
@@ -196,7 +238,7 @@ let screen = {
 								
 								let remoteConfig;
 								try{ 
-									remoteConfig = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" } ); 
+									remoteConfig = await _APP.fetch( `${d.URL}${d.getAll}`, { method: "POST" }, 2000 ); 
 									remoteConfig = await remoteConfig.json();
 									thisScreen.remoteConfig = remoteConfig;
 									thisScreen.remoteConfigLoaded = true;
@@ -263,8 +305,8 @@ let screen = {
 		// console.log("SCREEN: initVars:", _APP.currentScreen);
 
 		// Get the remoteConf file or create it if it does not exist.
-		// await _APP.m_config.get_remote_conf(true); // Rereads the file from disk.
-		await _APP.m_config.get_remote_conf(false); // Uses the cached copy if it has already been read.
+		await _APP.m_config.get_remote_conf(true); // Rereads the file from disk.
+		// await _APP.m_config.get_remote_conf(false); // Uses the cached copy if it has already been read.
 
 		thisScreen.menu1 = {
 			dialogs: {

@@ -64,7 +64,7 @@ let screen = {
 
 		_APP.m_draw.print("*", 16, ts.rows-1); 
 
-		let json = await _APP.fetch( url, options );
+		let json = await _APP.fetch( url, options, 5000 );
 		json = await json.json();
 
 		_APP.m_draw.print(" ", 16, ts.rows-1); 

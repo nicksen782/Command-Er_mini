@@ -77,6 +77,7 @@ let _MOD = {
 		//
 		_APP.addToRouteList({ path: "/get_remoteConf", method: "post", args: [], file: __filename, desc: "" });
 		app.post('/get_remoteConf'    ,express.json(), async (req, res) => {
+			console.log("get_remoteConf");
 			let data = JSON.parse( fs.readFileSync(_MOD.remoteConf_filename,'utf8') );
 			res.json(data);
 		});
@@ -84,6 +85,7 @@ let _MOD = {
 		//
 		_APP.addToRouteList({ path: "/get_remoteConf", method: "post", args: [], file: __filename, desc: "" });
 		app.post('/update_remoteConf'    ,express.json(), async (req, res) => {
+			console.log("update_remoteConf");
 			let data = req.body.remoteConf;
 			fs.writeFileSync(_MOD.remoteConf_filename, JSON.stringify(data,null,1) );
 			res.json(`update_remoteConf`);
