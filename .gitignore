@@ -4,3 +4,4 @@ OLD
 PROGRESS.TXT
 backend/python/__pycache__
 backend/remoteConf.json
+public/shared/config.json

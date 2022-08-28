@@ -4,8 +4,8 @@
 	  "isActive_nodeWsServer": true,
 	  "isActive_pythonWsServer": true,
 	  "isActive_battery": true,
-	  "isActive_lcd": true,
-	  "isActive_gpio": true
+	  "isActive_gpio": true,
+	  "isActive_buttonsOverlay": false
 	},
 	"node": {
 	  "http": {

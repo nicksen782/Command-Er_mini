@@ -62,7 +62,7 @@ let screen = {
 
 		// Top rows.
 		_APP.m_draw.fillTile("tile3"         , 0, 0, ts.cols, 1); 
-		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen.substring(4)} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+		_APP.m_draw.print(`${_APP.currentScreen.substring(4).toUpperCase()}` , 0 , 0);
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
 

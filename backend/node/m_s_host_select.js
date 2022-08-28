@@ -323,18 +323,23 @@ let screen = {
 		thisScreen.shared = _APP.screenLogic.shared;
 		thisScreen.initing = true;
 
-		await thisScreen.intVars();
-
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
-	
+
 		// Get the LCD config.
 		let conf = _APP.m_config.config.lcd;
 		let ts = conf.tileset;
 
+		// Display loading text.
+		let y = 4;
+		_APP.m_draw.fillTile("tile1"         , 0, y+0, ts.cols, 4); 
+		_APP.m_draw.fillTile("tile2"         , 1, y+1, ts.cols-2, 2); 
+		_APP.m_draw.print(`LOADING...` , 10 , y+1);
+		_APP.m_draw.print(`HOSTS FROM remoteConf.json` , 2 , y+2);
+
 		// Top rows.
 		_APP.m_draw.fillTile("tile3"         , 0, 0, ts.cols, 1); 
-		_APP.m_draw.print(`SCREEN: ${_APP.currentScreen.substring(4)} (${_APP.screens.indexOf(_APP.currentScreen)+1}/${_APP.screens.length})` , 0 , 0);
+		_APP.m_draw.print(`${_APP.currentScreen.substring(4).toUpperCase()}` , 0 , 0);
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
 
@@ -344,6 +349,8 @@ let screen = {
 		// Initial drawing of the battery and time.
 		thisScreen.shared.time   .display(0, 29, "tile3");
 		thisScreen.shared.battery.display(23, 29, "tile3");
+
+		await thisScreen.intVars();
 
 		thisScreen.menu1.dialogs.choose_host.active=true;
 

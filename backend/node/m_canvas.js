@@ -26,6 +26,10 @@ let _MOD = {
 				_APP.consolelog("getFramebuffer", 2);
 				await _MOD.init.getFramebuffer();
 
+				if( _APP.m_config.config.toggles.isActive_buttonsOverlay ){ 
+					await _MOD.overlayControls.init();
+				}
+
 				// Add routes.
 				_APP.consolelog("addRoutes", 2);
 				_MOD.addRoutes(_APP.app, _APP.express);
@@ -79,8 +83,17 @@ let _MOD = {
 				finalLayerCtx.drawImage( _MOD.tileCache[ rec.t2 ].canvas, x, y) ;
 			}
 			
-			// Create a raw buffer from the last layer. 
-			_MOD.rawBuffer = finalLayerCtx.canvas.toBuffer('raw');
+			// Draw the overlay canvas, combine with app canvas.
+			if( _APP.m_config.config.toggles.isActive_buttonsOverlay ){ 
+				// Create a raw buffer.
+				_MOD.overlayControls.layers[0].ctx.drawImage(finalLayerCtx.canvas, 120, 0);
+				_MOD.rawBuffer = _MOD.overlayControls.layers[0].canvas.toBuffer('raw');
+			}
+			else{
+				// Create a raw buffer from the last layer. 
+				_MOD.rawBuffer = finalLayerCtx.canvas.toBuffer('raw');
+			}
+
 
 			// Send the raw buffer to update the LCD screen.
 			fs.write(_MOD.fb, _MOD.rawBuffer, 0, _MOD.rawBuffer.bytelength, 0, (err,fd)=>{
@@ -90,6 +103,88 @@ let _MOD = {
 				resolve();
 			});
 		});
+	},
+
+	// Overlay controls for larger screens (no buttons.)
+	overlayControls: {
+		canvasCache: {
+			// Active.
+			"KEY_UP_ON"    : { canvas:null, ctx:null },
+			"KEY_DOWN_ON"  : { canvas:null, ctx:null },
+			"KEY_LEFT_ON"  : { canvas:null, ctx:null },
+			"KEY_RIGHT_ON" : { canvas:null, ctx:null },
+			"KEY_PRESS_ON" : { canvas:null, ctx:null },
+			"KEY1_ON"      : { canvas:null, ctx:null },
+			"KEY2_ON"      : { canvas:null, ctx:null },
+			"KEY3_ON"      : { canvas:null, ctx:null },
+			
+			// Inactive.
+			"KEY_UP_OFF"    : { canvas:null, ctx:null },
+			"KEY_DOWN_OFF"  : { canvas:null, ctx:null },
+			"KEY_LEFT_OFF"  : { canvas:null, ctx:null },
+			"KEY_RIGHT_OFF" : { canvas:null, ctx:null },
+			"KEY_PRESS_OFF" : { canvas:null, ctx:null },
+			"KEY1_OFF"      : { canvas:null, ctx:null },
+			"KEY2_OFF"      : { canvas:null, ctx:null },
+			"KEY3_OFF"      : { canvas:null, ctx:null },
+		},
+		layers: [],
+		rawBuffer: null, // Saved as to not need to reallocate memory each draw.
+		createCanvas: function(){
+			// Need canvas to contain 480 by 240.
+			return new Promise(async function(resolve,reject){
+				// Create the canvas. 
+				let canvas = createCanvas( (480), (conf.height) )
+				
+				// Get the drawing context and change some settings. 
+				let ctx = canvas.getContext("2d");
+				ctx.mozImageSmoothingEnabled    = false; // Firefox
+				ctx.imageSmoothingEnabled       = false; // Firefox
+				ctx.oImageSmoothingEnabled      = false; //
+				ctx.webkitImageSmoothingEnabled = false; //
+				ctx.msImageSmoothingEnabled     = false; //
+
+				// Color the left.
+				ctx.fillStyle = '#c84c0c';
+				ctx.fillRect(0, 0, 120, 240);
+				
+				// Color the right.
+				ctx.fillStyle = '#c84c0c';
+				ctx.fillRect(360, 0, 120, 240);
+
+				// Add this layer.
+				_MOD.overlayControls.layers.push( { canvas:canvas, ctx:ctx } );
+
+				resolve();
+			});
+
+		},
+		genControlCanvasCache: function(){
+			return new Promise(async function(resolve,reject){
+				_MOD.overlayControls.canvasCache.KEY_UP_ON;
+				_MOD.overlayControls.canvasCache.KEY_DOWN_ON;
+				_MOD.overlayControls.canvasCache.KEY_LEFT_ON;
+				_MOD.overlayControls.canvasCache.KEY_RIGHT_ON;
+				_MOD.overlayControls.canvasCache.KEY_PRESS_ON;
+				_MOD.overlayControls.canvasCache.KEY1_ON;
+				_MOD.overlayControls.canvasCache.KEY2_ON;
+				_MOD.overlayControls.canvasCache.KEY3_ON;
+
+				_MOD.overlayControls.canvasCache.KEY_UP_OFF;
+				_MOD.overlayControls.canvasCache.KEY_DOWN_OFF;
+				_MOD.overlayControls.canvasCache.KEY_LEFT_OFF;
+				_MOD.overlayControls.canvasCache.KEY_RIGHT_OFF;
+				_MOD.overlayControls.canvasCache.KEY_PRESS_OFF;
+				_MOD.overlayControls.canvasCache.KEY1_OFF;
+				_MOD.overlayControls.canvasCache.KEY2_OFF;
+				_MOD.overlayControls.canvasCache.KEY3_OFF;
+				resolve();
+			});
+		},
+		init: async function(){
+			await _MOD.overlayControls.createCanvas();
+			await _MOD.overlayControls.genControlCanvasCache();
+		},
 	},
 
 	// Initialization functions.

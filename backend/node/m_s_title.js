@@ -96,6 +96,7 @@ let screen = {
 
 		// // Top bars.
 		_APP.m_draw.fillTile("tile2"         , 0, 0, ts.cols, 1); 
+		// _APP.m_draw.print(`${_APP.currentScreen.substring(4).toUpperCase()}` , 0 , 0);
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
 		_APP.m_draw.fillTile("tile3"         , 0, 2, ts.cols, 1); 
 		

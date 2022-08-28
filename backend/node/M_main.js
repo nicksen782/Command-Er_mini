@@ -1059,6 +1059,12 @@ let _APP = {
 				ms = Math.ceil(frames * _APP.stats.interval) ;
 				return ms;
 			},
+
+			//
+			getCenterOf: function(strLen, destDim){
+				strLen 
+				destDim
+			},
 		},
 		// Populated during init.
 		screens: {},

@@ -142,7 +142,24 @@ function rpi3b_flagConfig() {
 	local s1=".toggles.isActive_pythonWsServer=false"
 	local s2=".toggles.isActive_battery=false"
 	local s3=".toggles.isActive_gpio=false"
-	contents="$(jq "$s1 | $s2 | $s3" ../public/shared/config.json.example)"
+	local s4=".toggles.isActive_buttonsOverlay=true"
+	contents="$(jq "$s1 | $s2 | $s3 | $s4" ../public/shared/config.json.example)"
+
+	# Update /boot/config.txt to use larger dimensions for the framebuffer.
+	
+	# Update framebuffer_width
+	local FINDTHIS=
+	local REPLACEWITH=
+
+	FINDTHIS="framebuffer_width=240"
+	REPLACEWITH="framebuffer_width=480"
+	sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+	# Update framebuffer_height
+	FINDTHIS="framebuffer_height=240"
+	REPLACEWITH="framebuffer_height=240"
+	sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
 	echo "$contents" > ../public/shared/config.json.example
 }
 
