@@ -8,13 +8,14 @@ let _MOD = {
 	moduleLoaded: false,
 
 	// File names:
-	config_filename           : "public/shared/config.json",
-	coordsByIndex_filename    : "public/shared/coordsByIndex.json",
-	indexByCoords_filename    : "public/shared/indexByCoords.json",
-	tileCoords_filename       : "public/shared/tileCoords.json",
-	tileIdsByTilename_filename: "public/shared/tileIdsByTilename.json",
-	tilenamesByIndex_filename : "public/shared/tilenamesByIndex.json",
-	remoteConf_filename: "backend/remoteConf.json", // Used in m_s_host_select
+	configExample_filename     : "public/shared/config.json.example",
+	config_filename            : "public/shared/config.json",
+	coordsByIndex_filename     : "public/shared/coordsByIndex.json",
+	indexByCoords_filename     : "public/shared/indexByCoords.json",
+	tileCoords_filename        : "public/shared/tileCoords.json",
+	tileIdsByTilename_filename : "public/shared/tileIdsByTilename.json",
+	tilenamesByIndex_filename  : "public/shared/tilenamesByIndex.json",
+	remoteConf_filename        : "backend/remoteConf.json", // Used in m_s_host_select
 	
 	// Data"
 	config            : {},
@@ -54,6 +55,12 @@ let _MOD = {
 		_APP.addToRouteList({ path: "/get_configs", method: "post", args: [], file: __filename, desc: "get_config" });
 		app.post('/get_configs'    ,express.json(), async (req, res) => {
 			try{ 
+				// If the config.json file does not exist then make a copy from the example file. 
+				if(!fs.existsSync(_MOD.config_filename)){
+					console.log("config.json missing. Recreating from the example file.");
+					fs.copyFileSync(_MOD.configExample_filename, _MOD.config_filename);
+				}
+
 				let result = {
 					config           : _MOD.config,
 					coordsByIndex    : _MOD.coordsByIndex,
@@ -63,8 +70,6 @@ let _MOD = {
 					tilenamesByIndex : _MOD.tilenamesByIndex,
 					subscriptionKeys : _APP.m_websocket_node.subscriptionKeys,
 					screens          : _APP.screens,
-					// remoteConf       : _MOD.remoteConf,
-					// remoteConf       :  fs.readFileSync(_MOD.remoteConf_filename,'utf8') ,
 					remoteConf       : JSON.parse( fs.readFileSync(_MOD.remoteConf_filename,'utf8') ),
 				};
 				res.json(result);
@@ -97,6 +102,12 @@ let _MOD = {
 		return new Promise(async function(resolve,reject){
 			// Save reference to the parent module.
 			if(!_APP) { _APP = parent; }
+
+			// If the config.json file does not exist then make a copy from the example file. 
+			if(!fs.existsSync(_MOD.config_filename)){
+				console.log("config.json missing. Recreating from the example file.");
+				fs.copyFileSync(_MOD.configExample_filename, _MOD.config_filename);
+			}
 
 			// Read/Store the JSON. 
 			_MOD.config            = JSON.parse( fs.readFileSync(_MOD.config_filename,            'utf8') );

@@ -142,8 +142,8 @@ function rpi3b_flagConfig() {
 	local s1=".toggles.isActive_pythonWsServer=false"
 	local s2=".toggles.isActive_battery=false"
 	local s3=".toggles.isActive_gpio=false"
-	contents="$(jq "$s1 | $s2 | $s3" ../public/shared/config.json)"
-	echo "$contents" > ../public/shared/config.json
+	contents="$(jq "$s1 | $s2 | $s3" ../public/shared/config.json.example)"
+	echo "$contents" > ../public/shared/config.json.example
 }
 
 func_menu_individuals() { 
