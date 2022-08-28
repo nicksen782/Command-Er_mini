@@ -19,7 +19,7 @@ function rpi_config(){
 	local OPTIONS=(0 "ABORT")
 	OPTIONS+=( 1 "Append LCD  settings to /boot/config.txt (with backup.)")
 	OPTIONS+=( 2 "Append GPIO settings to /boot/config.txt")
-	OPTIONS+=( 3 "Reboot    (Do this AFTER you have made your choice(s).)")
+	OPTIONS+=( 3 "REBOOT    (Do this AFTER you have made your choice(s).)")
 
 	# Save the last selected option index.
 	local LASTCHOICE=0
@@ -71,16 +71,48 @@ function rpi_config(){
 					REPLACEWITH="#dtoverlay=vc4-kms-v3d"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
+					# Disable audio: 
+					FINDTHIS="dtparam=audio=on"
+					REPLACEWITH="dtparam=audio=off"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
 					# Comment-out: max_framebuffers=2
 					FINDTHIS="max_framebuffers=2"
 					REPLACEWITH="#max_framebuffers=2"
 					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+					# Comment-out: camera_auto_detect
+					FINDTHIS="camera_auto_detect=1"
+					REPLACEWITH="#camera_auto_detect=1"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+					# Comment-out: display_auto_detect
+					FINDTHIS="display_auto_detect=1"
+					REPLACEWITH="#display_auto_detect=1"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+					# Add framebuffer width and height directly BEFORE disable_overscan
+					FINDTHIS="disable_overscan=1"
+					REPLACEWITH=""\
+					"framebuffer_width=240\n"\
+					"framebuffer_height=240\n"\
+					"disable_overscan=1\n"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
+
+					# Disable the blinking console terminal at start-up.
+					local FINDTHIS="exit 0"
+					local REPLACEWITH=""\
+					"# Disable terminal blinking cursor.\n"\
+					"echo 0 | tee /sys/class/graphics/fbcon/cursor_blink\n\n"\
+					"exit 0"
+					sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /etc/rc.local
 
 					# Use raspi-config nonint to turn ON I2C.
 					sudo raspi-config nonint do_i2c 0
 
 					# Use raspi-config nonint to turn OFF SPI.
 					sudo raspi-config nonint do_spi 1
+
 					sleep 2  
 					;;
 

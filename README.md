@@ -52,8 +52,8 @@ Designed to interact with this software:
   - SSH into the Pi. Follow the directions below.
 
 ````sh
-# Install git (it isn't included in a RPI OS Lite image.)
-sudo apt install git -y
+# Install git and dialog (they aren't included in a RPI OS Lite image.)
+sudo apt install git dialog -y
 
 # Change to the home directory.
 cd ~

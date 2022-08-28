@@ -3,7 +3,7 @@
 cd $(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 
 # Trapping control+c. Make sure the screen is cleared before the exit.
-function ctrl_c() { sleep 0.25; clear; exit; echo; }
+function ctrl_c() { sleep 0.25; clear; exit; }
 trap ctrl_c INT
 
 function anyKeyToContinue_func() {
@@ -113,9 +113,7 @@ function pm2() {
 
 function rpi0w_autoConfig() {
 	echo "rpi0w_autoConfig"
-	exit
 	
-	# rpi_config
 	linux
 	node_npm
 	python
@@ -125,15 +123,25 @@ function rpi0w_autoConfig() {
 }
 function rpi3b_autoConfig() {
 	echo "rpi3b_autoConfig"
-	exit
 
-	# rpi_config
 	linux
 	node_npm
-	# python
-	# fbcp
+	# python # Not needed.
+	# fbcp # Not needed.
+
+	rpi3b_flagConfig
+
 	app_install
 	pm2
+}
+function rpi3b_flagConfig() {
+	# A typical RPI3B is not going to have the same battery/UPS attachment as the package used with the RPI0.
+	# Disable some "toggles flags" here before installing the app.
+	local s1=".toggles.isActive_pythonWsServer=false"
+	local s2=".toggles.isActive_battery=false"
+	local s3=".toggles.isActive_gpio=false"
+	contents="$(jq "$s1 | $s2 | $s3" ../MINI/public/shared/config.json)"
+	echo "$contents" > ../MINI/public/shared/config.json
 }
 
 func_menu_individuals() { 
@@ -151,10 +159,11 @@ func_menu_individuals() {
 	OPTIONS+=( 3 "03_node_npm.sh     # Installs NodeJS and NPM.")
 	OPTIONS+=( 4 "04_python.sh       # Installs Python modules.")
 	OPTIONS+=( 5 "05_fbcp.sh         # Installs fbcp (framebuffer copy.)")
-	OPTIONS+=( 6 "06_app_install.sh  # Installs the npm packages for the app. ")
-	OPTIONS+=( 7 "07_pm2.sh          # Installs pm2 and configures it.")
-	OPTIONS+=( 8 "REBOOT")
-	# OPTIONS+=( 9 "HELP")
+	OPTIONS+=( 6 "05_fbcp.sh         # Installs fbcp (framebuffer copy.)")
+	OPTIONS+=( 7 "rpi3b_flagConfig   # Sets flags specific to the rpi3b. ")
+	OPTIONS+=( 8 "07_pm2.sh          # Installs pm2 and configures it.")
+	OPTIONS+=( 9 "REBOOT")
+	# OPTIONS+=( 10 "HELP")
 
 	# Save the last selected option index.
 	local LASTCHOICE=0
@@ -185,10 +194,11 @@ func_menu_individuals() {
 				3)	clear && node_npm    ;;
 				4)	clear && python      ;;
 				5)	clear && fbcp        ;;
-				6)	clear && app_install ;;
-				7)	clear && pm2         ;;
-				8)	sudo reboot          ;;
-				# 9)	clear && help_func2  ;;
+				6)	clear && rpi3b_flagConfig ;;
+				7)	clear && app_install ;;
+				8)	clear && pm2         ;;
+				9)	sudo reboot          ;;
+				# 10)	clear && help_func2  ;;
 			esac
 
 		# If a selection was not made (specifically CANCEL) then exit.
@@ -213,7 +223,7 @@ func_menu(){
 	OPTIONS+=( 2 "Run config scripts (Raspberry Pi Zero W)")
 	OPTIONS+=( 3 "Run config scripts (Raspberry Pi 3 B)")
 	OPTIONS+=( 4 "Choose from list of individual config scripts.")
-	OPTIONS+=( 5 "REBOOT")
+	OPTIONS+=( 5 "REBOOT    (Do this AFTER you have made your choice(s).)")
 	# OPTIONS+=( 6 "HELP")
 
 	# Save the last selected option index.
