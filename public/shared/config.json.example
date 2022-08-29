@@ -2,11 +2,11 @@
 	"toggles": {
 	  "show_APP_consolelog": true,
 	  "isActive_nodeWsServer": true,
-	  "isActive_pythonWsServer": false,
-	  "isActive_battery": false,
-	  "isActive_gpio": false,
-	  "isActive_buttonsOverlay": true,
-	  "isActive_lcd": true,
+	  "isActive_pythonWsServer": true,
+	  "isActive_battery": true,
+	  "isActive_gpio": true,
+	  "isActive_buttonsOverlay": false,
+	  "isActive_lcd": true
 	},
 	"node": {
 	  "http": {
