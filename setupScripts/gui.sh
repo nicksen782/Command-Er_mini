@@ -118,6 +118,7 @@ function rpi0w_autoConfig() {
 	node_npm         # NodeJs/NPM install.
 	python           # Python modules for WebSockets/smbus.
 	fbcp             # Framebuffer Copy for the Waveshare LCD.
+	exampleToConfig  # Copies the config.json.example file to config.json
 	app_install      # Run npm install for the app.
 	pm2              # Install/configure PM2 for app persistence. 
 }
@@ -126,11 +127,13 @@ function rpi3b_autoConfig() {
 
 	linux            # Linux packages/config
 	node_npm         # NodeJs/NPM install.
-	# python           # Python modules for WebSockets/smbus.
-	# fbcp             # Framebuffer Copy for the Waveshare LCD.
+	exampleToConfig  # Copies the config.json.example file to config.json
 	rpi3b_flagConfig # Disables some app config flags before npm install.
 	app_install      # Run npm install for the app.
 	pm2              # Install/configure PM2 for app persistence. 
+}
+function exampleToConfig() {
+	cp ../public/shared/config.json.example ../public/shared/config.json
 }
 function rpi3b_flagConfig() {
 	# Change to home directory, download and unpack Node (unofficial build.)
@@ -143,7 +146,8 @@ function rpi3b_flagConfig() {
 	local s2=".toggles.isActive_battery=false"
 	local s3=".toggles.isActive_gpio=false"
 	local s4=".toggles.isActive_buttonsOverlay=true"
-	contents="$(jq "$s1 | $s2 | $s3 | $s4" ../public/shared/config.json.example)"
+	contents="$(jq "$s1 | $s2 | $s3 | $s4" ../public/shared/config.json)"
+	echo "$contents" > ../public/shared/config.json
 
 	# Update /boot/config.txt to use larger dimensions for the framebuffer.
 	
@@ -160,7 +164,6 @@ function rpi3b_flagConfig() {
 	REPLACEWITH="framebuffer_height=240"
 	sudo sed -i $"s%^${FINDTHIS}%${REPLACEWITH}%g" /boot/config.txt
 
-	echo "$contents" > ../public/shared/config.json.example
 }
 
 func_menu_individuals() { 
