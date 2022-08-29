@@ -218,7 +218,7 @@ let screen = {
 			// Counting test.
 			_APP.m_draw.print(thisScreen.counter.toString().padStart(2, "0"), 14 , 29);
 			thisScreen.counter +=1;
-			if(thisScreen.counter > 20){ thisScreen.counter = 0; }
+			if(thisScreen.counter > 60){ thisScreen.counter = 0; }
 			
 			resolve();
 		});

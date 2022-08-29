@@ -162,6 +162,19 @@ let _MOD = {
 			// BUTTONS
 			_APP.timeIt("__GPIO", "s", __filename);
 			await _APP.m_gpio.readAll();
+			if( _APP.m_config.config.toggles.isActive_buttonsOverlay ){ 
+				let overlayCanvas = _APP.m_canvas.overlayControls.layers[0];
+				let canvasCache   = _APP.m_canvas.overlayControls.canvasCache;
+				let coords        = _APP.m_canvas.overlayControls.coords;
+				if(_APP.m_gpio.states["KEY_UP_PIN"]   ){ overlayCanvas.ctx.drawImage(canvasCache["KEY_UP_ON"].canvas   , coords["UP"].x,    coords["UP"].y);    } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY_UP_OFF"].canvas   , coords["UP"].x    , coords["UP"].y);    }
+				if(_APP.m_gpio.states["KEY_DOWN_PIN"] ){ overlayCanvas.ctx.drawImage(canvasCache["KEY_DOWN_ON"].canvas , coords["DOWN"].x,  coords["DOWN"].y);  } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY_DOWN_OFF"].canvas , coords["DOWN"].x  , coords["DOWN"].y);  }
+				if(_APP.m_gpio.states["KEY_LEFT_PIN"] ){ overlayCanvas.ctx.drawImage(canvasCache["KEY_LEFT_ON"].canvas , coords["LEFT"].x,  coords["LEFT"].y);  } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY_LEFT_OFF"].canvas , coords["LEFT"].x  , coords["LEFT"].y);  }
+				if(_APP.m_gpio.states["KEY_RIGHT_PIN"]){ overlayCanvas.ctx.drawImage(canvasCache["KEY_RIGHT_ON"].canvas, coords["RIGHT"].x, coords["RIGHT"].y); } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY_RIGHT_OFF"].canvas, coords["RIGHT"].x , coords["RIGHT"].y); }
+				if(_APP.m_gpio.states["KEY_PRESS_PIN"]){ overlayCanvas.ctx.drawImage(canvasCache["KEY_PRESS_ON"].canvas, coords["PRESS"].x, coords["PRESS"].y); } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY_PRESS_OFF"].canvas, coords["PRESS"].x , coords["PRESS"].y); }
+				if(_APP.m_gpio.states["KEY1_PIN"]     ){ overlayCanvas.ctx.drawImage(canvasCache["KEY1_ON"].canvas     , coords["n1"].x,    coords["n1"].y);    } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY1_OFF"].canvas     , coords["n1"].x    , coords["n1"].y);    }
+				if(_APP.m_gpio.states["KEY2_PIN"]     ){ overlayCanvas.ctx.drawImage(canvasCache["KEY2_ON"].canvas     , coords["n2"].x,    coords["n2"].y);    } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY2_OFF"].canvas     , coords["n2"].x    , coords["n2"].y);    }
+				if(_APP.m_gpio.states["KEY3_PIN"]     ){ overlayCanvas.ctx.drawImage(canvasCache["KEY3_ON"].canvas     , coords["n3"].x,    coords["n3"].y);    } else{ overlayCanvas.ctx.drawImage(canvasCache["KEY3_OFF"].canvas     , coords["n3"].x    , coords["n3"].y);    }
+			}
 			_APP.timeIt("__GPIO", "e", __filename);
 			
 			// STATE

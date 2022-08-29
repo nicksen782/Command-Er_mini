@@ -86,8 +86,9 @@ let _MOD = {
 			// Draw the overlay canvas, combine with app canvas.
 			if( _APP.m_config.config.toggles.isActive_buttonsOverlay ){ 
 				// Create a raw buffer.
-				_MOD.overlayControls.layers[0].ctx.drawImage(finalLayerCtx.canvas, 120, 0);
-				_MOD.rawBuffer = _MOD.overlayControls.layers[0].canvas.toBuffer('raw');
+				let overlayCanvas = _APP.m_canvas.overlayControls.layers[0];
+				overlayCanvas.ctx.drawImage(finalLayerCtx.canvas, (15*8), 0);
+				_MOD.rawBuffer = overlayCanvas.canvas.toBuffer('raw');
 			}
 			else{
 				// Create a raw buffer from the last layer. 
@@ -107,6 +108,19 @@ let _MOD = {
 
 	// Overlay controls for larger screens (no buttons.)
 	overlayControls: {
+		coords: {
+			"UP"   : { x:(6)*8         , y:(9)*8  },
+			"DOWN" : { x:(6)*8         , y:(19)*8 },
+			"LEFT" : { x:(1)*8         , y:(14)*8 },
+			"RIGHT": { x:(11)*8        , y:(14)*8 },
+			"PRESS": { x:(6)*8         , y:(14)*8 },
+			"n1"   : { x:((45)*8)+(6*8), y:(9)*8  },
+			"n2"   : { x:((45)*8)+(6*8), y:(14)*8 },
+			"n3"   : { x:((45)*8)+(6*8), y:(19)*8 },
+			
+			
+			
+		},
 		canvasCache: {
 			// Active.
 			"KEY_UP_ON"    : { canvas:null, ctx:null },
@@ -133,6 +147,10 @@ let _MOD = {
 		createCanvas: function(){
 			// Need canvas to contain 480 by 240.
 			return new Promise(async function(resolve,reject){
+				// Get the LCD config.
+				let conf = _APP.m_config.config.lcd;
+				let ts   = conf.tileset;
+				
 				// Create the canvas. 
 				let canvas = createCanvas( (480), (conf.height) )
 				
@@ -161,23 +179,97 @@ let _MOD = {
 		},
 		genControlCanvasCache: function(){
 			return new Promise(async function(resolve,reject){
-				_MOD.overlayControls.canvasCache.KEY_UP_ON;
-				_MOD.overlayControls.canvasCache.KEY_DOWN_ON;
-				_MOD.overlayControls.canvasCache.KEY_LEFT_ON;
-				_MOD.overlayControls.canvasCache.KEY_RIGHT_ON;
-				_MOD.overlayControls.canvasCache.KEY_PRESS_ON;
-				_MOD.overlayControls.canvasCache.KEY1_ON;
-				_MOD.overlayControls.canvasCache.KEY2_ON;
-				_MOD.overlayControls.canvasCache.KEY3_ON;
+				let arr_on = [
+					"KEY_UP_ON",
+					"KEY_DOWN_ON",
+					"KEY_LEFT_ON",
+					"KEY_RIGHT_ON",
+					"KEY_PRESS_ON",
+					"KEY1_ON",
+					"KEY2_ON",
+					"KEY3_ON",
+				];
+				let arr_off = [
+					"KEY_UP_OFF",
+					"KEY_DOWN_OFF",
+					"KEY_LEFT_OFF",
+					"KEY_RIGHT_OFF",
+					"KEY_PRESS_OFF",
+					"KEY1_OFF",
+					"KEY2_OFF",
+					"KEY3_OFF",
+				];
 
-				_MOD.overlayControls.canvasCache.KEY_UP_OFF;
-				_MOD.overlayControls.canvasCache.KEY_DOWN_OFF;
-				_MOD.overlayControls.canvasCache.KEY_LEFT_OFF;
-				_MOD.overlayControls.canvasCache.KEY_RIGHT_OFF;
-				_MOD.overlayControls.canvasCache.KEY_PRESS_OFF;
-				_MOD.overlayControls.canvasCache.KEY1_OFF;
-				_MOD.overlayControls.canvasCache.KEY2_OFF;
-				_MOD.overlayControls.canvasCache.KEY3_OFF;
+				for(let i=0; i<arr_on.length; i+=1){
+					let key = arr_on[i];
+
+					// Create the canvas. 
+					let canvas = createCanvas( (24), (24) )
+						
+					// Get the drawing context and change some settings. 
+					let ctx = canvas.getContext("2d");
+					ctx.mozImageSmoothingEnabled    = false; // Firefox
+					ctx.imageSmoothingEnabled       = false; // Firefox
+					ctx.oImageSmoothingEnabled      = false; //
+					ctx.webkitImageSmoothingEnabled = false; //
+					ctx.msImageSmoothingEnabled     = false; //
+
+					// Filled rectangle.
+					ctx.fillStyle = "black";
+					ctx.fillRect(0,0,canvas.width,canvas.height);
+
+					// Stroked rectangle
+					ctx.beginPath();
+					ctx.strokeStyle = "black";
+					ctx.rect(0,0,canvas.width,canvas.height);
+					ctx.stroke();
+
+					// Filled triangle
+					// ctx.beginPath();
+					// ctx.moveTo(25, 25);
+					// ctx.lineTo(105, 25);
+					// ctx.lineTo(25, 105);
+					// ctx.fill();
+
+					_MOD.overlayControls.canvasCache[key].canvas = canvas;
+					_MOD.overlayControls.canvasCache[key].ctx = ctx;
+				}
+				for(let i=0; i<arr_off.length; i+=1){
+					let key = arr_off[i];
+
+					// Create the canvas. 
+					let canvas = createCanvas( (24), (24) )
+						
+					// Get the drawing context and change some settings. 
+					let ctx = canvas.getContext("2d");
+					ctx.mozImageSmoothingEnabled    = false; // Firefox
+					ctx.imageSmoothingEnabled       = false; // Firefox
+					ctx.oImageSmoothingEnabled      = false; //
+					ctx.webkitImageSmoothingEnabled = false; //
+					ctx.msImageSmoothingEnabled     = false; //
+
+					// Filled rectangle.
+					ctx.fillStyle = "#ff9300";
+					ctx.fillRect(0,0,canvas.width,canvas.height);
+
+					// Stroked rectangle
+					ctx.beginPath();
+					ctx.strokeStyle = "black";
+					ctx.rect(0,0,canvas.width,canvas.height);
+					ctx.stroke();
+
+					// Stroked triangle
+					// ctx.beginPath();
+					// ctx.moveTo(25, 25);
+					// ctx.lineTo(105, 25);
+					// ctx.lineTo(25, 105);
+					// ctx.closePath()
+					// ctx.stroke();
+
+					_MOD.overlayControls.canvasCache[key].canvas = canvas;
+					_MOD.overlayControls.canvasCache[key].ctx = ctx;
+				}
+
 				resolve();
 			});
 		},
