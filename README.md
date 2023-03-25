@@ -4,7 +4,7 @@ Designed with this hardware in mind:
   * [Raspberry Pi Zero WH Package F, with UPS Module and 1.3inch LCD](https://www.waveshare.com/raspberry-pi-zero-wh-package-f.htm) 
 
 Designed to interact with this software:
-  * [Command-Er (currently private)](https://github.com/nicksen782/Command-Er) 
+  * [Command-Er](https://github.com/nicksen782/Command-Er) 
 
 ## Features:
 - Use Command-Er MINI to send commands to Command-Er.

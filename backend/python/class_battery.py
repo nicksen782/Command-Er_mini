@@ -12,6 +12,7 @@ import timeit
 
 # Config Register (R/W)
 _REG_CONFIG                 = 0x00
+
 # SHUNT VOLTAGE REGISTER (R)
 _REG_SHUNTVOLTAGE           = 0x01
 
@@ -226,5 +227,3 @@ class C_Battery:
 
         # Return the object. 
         return jsonObj
-
-

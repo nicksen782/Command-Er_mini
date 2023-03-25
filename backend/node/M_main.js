@@ -1,6 +1,6 @@
 // Packages for THIS module.
 const fs   = require('fs');
-const os       = require('os');
+const os   = require('os');
 const path = require('path'); 
 const child_process = require('child_process'); 
 const fetch = require('node-fetch');
@@ -596,6 +596,7 @@ let _APP = {
 
 			// Connectivity check.
 			pingCheck: async function(host, timeoutMs) {
+				// _APP.screenLogic.shared.pingCheck(host, timeoutMs);
 				return new Promise(async function(resolve,reject){
 					let timeoutSec = Math.floor(timeoutMs / 1000);
 					let result = await _APP.ping.promise.probe(host, { timeout: timeoutSec, });

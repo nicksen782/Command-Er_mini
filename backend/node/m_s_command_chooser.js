@@ -39,6 +39,13 @@ let screen = {
 	initing: false,
 	inited: false,
 	doNotRun: false,
+	
+	pingCheck_timeout  : 1000, // How long to wait for the ping. 
+	pingCheck_lat_ms   : 5000, // How often to ping.
+	pingCheck_last     : 0,    // Timestamp of the last successful ping.
+	pingCheck_missed   : 0,    // Count of missed pings. 
+	pingCheck_missedmax: 10,   // Max number of missed pings.
+	pingCheck_evenOdd  : 0,    // Flag to toggle the ping indicator.
 
 	menu1: {}, // Populated via intVars.
 	currentSectionIndex: 0,
@@ -48,6 +55,20 @@ let screen = {
 	
 	// INIT:
 	sendCommand: async function(body){
+		// Examples for body:
+		// body: {
+		//   type: 'FROMCONFIG',
+		//   cmd: '',
+		//   sId: 1, gId: 1, cId: 1, 
+		//   uuid: '70030cb2-b358-44a6-9dcb-68b5b947b015'
+		// }
+		// body: {
+		//   type: 'RAW',
+		//   cmd: '\x03',
+		//   sId: 0, gId: 0, cId: 0, 
+		//   uuid: '70030cb2-b358-44a6-9dcb-68b5b947b015'
+		// }
+
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
 		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
 
@@ -60,16 +81,48 @@ let screen = {
 				'Content-Type': 'application/json' 
 			},
 			body: JSON.stringify(body)
-		} ;
+		};
 
+		// Draw the command active indicator.
 		_APP.m_draw.print("*", 16, ts.rows-1); 
-
+		
+		// Send the command. 
 		let json = await _APP.fetch( url, options, 5000 );
 		json = await json.json();
-
+		
+		// Remove the command active indicator.
 		_APP.m_draw.print(" ", 16, ts.rows-1); 
 
-		console.log("RESPONSE:", json);
+		console.log("sendCommand:", json);
+	},
+	STILLCONNECTED: async function(body = {}, timeoutMs){
+		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
+		let conf = _APP.m_config.config.lcd; let ts = conf.tileset;
+
+		body.uuid = _APP.screenLogic.screens["m_s_host_select"].uuid;
+		let url =  `${_APP.screenLogic.screens["m_s_host_select"].activeRemote.URL}MINI/STILLCONNECTED` ;
+		let options = { 
+			method: "POST", 
+			headers : { 
+				'Accept': 'application/json', 
+				'Content-Type': 'application/json' 
+			},
+			body: JSON.stringify(body)
+		};
+
+		// Draw the command active indicator.
+		_APP.m_draw.print("*", 16, ts.rows-1); 
+		
+		// Send the command. 
+		let json = await _APP.fetch( url, options, timeoutMs );
+		// console.log("JSON:", json);
+		json = await json.json();
+		
+		// Remove the command active indicator.
+		_APP.m_draw.print(" ", 16, ts.rows-1); 
+
+		// console.log("STILLCONNECTED:", json);
+		return json.active;
 	},
 	changeSection: function(newSection){
 		let thisScreen = _APP.screenLogic.screens[_APP.currentScreen];
@@ -194,7 +247,11 @@ let screen = {
 		thisScreen.shared = _APP.screenLogic.shared;
 		thisScreen.initing = true;
 
-		_APP.screenLogic.screens["m_s_host_select"] = _APP.screenLogic.screens["m_s_host_select"];
+		//?
+		// _APP.screenLogic.screens["m_s_host_select"] = _APP.screenLogic.screens["m_s_host_select"];
+
+		// console.log(`uuid: ${_APP.screenLogic.screens["m_s_host_select"].uuid}`);
+		// _APP.screenLogic.screens["m_s_host_select"].uuid}
 
 		// Clear the screen.
 		_APP.m_draw.clearLayers("tile4");
@@ -210,7 +267,8 @@ let screen = {
 		_APP.m_draw.print(`${_APP.currentScreen.substring(4).toUpperCase()}` , 0 , 0);
 
 		_APP.m_draw.fillTile("tile1"         , 0, 1, ts.cols, 1); 
-		_APP.m_draw.print(`REMOTE: ${_APP.screenLogic.screens["m_s_host_select"].activeRemote.name} (${_APP.screenLogic.screens["m_s_host_select"].uuid.split("-")[0]})` , 0 , 1);
+		// _APP.m_draw.print(`REMOTE: ${_APP.screenLogic.screens["m_s_host_select"].activeRemote.name} (${_APP.screenLogic.screens["m_s_host_select"].uuid.split("-")[0]})` , 0 , 1);
+		_APP.m_draw.print(`REMOTE: ${_APP.screenLogic.screens["m_s_host_select"].activeRemote.name}` , 0 , 1);
 		
 		_APP.m_draw.fillTile("tile2"         , 0, 2, ts.cols, 1); 
 
@@ -227,6 +285,10 @@ let screen = {
 		thisScreen.initing = false;
 		thisScreen.inited = true;
 		_APP.timeIt("init", "e", __filename);
+
+		// Init the pingCheck timer.
+		thisScreen.pingCheck_last = performance.now();
+		thisScreen.pingCheck_missed = 0;
 
 		// console.log( Object.keys(_APP.screenLogic.screens["m_s_host_select"].remoteConfig) );
 		// console.log( "sections.length   :", _APP.screenLogic.screens["m_s_host_select"].remoteConfig.sections.length);
@@ -305,8 +367,59 @@ let screen = {
 				thisScreen.sendCommand( { type:"RAW", cmd: "\u0003", sId: 0, gId: 0, cId: 0 } );
 			}
 
-			// ??
+			// TODO: 
 			if( _APP.m_gpio.isPress ("KEY3_PIN") ){
+			}
+
+			// Do we do a pingCheck against the host?
+			if(performance.now() - thisScreen.pingCheck_last > thisScreen.pingCheck_lat_ms){
+				try{
+					// PING CHECK.
+					// let host = _APP.screenLogic.screens["m_s_host_select"].activeRemote.host;
+					// let pingCheck = await _APP.screenLogic.shared.pingCheck(host, thisScreen.pingCheck_timeout);
+					// pingCheck = pingCheck.alive;
+
+					// CHECK IF THE UUID IS ACTIVE.
+					let pingCheck = await thisScreen.STILLCONNECTED({}, thisScreen.pingCheck_timeout);
+					
+					// Did the ping fail? 
+					if(!pingCheck){
+						// Increment the pings missed counter.
+						thisScreen.pingCheck_missed += 1;
+
+						// Update the timestamp.
+						thisScreen.pingCheck_last = performance.now();
+						
+						// Has the ping failed too many times?
+						if(thisScreen.pingCheck_missed >= thisScreen.pingCheck_missedmax){
+							// Return to the m_s_host_select screen. 
+							thisScreen.shared.changeScreen.specific("m_s_host_select");
+						}
+						// Display the number of missed pings.
+						else{
+							_APP.m_draw.print(`${thisScreen.pingCheck_missed}`, 29, 0);
+						}
+					}
+					else{
+						// Update the timestamp.
+						thisScreen.pingCheck_last = performance.now();
+
+						// Display the activity character.
+						if(thisScreen.pingCheck_evenOdd){ _APP.m_draw.print(` `, 29, 0); }
+						else{ _APP.m_draw.print(`*`, 29, 0); }
+
+						// Toggle pingCheck_evenOdd.
+						thisScreen.pingCheck_evenOdd = !thisScreen.pingCheck_evenOdd;
+
+						// Reset the missed pings count. 
+						thisScreen.pingCheck_missed = 0;
+					}
+				}
+				catch(e){
+					// Error has occurred. Return to the m_s_host_select screen. 
+					console.log("Failure with ping:", e);
+					thisScreen.shared.changeScreen.specific("m_s_host_select");
+				}
 			}
 
 			resolve();

@@ -391,6 +391,23 @@ let screen = {
 
 			// Refresh the list.
 			if( _APP.m_gpio.isPress ("KEY1_PIN") ){
+			    thisScreen.shared.changeScreen.specific("m_s_host_select");
+			    resolve(); return; 
+			}
+			else if(_APP.m_gpio.isPress("KEY2_PIN")){
+				//console.log("pressed", _APP.getSysData());
+				let dat = _APP.getSysData();
+				if(dat.network.length){ 
+					_APP.m_draw.print(
+					// `I:${dat.network[0].iface} #${dat.network[0].cidr}` 
+					`#${dat.network[0].cidr}`
+					, 0 , 0
+					);
+				}
+
+			}
+			else if(_APP.m_gpio.isRele("KEY2_PIN")){
+				console.log("released");
 				thisScreen.shared.changeScreen.specific("m_s_host_select");
 				resolve(); return; 
 			}
